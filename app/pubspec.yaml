@@ -1,0 +1,77 @@
+name: flyprox_app
+description: Anonymous school polls app for students - OISTER
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # Navigation
+  go_router: ^14.0.0
+
+  # State management
+  flutter_riverpod: ^2.5.1
+
+  # Network
+  dio: ^5.4.3
+
+  # Storage
+  shared_preferences: ^2.2.3
+  flutter_secure_storage: ^9.0.0
+
+  # UI
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+  smooth_page_indicator: ^1.1.0
+  pinput: ^3.0.1
+  image_picker: ^1.1.2
+  permission_handler: ^11.3.1
+
+  # Phone input
+  intl_phone_field: ^3.2.0
+
+  # Utils
+  intl: ^0.20.2
+  equatable: ^2.0.5
+
+  # Animations
+  flutter_animate: ^4.5.0
+
+  # Crypto (for contacts hashing)
+  crypto: ^3.0.3
+
+  # Push notifications
+  firebase_core: ^3.4.0
+  firebase_messaging: ^15.1.1
+  firebase_analytics: ^11.3.1
+
+  # In-app purchases
+  in_app_purchase: ^3.2.0
+
+  # URL launcher
+  url_launcher: ^6.3.0
+
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/animations/
+    - assets/l10n/
+
+  generate: true

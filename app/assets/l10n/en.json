@@ -1,0 +1,411 @@
+{
+  "appName": "OISTER",
+  "onboarding": {
+    "screen1": {
+      "title": "Vote Anonymously",
+      "description": "Participate in daily polls about your classmates. Nobody will know who voted for whom"
+    },
+    "screen2": {
+      "title": "No Negativity",
+      "description": "Only positive questions. The app is designed for fun and communication"
+    },
+    "screen3": {
+      "title": "Anonymous Feed",
+      "description": "See who votes for whom in your class. Anonymously and safely"
+    },
+    "screen4": {
+      "title": "Invite Friends",
+      "description": "Invite classmates — the more participants, the more fun"
+    },
+    "button": {
+      "skip": "Skip",
+      "next": "Next",
+      "start": "Get Started"
+    }
+  },
+  "auth": {
+    "phoneTitle": "Sign in to OISTER",
+    "phoneSubtitle": "Enter your phone number",
+    "phonePlaceholder": "+1 (___) ___-____",
+    "phoneContinue": "Continue",
+    "otpTitle": "Enter code",
+    "otpSubtitle": "Code sent to",
+    "otpTelegram": "Telegram",
+    "otpWhatsApp": "WhatsApp",
+    "otpSms": "SMS",
+    "otpOpenTelegram": "Open Telegram",
+    "otpGetWhatsApp": "Get code via WhatsApp",
+    "otpResend": "Send again",
+    "otpTimer": "Retry in",
+    "otpWrongCode": "Wrong code. Please try again",
+    "otpExpired": "Code expired. Request a new one",
+    "otpTooMany": "Too many attempts. Try again in 1 minute",
+    "changePhone": "Change phone number"
+  },
+  "registration": {
+    "form": {
+      "header": "Registration",
+      "firstName": {
+        "label": "First name",
+        "placeholder": "Enter first name"
+      },
+      "lastName": {
+        "label": "Last name",
+        "placeholder": "Enter last name"
+      },
+      "gender": {
+        "label": "Gender",
+        "placeholder": "Select gender",
+        "male": "Male",
+        "female": "Female",
+        "other": "Other"
+      },
+      "age": {
+        "label": "Age",
+        "placeholder": "Select age",
+        "hint": "Please enter your real age"
+      },
+      "button": {
+        "save": "Save"
+      }
+    },
+    "age": {
+      "modal": {
+        "title": "Age Restriction",
+        "message": "Unfortunately, the app is only available for users aged 14 to 19.",
+        "button": {
+          "exit": "Exit"
+        }
+      }
+    }
+  },
+  "location": {
+    "header": "Choose your city",
+    "subtitle": "We'll show nearby schools and friends",
+    "search": "Search city...",
+    "noCity": "Can't find your location?",
+    "support": "Contact support",
+    "noResults": "City not found",
+    "empty": "Select a city",
+    "submit": "Save",
+    "success": "City saved"
+  },
+  "school": {
+    "form": {
+      "header": "Choose your school"
+    },
+    "search": {
+      "input": "Search school..."
+    },
+    "no": {
+      "school": {
+        "option": "Can't find your school? Contact support"
+      }
+    },
+    "empty": {
+      "state": "No schools found"
+    },
+    "button": {
+      "save": "Save"
+    }
+  },
+  "class": {
+    "form": {
+      "header": "Choose your class"
+    },
+    "button": {
+      "save": "Save"
+    }
+  },
+  "username": {
+    "title": "Create a username",
+    "placeholder": "username (latin only)",
+    "available": "Username available",
+    "taken": "Username taken",
+    "save": "Save",
+    "validationLength": "Username must be 3 to 20 characters",
+    "validationChars": "Only latin letters, digits and underscore"
+  },
+  "contacts": {
+    "title": "Find friends",
+    "description": "Enable contacts access to find your friends",
+    "button": "Enable contacts",
+    "skip": "Skip",
+    "synced": "Contacts synced!"
+  },
+  "photo": {
+    "title": "Add a photo",
+    "subtitle": "Add a photo so your friends can recognize you",
+    "select": "Choose photo",
+    "camera": "Take a photo",
+    "gallery": "Choose from gallery",
+    "takePhoto": "Take photo",
+    "skip": "Skip",
+    "galleryOpened": "Gallery opened",
+    "cameraOpened": "Camera opened"
+  },
+  "promo": {
+    "title": "Promo code",
+    "placeholder": "Enter promo code",
+    "apply": "Apply",
+    "success": "Promo code applied!",
+    "invalid": "Invalid promo code",
+    "skip": "Skip"
+  },
+  "voting": {
+    "beforeVote": {
+      "title": "Wait for friends!",
+      "description": "Your school doesn't have many participants yet. Invite friends to start voting",
+      "invite": "Invite",
+      "continue": "Continue",
+      "continueWithout": "Continue without friends"
+    },
+    "beforeVote2": {
+      "title": "How OISTER works",
+      "howItWorks": "How does it work?",
+      "starsTitle": "Collect stars",
+      "starsDesc": "For every vote in your favor you receive a star",
+      "topTitle": "Rise to the top",
+      "topDesc": "The more stars — the higher you rank in your class",
+      "continue": "Continue"
+    },
+    "question": "Question",
+    "of": "of",
+    "skip": "Skip",
+    "shuffle": "Shuffle",
+    "category": {
+      "humor": "Humor",
+      "normal": "Normal",
+      "sympathy": "Sympathy"
+    },
+    "timer": {
+      "title": "Next round in...",
+      "invite": "Invite a friend",
+      "description": "Invite a friend and vote right now!",
+      "goHome": "Go home",
+      "hours": "h",
+      "minutes": "min",
+      "seconds": "sec"
+    },
+    "stars": {
+      "received": "You received {count} stars!",
+      "receivedSingle": "You received {count} star!",
+      "continue": "Continue",
+      "myCollection": "My collection"
+    },
+    "starTaking": {
+      "title": "Someone voted for you!",
+      "subtitle": "Find out who voted for you",
+      "viewActivity": "View activity",
+      "later": "Later",
+      "revealWho": "Find out who voted",
+      "starsReceived": "stars received"
+    }
+  },
+  "invite": {
+    "title": "Invite a friend",
+    "description": "Friend installed the app = you can vote right now!",
+    "code": "Your code",
+    "share": "Share",
+    "copy": "Copy link",
+    "copied": "Link copied!",
+    "moreParticipants": "People you may know"
+  },
+  "home": {
+    "title": "OISTER",
+    "feed": "Feed",
+    "vote": "Vote",
+    "profile": "Profile",
+    "friends": "Friends",
+    "activity": "Activity"
+  },
+  "profile": {
+    "stars": "Stars",
+    "friends": "Friends",
+    "votes": "Votes",
+    "collection": "My collection",
+    "myFriends": "My friends",
+    "friendRequests": "Friend requests",
+    "editProfile": "Edit profile",
+    "addFriend": "Add friend",
+    "requestSent": "Request sent",
+    "alreadyFriends": "You are friends",
+    "openProfile": "Open profile",
+    "grade": "Grade {grade}",
+    "gradeSchool": "Grade {grade} · {school}",
+    "mutualFriends": "{count} mutual friends",
+    "more": "More",
+    "add": "Add"
+  },
+  "editProfile": {
+    "title": "Edit profile",
+    "changeSchool": "Change school",
+    "save": "Save",
+    "cancel": "Cancel",
+    "schoolChangeConfirm": "Are you sure you want to change school? This will reset your data in the current school.",
+    "schoolChangeConfirmYes": "Yes, change",
+    "schoolChangeConfirmNo": "Cancel",
+    "deleteAccount": "Delete account",
+    "deleteAccountConfirm": "Are you sure you want to delete your account? This action is irreversible.",
+    "deleteAccountFinal": "Delete permanently",
+    "deleteReason": "Select reason for deletion:",
+    "deleteScheduled": "Account will be deleted within 30 days",
+    "chooseLanguage": "Choose language"
+  },
+  "activity": {
+    "title": "Activity",
+    "tabSchool": "In school",
+    "tabMyLikes": "My likes",
+    "empty": "No activity yet",
+    "revealWho": "Find out who",
+    "voted": "voted for",
+    "inPoll": "in poll",
+    "revealWhoVoted": "Find out who voted",
+    "hide": "Hide",
+    "learnMore": "Learn more"
+  },
+  "friends": {
+    "title": "My friends",
+    "search": "Search...",
+    "empty": "No friends",
+    "remove": "Remove friend",
+    "removeConfirm": "Remove from friends?"
+  },
+  "friendRequests": {
+    "title": "Friend requests",
+    "accept": "Accept",
+    "decline": "Decline",
+    "empty": "No requests"
+  },
+  "search": {
+    "placeholder": "Search users...",
+    "empty": "Nothing found",
+    "noResults": "No users found",
+    "recentSearches": "Recent"
+  },
+  "premium": {
+    "title": "Premium",
+    "subtitle": "Find out who voted for you",
+    "pro": {
+      "title": "Premium Pro",
+      "price": "$7.99 / week",
+      "feature1": "2 times per week — reveal full names",
+      "feature2": "2 times per week — first letter of name",
+      "feature3": "Stars ×2",
+      "feature4": "✓ badge in profile for a week",
+      "button": "Get Pro",
+      "priceButton": "$7.99"
+    },
+    "max": {
+      "title": "Premium Max",
+      "price": "$27.99 / month",
+      "feature1": "Unlimited — reveal full names",
+      "feature2": "Unlimited — first letter of name",
+      "feature3": "Stars ×2",
+      "feature4": "✓ badge in profile for a month",
+      "button": "Get Max",
+      "priceButton": "$27.99"
+    },
+    "restore": "Restore purchases",
+    "terms": "Terms of use",
+    "privacy": "Privacy policy",
+    "activated": "Premium activated!",
+    "purchaseError": "Failed to complete purchase",
+    "alwaysOn": "Always on",
+    "featureSoon": "$feature — coming soon!"
+  },
+  "premiumResult": {
+    "remaining": "You have left:",
+    "unlimited": "Unlimited reveals",
+    "fullNameReveals": "full name reveals",
+    "firstLetterReveals": "first letter reveals",
+    "revealFirstLetter": "Reveal first letter",
+    "revealFullName": "Reveal full name",
+    "limitExhausted": "Limit exhausted. Get Premium Max for unlimited",
+    "tapToReveal": "Tap the card to reveal",
+    "limitUpdated": "Your reveal limits have been updated!"
+  },
+  "settings": {
+    "title": "Settings",
+    "notifications": {
+      "title": "Notifications",
+      "newVotes": "New votes",
+      "timer": "Timer expired",
+      "friendRequests": "Friend requests",
+      "premium": "Premium subscription"
+    },
+    "account": {
+      "title": "Account",
+      "editProfile": "Edit profile",
+      "changePhone": "Change phone number",
+      "language": "Language",
+      "deleteAccount": "Delete account",
+      "logout": "Sign out"
+    },
+    "app": {
+      "title": "App",
+      "version": "App version",
+      "terms": "Terms of use",
+      "privacy": "Privacy policy",
+      "openingTerms": "Opening terms of use...",
+      "openingPrivacy": "Opening privacy policy..."
+    },
+    "logoutConfirm": "Are you sure you want to sign out?",
+    "logoutConfirmTitle": "Sign out?",
+    "logoutInProgress": "Signing out...",
+    "deleteConfirm": "Are you sure you want to delete your account? This action is irreversible.",
+    "languages": {
+      "ru": "Русский",
+      "en": "English"
+    },
+    "chooseLanguage": "Choose language"
+  },
+  "menu": {
+    "title": "Menu",
+    "profile": "Profile",
+    "friends": "Friends",
+    "collection": "Collection",
+    "premium": "Premium",
+    "settings": "Settings",
+    "logout": "Sign out",
+    "search": "Search"
+  },
+  "collection": {
+    "title": "Collection",
+    "unlock": "Unlock",
+    "locked": "Locked",
+    "frames": "Frames",
+    "badges": "Badges",
+    "backgrounds": "Backgrounds",
+    "stars": "stars"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "retry": "Retry",
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "next": "Next",
+    "skip": "Skip",
+    "done": "Done",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK",
+    "close": "Close",
+    "search": "Search",
+    "send": "Send",
+    "loadError": "Failed to load data",
+    "unknownError": "Something went wrong",
+    "later": "Later",
+    "continue": "Continue",
+    "invite": "Invite",
+    "goHome": "Go home",
+    "learnMore": "Learn more",
+    "hide": "Hide",
+    "add": "Add",
+    "remove": "Remove",
+    "confirm": "Confirm",
+    "share": "Share"
+  }
+}
