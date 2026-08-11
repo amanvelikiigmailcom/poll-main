@@ -1,10 +1,12 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../router/app_router.dart';
+import '../../services/local_game_service.dart';
 
-// Simple state to track whether a vote session is available or a timer is active.
-// In production this would come from a poll provider / backend.
+// Tracks whether a vote round is available right now or the 40-minute
+// break timer is still running, using LocalGameService's local state.
 enum _HomeTabState { loading, timerActive, voteAvailable }
 
 class MainTab extends ConsumerStatefulWidget {
@@ -17,12 +19,11 @@ class MainTab extends ConsumerStatefulWidget {
 class _MainTabState extends ConsumerState<MainTab> {
   _HomeTabState _tabState = _HomeTabState.loading;
 
-  // Fake timer remaining (seconds) – replace with real countdown from PollProvider
-  int _secondsRemaining = 3 * 60 * 60; // 3 hours
+  int _secondsRemaining = 0;
+  Timer? _ticker;
 
-  // Fake stats – replace with data from UserProvider
-  final int _starsCount = 24;
-  final int _votesReceivedToday = 3;
+  int _starsCount = 0;
+  final int _votesReceivedToday = 0;
 
   @override
   void initState() {
@@ -30,11 +31,39 @@ class _MainTabState extends ConsumerState<MainTab> {
     _loadState();
   }
 
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
   Future<void> _loadState() async {
-    // TODO: Check real timer / poll availability from provider.
-    await Future<void>.delayed(const Duration(milliseconds: 500));
-    if (mounted) {
-      setState(() => _tabState = _HomeTabState.timerActive);
+    final remaining = await LocalGameService.instance.secondsUntilNextRound();
+    final stars = await LocalGameService.instance.getStars();
+    if (!mounted) return;
+    setState(() {
+      _starsCount = stars;
+      _secondsRemaining = remaining;
+      _tabState =
+          remaining > 0 ? _HomeTabState.timerActive : _HomeTabState.voteAvailable;
+    });
+    _ticker?.cancel();
+    if (remaining > 0) {
+      _ticker = Timer.periodic(const Duration(seconds: 1), (t) {
+        if (!mounted) {
+          t.cancel();
+          return;
+        }
+        if (_secondsRemaining <= 1) {
+          t.cancel();
+          setState(() {
+            _secondsRemaining = 0;
+            _tabState = _HomeTabState.voteAvailable;
+          });
+        } else {
+          setState(() => _secondsRemaining--);
+        }
+      });
     }
   }
 
@@ -63,8 +92,9 @@ class _MainTabState extends ConsumerState<MainTab> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_none_outlined, color: Color(0xFF1A1A2E)),
-            onPressed: () {},
+            tooltip: 'Изменить имена',
+            icon: const Icon(Icons.edit_outlined, color: Color(0xFF1A1A2E)),
+            onPressed: () => context.push(AppRoutes.namesEntry),
           ),
         ],
       ),
@@ -230,7 +260,8 @@ class _MainTabState extends ConsumerState<MainTab> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () => context.push(AppRoutes.beforeVote),
+              // Local Gas-style flow: intro → 12 questions (self + 3 classmates)
+              onPressed: () => context.push(AppRoutes.beforeVote2),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: const Color(0xFFFF3B5C),

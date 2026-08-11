@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../screens/onboarding/onboarding_screen.dart';
+import '../screens/onboarding/names_entry_screen.dart';
 import '../screens/auth/phone_registration_screen.dart';
 import '../screens/auth/otp_verification_screen.dart';
+import '../services/local_game_service.dart';
 import '../screens/registration/registration_screen.dart';
 import '../screens/registration/location_screen.dart';
 import '../screens/registration/school_screen.dart';
@@ -52,6 +54,7 @@ import '../screens/home/home_screen.dart';
 abstract final class AppRoutes {
   static const splash = '/';
   static const onboarding = '/onboarding';
+  static const namesEntry = '/names';
   static const phone = '/phone';
   static const otp = '/otp';
   static const register = '/register';
@@ -133,10 +136,10 @@ class _SplashRedirectState extends State<_SplashRedirect> {
   }
 
   Future<void> _redirect() async {
-    // TODO: Read auth state from StorageService / Riverpod and route
-    // to AppRoutes.home if the user is logged in.
     await Future<void>.delayed(const Duration(milliseconds: 600));
-    if (mounted) context.go(AppRoutes.onboarding);
+    final hasNames = await LocalGameService.instance.hasEnoughNames();
+    if (!mounted) return;
+    context.go(hasNames ? AppRoutes.home : AppRoutes.namesEntry);
   }
 
   @override
@@ -175,6 +178,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.onboarding,
       builder: (_, __) => const OnboardingScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.namesEntry,
+      builder: (_, __) => const NamesEntryScreen(),
     ),
 
     // ── Auth ─────────────────────────────────────────────────────────────────

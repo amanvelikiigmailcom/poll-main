@@ -14,8 +14,8 @@ class StarReceivedScreen extends StatefulWidget {
 
 class _StarReceivedScreenState extends State<StarReceivedScreen>
     with TickerProviderStateMixin {
-  // Stars earned this round (will come from state/provider)
-  static const int _starsEarned = 12;
+  // Flat reward for finishing a local 12-question round
+  static const int _starsEarned = 1000;
 
   late AnimationController _starBounceController;
   late AnimationController _contentFadeController;
