@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import '../../services/invite_share_service.dart';
 import '../../theme/app_colors.dart';
 
+/// After voting / timer: invite classmates via WhatsApp, Telegram, Instagram
+/// with a ready-made message (deep links where supported).
 class InviteFriendScreen extends StatefulWidget {
   const InviteFriendScreen({super.key});
 
@@ -10,76 +12,27 @@ class InviteFriendScreen extends StatefulWidget {
   State<InviteFriendScreen> createState() => _InviteFriendScreenState();
 }
 
-class _InviteFriendScreenState extends State<InviteFriendScreen>
-    with SingleTickerProviderStateMixin {
-  static const String _promoCode = 'BU67R';
-  static const String _inviteLink = 'https://oister.app/invite/BU67R';
-
-  late AnimationController _fadeController;
-  late Animation<double> _fade;
-
-  final TextEditingController _searchController = TextEditingController();
-  String _searchQuery = '';
-
-  final List<_MockContact> _contacts = [
-    _MockContact(name: 'Анна Петрова', phone: '+7 (999) 123-45-67', emoji: '👩'),
-    _MockContact(name: 'Дмитрий Смирнов', phone: '+7 (999) 234-56-78', emoji: '👨'),
-    _MockContact(name: 'Мария Иванова', phone: '+7 (999) 345-67-89', emoji: '👩'),
-    _MockContact(name: 'Алексей Козлов', phone: '+7 (999) 456-78-90', emoji: '👨'),
-    _MockContact(name: 'Екатерина Новикова', phone: '+7 (999) 567-89-01', emoji: '👩'),
-  ];
+class _InviteFriendScreenState extends State<InviteFriendScreen> {
+  InvitePayload? _payload;
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _fadeController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 400),
-    );
-    _fade = CurvedAnimation(parent: _fadeController, curve: Curves.easeOut);
-    _fadeController.forward();
-
-    _searchController.addListener(
-      () => setState(() => _searchQuery = _searchController.text.trim().toLowerCase()),
-    );
+    _load();
   }
 
-  @override
-  void dispose() {
-    _fadeController.dispose();
-    _searchController.dispose();
-    super.dispose();
+  Future<void> _load() async {
+    final p = await InviteShareService.instance.buildPayload();
+    if (!mounted) return;
+    setState(() {
+      _payload = p;
+      _loading = false;
+    });
   }
 
-  List<_MockContact> get _filtered {
-    if (_searchQuery.isEmpty) return _contacts;
-    return _contacts
-        .where((c) =>
-            c.name.toLowerCase().contains(_searchQuery) ||
-            c.phone.contains(_searchQuery))
-        .toList();
-  }
-
-  void _copyCode() {
-    Clipboard.setData(const ClipboardData(text: _promoCode));
-    _showSnackBar('Промокод скопирован!');
-  }
-
-  void _copyLink() {
-    Clipboard.setData(const ClipboardData(text: _inviteLink));
-    _showSnackBar('Ссылка скопирована!');
-  }
-
-  void _share() {
-    // Platform share sheet
-    _showSnackBar('Открываем меню поделиться...');
-  }
-
-  void _sendToContact(_MockContact c) {
-    _showSnackBar('Отправка приглашения для ${c.name}...');
-  }
-
-  void _showSnackBar(String msg) {
+  void _toast(String msg) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(msg),
@@ -90,8 +43,44 @@ class _InviteFriendScreenState extends State<InviteFriendScreen>
     );
   }
 
+  Future<void> _whatsapp() async {
+    await InviteShareService.instance.shareWhatsApp();
+    _toast('Открываем WhatsApp…');
+  }
+
+  Future<void> _telegram() async {
+    await InviteShareService.instance.shareTelegram();
+    _toast('Открываем Telegram…');
+  }
+
+  Future<void> _instagram() async {
+    final r = await InviteShareService.instance.shareInstagram();
+    if (r.copied) {
+      _toast(
+        r.openedApp
+            ? 'Текст скопирован — вставь в Direct / Stories'
+            : 'Текст скопирован. Открой Instagram и вставь сообщение',
+      );
+    }
+  }
+
+  Future<void> _everywhere() async {
+    await InviteShareService.instance.shareEverywhere();
+  }
+
+  Future<void> _copyMessage() async {
+    await InviteShareService.instance.copyMessage();
+    _toast('Сообщение скопировано');
+  }
+
+  Future<void> _copyLink() async {
+    await InviteShareService.instance.copyLink();
+    _toast('Ссылка скопирована');
+  }
+
   @override
   Widget build(BuildContext context) {
+    final p = _payload;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -108,63 +97,109 @@ class _InviteFriendScreenState extends State<InviteFriendScreen>
         ),
         leading: IconButton(
           icon: const Icon(Icons.close_rounded, color: AppColors.textPrimary),
-          onPressed: () => context.pop(),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/home');
+            }
+          },
         ),
       ),
-      body: FadeTransition(
-        opacity: _fade,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-          children: [
-            _BenefitBanner(),
-            const SizedBox(height: 16),
-            _PromoCodeCard(code: _promoCode, onCopy: _copyCode),
-            const SizedBox(height: 16),
-            _BenefitsSection(),
-            const SizedBox(height: 20),
-            // Contacts section
-            const Text(
-              'Отправить другу',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              children: [
+                _BenefitBanner(),
+                const SizedBox(height: 16),
+                if (p != null) _PromoCodeCard(code: p.username, onCopy: _copyLink),
+                const SizedBox(height: 20),
+                const Text(
+                  'Отправить с готовым текстом',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Выбери приложение — сообщение уже готово, останется отправить',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.textSecondary,
+                    height: 1.35,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                _SocialButton(
+                  label: 'WhatsApp',
+                  subtitle: 'Чат с готовым текстом',
+                  color: const Color(0xFF25D366),
+                  icon: Icons.chat_rounded,
+                  onTap: _whatsapp,
+                ),
+                const SizedBox(height: 10),
+                _SocialButton(
+                  label: 'Telegram',
+                  subtitle: 'Поделиться ссылкой + текст',
+                  color: const Color(0xFF2AABEE),
+                  icon: Icons.send_rounded,
+                  onTap: _telegram,
+                ),
+                const SizedBox(height: 10),
+                _SocialButton(
+                  label: 'Instagram',
+                  subtitle: 'Текст скопируется → вставь в Direct',
+                  color: const Color(0xFFE1306C),
+                  icon: Icons.camera_alt_rounded,
+                  onTap: _instagram,
+                ),
+                const SizedBox(height: 10),
+                _SocialButton(
+                  label: 'Все приложения',
+                  subtitle: 'Системное меню «Поделиться»',
+                  color: AppColors.primaryBlue,
+                  icon: Icons.ios_share_rounded,
+                  onTap: _everywhere,
+                ),
+                const SizedBox(height: 20),
+                if (p != null) _MessagePreview(message: p.message),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _copyMessage,
+                  icon: const Icon(Icons.copy_rounded),
+                  label: const Text('Скопировать сообщение'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primaryBlue,
+                    side: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: _copyLink,
+                  icon: const Icon(Icons.link_rounded),
+                  label: const Text('Скопировать только ссылку'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.textSecondary,
+                    side: const BorderSide(color: AppColors.border, width: 1.5),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 10),
-            _ContactSearchField(controller: _searchController),
-            const SizedBox(height: 8),
-            ..._filtered.map((c) => _ContactTile(
-                  contact: c,
-                  onSend: () => _sendToContact(c),
-                )),
-            const SizedBox(height: 20),
-            // Share / Copy buttons
-            _ActionButton(
-              icon: Icons.share_rounded,
-              label: 'Поделиться',
-              backgroundColor: AppColors.primaryBlue,
-              foregroundColor: AppColors.white,
-              onPressed: _share,
-            ),
-            const SizedBox(height: 10),
-            _ActionButton(
-              icon: Icons.link_rounded,
-              label: 'Скопировать ссылку',
-              backgroundColor: Colors.transparent,
-              foregroundColor: AppColors.primaryBlue,
-              outlined: true,
-              onPressed: _copyLink,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// Sub-widgets
 // ---------------------------------------------------------------------------
 
 class _BenefitBanner extends StatelessWidget {
@@ -183,7 +218,7 @@ class _BenefitBanner extends StatelessWidget {
           SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Друг установил приложение = можешь голосовать сейчас!\nПропусти 40 минут ожидания.',
+              'Друг установил приложение — можно сразу голосовать снова и пропустить 40 минут ожидания.',
               style: TextStyle(
                 fontSize: 13,
                 color: AppColors.primaryBlue,
@@ -222,7 +257,7 @@ class _PromoCodeCard extends StatelessWidget {
       child: Column(
         children: [
           const Text(
-            'ВАШ ПРОМОКОД',
+            'ТВОЙ ИНВАЙТ',
             style: TextStyle(
               color: Colors.white70,
               fontSize: 11,
@@ -235,12 +270,12 @@ class _PromoCodeCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                code,
+                '@$code',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 38,
+                  fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  letterSpacing: 8,
+                  letterSpacing: 1,
                 ),
               ),
               const SizedBox(width: 10),
@@ -267,245 +302,111 @@ class _PromoCodeCard extends StatelessWidget {
   }
 }
 
-class _BenefitsSection extends StatelessWidget {
-  static const _benefits = [
-    ('🚀', 'Пропусти таймер', 'Друг установил — ты начинаешь голосовать сразу'),
-    ('⭐', 'Больше звёзд', 'Каждый приглашённый друг приносит бонус'),
-    ('🎮', 'Больше участников', 'С друзьями голосование интереснее'),
-  ];
+class _SocialButton extends StatelessWidget {
+  final String label;
+  final String subtitle;
+  final Color color;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _SocialButton({
+    required this.label,
+    required this.subtitle,
+    required this.color,
+    required this.icon,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Зачем приглашать?',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 10),
-        ..._benefits.map((b) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Center(
-                      child: Text(b.$1, style: const TextStyle(fontSize: 20)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          b.$2,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        Text(
-                          b.$3,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+    return Material(
+      color: color,
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: Colors.white, size: 24),
               ),
-            )),
-      ],
-    );
-  }
-}
-
-class _ContactSearchField extends StatelessWidget {
-  final TextEditingController controller;
-
-  const _ContactSearchField({required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      style: const TextStyle(fontSize: 14),
-      decoration: InputDecoration(
-        hintText: 'Поиск контактов',
-        hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
-        prefixIcon: const Icon(Icons.search_rounded, color: AppColors.textHint, size: 20),
-        filled: true,
-        fillColor: AppColors.white,
-        contentPadding: const EdgeInsets.symmetric(vertical: 12),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.85),
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios_rounded,
+                  color: Colors.white.withOpacity(0.9), size: 16),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _MockContact {
-  final String name;
-  final String phone;
-  final String emoji;
+class _MessagePreview extends StatelessWidget {
+  final String message;
 
-  const _MockContact({
-    required this.name,
-    required this.phone,
-    required this.emoji,
-  });
-}
-
-class _ContactTile extends StatelessWidget {
-  final _MockContact contact;
-  final VoidCallback onSend;
-
-  const _ContactTile({required this.contact, required this.onSend});
+  const _MessagePreview({required this.message});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.border),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 22,
-            backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
-            child: Text(contact.emoji, style: const TextStyle(fontSize: 20)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  contact.name,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                Text(
-                  contact.phone,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
+          const Text(
+            'Текст приглашения',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textSecondary,
             ),
           ),
-          ElevatedButton(
-            onPressed: onSend,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF25D366),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              elevation: 0,
-              textStyle: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
+          const SizedBox(height: 8),
+          SelectableText(
+            message,
+            style: const TextStyle(
+              fontSize: 13,
+              height: 1.45,
+              color: AppColors.textPrimary,
             ),
-            child: const Text('WhatsApp'),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color backgroundColor;
-  final Color foregroundColor;
-  final bool outlined;
-  final VoidCallback onPressed;
-
-  const _ActionButton({
-    required this.icon,
-    required this.label,
-    required this.backgroundColor,
-    required this.foregroundColor,
-    required this.onPressed,
-    this.outlined = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(14),
-    );
-    final padding = const EdgeInsets.symmetric(vertical: 14);
-    final textStyle = const TextStyle(fontSize: 16, fontWeight: FontWeight.w600);
-
-    if (outlined) {
-      return SizedBox(
-        width: double.infinity,
-        child: OutlinedButton.icon(
-          onPressed: onPressed,
-          icon: Icon(icon),
-          label: Text(label),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: foregroundColor,
-            side: BorderSide(color: foregroundColor, width: 1.5),
-            padding: padding,
-            shape: shape,
-            textStyle: textStyle,
-          ),
-        ),
-      );
-    }
-
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        onPressed: onPressed,
-        icon: Icon(icon),
-        label: Text(label),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor,
-          foregroundColor: foregroundColor,
-          padding: padding,
-          shape: shape,
-          elevation: 0,
-          textStyle: textStyle,
-        ),
       ),
     );
   }

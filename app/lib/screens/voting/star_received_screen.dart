@@ -289,13 +289,34 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                   ),
                 ),
                 const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.push(AppRoutes.invite),
+                    icon: const Icon(Icons.person_add_alt_1_rounded),
+                    label: const Text('Пригласить друга'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white70, width: 1.5),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
                 // View collection secondary button
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
                     onPressed: () => context.go(AppRoutes.collection),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
+                      foregroundColor: Colors.white70,
                       side: const BorderSide(color: Colors.white38, width: 1.5),
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
