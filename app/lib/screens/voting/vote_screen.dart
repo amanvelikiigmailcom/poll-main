@@ -96,9 +96,23 @@ class _VoteScreenState extends State<VoteScreen>
   }
 
   Future<void> _loadRound(String languageCode) async {
+    final ready = await LocalGameService.instance.hasEnoughNames();
+    if (!mounted) return;
+    if (!ready) {
+      // Not enough setup yet — only names onboarding, never a fake "need 5 people" gate
+      context.go(AppRoutes.namesEntry);
+      return;
+    }
+
     final generated = await LocalGameService.instance
         .generateRound(languageCode: languageCode);
     if (!mounted) return;
+
+    if (generated.isEmpty) {
+      setState(() => _loading = false);
+      return;
+    }
+
     final questions = generated
         .map(
           (g) => PollQuestion(

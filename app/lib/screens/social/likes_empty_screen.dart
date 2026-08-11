@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../router/app_router.dart';
 
 const Color _primaryBlue = Color(0xFF4B6EF5);
 const Color _background = Color(0xFFF8F8F8);
@@ -61,7 +62,7 @@ class LikesEmptyScreen extends ConsumerWidget {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: () => context.push('/before-vote'),
+                          onPressed: () => context.push(AppRoutes.vote),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _primaryBlue,
                             foregroundColor: Colors.white,

@@ -28,7 +28,7 @@ class _BeforeVote2ScreenState extends State<BeforeVote2Screen>
       color: Color(0xFFFF9500),
       title: 'Как работает голосование',
       description:
-          'Тебе показывают 4 участника и один вопрос. Выбери того, кто подходит лучше всего.',
+          'На вопрос — 4 карточки: ты и трое одноклассников (хватит 3 друзей). Выбери, кто подходит лучше всего.',
     ),
     _StepData(
       emoji: '⭐',

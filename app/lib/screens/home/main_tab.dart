@@ -260,8 +260,8 @@ class _MainTabState extends ConsumerState<MainTab> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              // Local Gas-style flow: intro → 12 questions (self + 3 classmates)
-              onPressed: () => context.push(AppRoutes.beforeVote2),
+              // 3 classmates is enough — start voting immediately (local Gas flow)
+              onPressed: () => context.push(AppRoutes.vote),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: const Color(0xFFFF3B5C),
