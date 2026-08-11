@@ -164,11 +164,11 @@ class AppLocalizationsRu extends AppLocalizations {
   String get photo_camera => 'Снять на камеру';
 
   @override
-  String get voting_beforeVoteTitle => 'Жди друзей!';
+  String get voting_beforeVoteTitle => 'Нужны друзья';
 
   @override
   String get voting_beforeVoteDesc =>
-      'В твоей школе пока мало участников. Пригласи друзей чтобы начать голосовать';
+      'Минимум нужно ввести 3 друзей, чтобы начать голосование.';
 
   @override
   String get voting_continueWithout => 'Продолжить без друзей';

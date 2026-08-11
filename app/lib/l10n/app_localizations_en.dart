@@ -162,11 +162,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get photo_camera => 'Take a photo';
 
   @override
-  String get voting_beforeVoteTitle => 'Wait for friends!';
+  String get voting_beforeVoteTitle => 'Need friends';
 
   @override
   String get voting_beforeVoteDesc =>
-      'Your school doesn\'t have many participants yet. Invite friends to start voting';
+      'You need to add at least 3 friends to start voting.';
 
   @override
   String get voting_continueWithout => 'Continue without friends';

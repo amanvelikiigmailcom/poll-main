@@ -4,8 +4,8 @@ import '../../router/app_router.dart';
 import '../../services/local_game_service.dart';
 import '../../theme/app_colors.dart';
 
-/// Local mode: 3 classmates is enough. No "wait for school" gate.
-/// Redirects straight into the vote intro or names onboarding.
+/// No "school wait / few participants" gate.
+/// ≥3 friends → vote. Otherwise → names onboarding.
 class BeforeVoteScreen extends StatefulWidget {
   const BeforeVoteScreen({super.key});
 
@@ -23,9 +23,7 @@ class _BeforeVoteScreenState extends State<BeforeVoteScreen> {
   Future<void> _route() async {
     final ready = await LocalGameService.instance.hasEnoughNames();
     if (!mounted) return;
-    // Ready (login + name + ≥3 friends) → how-it-works → vote
-    // Not ready → back to names
-    context.go(ready ? AppRoutes.beforeVote2 : AppRoutes.namesEntry);
+    context.go(ready ? AppRoutes.vote : AppRoutes.namesEntry);
   }
 
   @override

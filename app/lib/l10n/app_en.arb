@@ -116,7 +116,7 @@
 
   "voting_beforeVoteTitle": "Wait for friends!",
   "@voting_beforeVoteTitle": {},
-  "voting_beforeVoteDesc": "Your school doesn't have many participants yet. Invite friends to start voting",
+  "voting_beforeVoteDesc": "You need to add at least 3 friends to start voting.",
   "@voting_beforeVoteDesc": {},
   "voting_continueWithout": "Continue without friends",
   "@voting_continueWithout": {},

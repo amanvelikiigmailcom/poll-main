@@ -74,6 +74,36 @@ class _MainTabState extends ConsumerState<MainTab> {
     return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
+  /// Start poll only if login + name + ≥3 friends. No school-wait screen.
+  Future<void> _startVote() async {
+    final ready = await LocalGameService.instance.hasEnoughNames();
+    if (!mounted) return;
+    if (ready) {
+      context.push(AppRoutes.vote);
+      return;
+    }
+    final friends = await LocalGameService.instance.getNames();
+    final need = LocalGameService.minFriends - friends.length;
+    if (!mounted) return;
+    final msg = friends.length < LocalGameService.minFriends
+        ? (need > 0
+            ? 'Минимум нужно ввести ${LocalGameService.minFriends} друзей. Ещё $need.'
+            : 'Минимум нужно ввести ${LocalGameService.minFriends} друзей.')
+        : 'Заполни логин и своё имя, затем минимум ${LocalGameService.minFriends} друзей.';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'Добавить',
+          onPressed: () => context.push(AppRoutes.namesEntry),
+        ),
+      ),
+    );
+    // Open names so they can add the missing friends
+    context.push(AppRoutes.namesEntry);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -260,8 +290,7 @@ class _MainTabState extends ConsumerState<MainTab> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              // 3 classmates is enough — start voting immediately (local Gas flow)
-              onPressed: () => context.push(AppRoutes.vote),
+              onPressed: _startVote,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: const Color(0xFFFF3B5C),

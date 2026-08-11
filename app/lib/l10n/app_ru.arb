@@ -60,7 +60,7 @@
   "photo_camera": "Снять на камеру",
 
   "voting_beforeVoteTitle": "Жди друзей!",
-  "voting_beforeVoteDesc": "В твоей школе пока мало участников. Пригласи друзей чтобы начать голосовать",
+  "voting_beforeVoteDesc": "Минимум нужно ввести 3 друзей, чтобы начать голосование.",
   "voting_continueWithout": "Продолжить без друзей",
   "voting_question": "Вопрос",
   "voting_of": "из",

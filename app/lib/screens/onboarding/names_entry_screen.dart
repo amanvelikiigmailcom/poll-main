@@ -398,9 +398,32 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Минимум $_minFriends имени — на вопрос выпадут трое из них + ты',
+          'Минимум $_minFriends друзей. Меньше — опрос не начнётся.',
           style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.4),
         ),
+        if (_friends.length < _minFriends) ...[
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white38),
+            ),
+            child: Text(
+              'Нужно минимум $_minFriends друзей. '
+              'Сейчас: ${_friends.length}. '
+              'Ещё ${_minFriends - _friends.length}.',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 20),
         Row(
           children: [
@@ -520,7 +543,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
             child: Text(
               _friends.length >= _minFriends
                   ? 'Начать'
-                  : 'Ещё ${_minFriends - _friends.length}',
+                  : 'Минимум $_minFriends друзей (ещё ${_minFriends - _friends.length})',
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             ),
           ),
