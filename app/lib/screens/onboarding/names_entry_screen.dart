@@ -22,6 +22,8 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
 
   final TextEditingController _playerController = TextEditingController();
   final TextEditingController _friendController = TextEditingController();
+  final FocusNode _playerFocus = FocusNode();
+  final FocusNode _friendFocus = FocusNode();
   String? _playerName;
   final List<String> _friends = [];
   bool _saving = false;
@@ -30,6 +32,14 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
   void initState() {
     super.initState();
     _prefill();
+  }
+
+  /// Keep keyboard open and caret in the friend field after each add.
+  void _refocusFriendField() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _friendFocus.requestFocus();
+    });
   }
 
   Future<void> _prefill() async {
@@ -46,6 +56,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
         // If already complete, still show friends step so they can edit.
         _step = 1;
       });
+      _refocusFriendField();
     }
   }
 
@@ -53,6 +64,8 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
   void dispose() {
     _playerController.dispose();
     _friendController.dispose();
+    _playerFocus.dispose();
+    _friendFocus.dispose();
     super.dispose();
   }
 
@@ -63,27 +76,34 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
       _playerName = name;
       _step = 1;
     });
+    _refocusFriendField();
   }
 
   void _addFriend() {
     final name = _friendController.text.trim();
-    if (name.isEmpty) return;
+    if (name.isEmpty) {
+      _refocusFriendField();
+      return;
+    }
     final player = (_playerName ?? '').toLowerCase();
     if (name.toLowerCase() == player) {
       _friendController.clear();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Это уже твоё имя — добавь одноклассников')),
       );
+      _refocusFriendField();
       return;
     }
     if (_friends.any((n) => n.toLowerCase() == name.toLowerCase())) {
       _friendController.clear();
+      _refocusFriendField();
       return;
     }
     setState(() {
       _friends.add(name);
       _friendController.clear();
     });
+    _refocusFriendField();
   }
 
   void _removeFriend(String name) {
@@ -137,6 +157,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
         const SizedBox(height: 28),
         TextField(
           controller: _playerController,
+          focusNode: _playerFocus,
           textInputAction: TextInputAction.done,
           onChanged: (_) => setState(() {}),
           onSubmitted: (_) => _goToFriendsStep(),
@@ -223,7 +244,10 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
             Expanded(
               child: TextField(
                 controller: _friendController,
+                focusNode: _friendFocus,
+                autofocus: true,
                 textInputAction: TextInputAction.done,
+                // Enter / Done adds name and focus returns to empty field
                 onSubmitted: (_) => _addFriend(),
                 style: const TextStyle(fontSize: 16),
                 decoration: InputDecoration(
