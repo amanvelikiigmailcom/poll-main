@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../router/app_router.dart';
 import '../../services/local_game_service.dart';
@@ -7,8 +8,9 @@ const Color _primaryBlue = Color(0xFF4B6EF5);
 const int _minFriends = LocalGameService.minFriends;
 
 /// Gas-style onboarding:
-/// 1) Your own name (always appears as one of 4 answer cards)
-/// 2) At least 3 classmates — the other three cards each round
+/// 0) Username / login (required)
+/// 1) Your display name (always on answer cards)
+/// 2) At least 3 classmates
 class NamesEntryScreen extends StatefulWidget {
   const NamesEntryScreen({super.key});
 
@@ -17,16 +19,21 @@ class NamesEntryScreen extends StatefulWidget {
 }
 
 class _NamesEntryScreenState extends State<NamesEntryScreen> {
-  /// 0 = own name, 1 = friends list
+  /// 0 = login, 1 = own name, 2 = friends
   int _step = 0;
 
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _playerController = TextEditingController();
   final TextEditingController _friendController = TextEditingController();
+  final FocusNode _usernameFocus = FocusNode();
   final FocusNode _playerFocus = FocusNode();
   final FocusNode _friendFocus = FocusNode();
+
+  String? _username;
   String? _playerName;
   final List<String> _friends = [];
   bool _saving = false;
+  String? _usernameError;
 
   @override
   void initState() {
@@ -34,39 +41,78 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
     _prefill();
   }
 
-  /// Keep keyboard open and caret in the friend field after each add.
-  void _refocusFriendField() {
+  void _refocus(FocusNode node) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _friendFocus.requestFocus();
+      node.requestFocus();
     });
   }
 
   Future<void> _prefill() async {
+    final existingUser = await LocalGameService.instance.getUsername();
     final existingPlayer = await LocalGameService.instance.getPlayerName();
     final existingFriends = await LocalGameService.instance.getNames();
     if (!mounted) return;
+
+    if (existingUser != null && existingUser.isNotEmpty) {
+      _username = existingUser;
+      _usernameController.text = existingUser;
+    }
     if (existingPlayer != null && existingPlayer.isNotEmpty) {
-      setState(() {
-        _playerName = existingPlayer;
-        _playerController.text = existingPlayer;
-        _friends
-          ..clear()
-          ..addAll(existingFriends);
-        // If already complete, still show friends step so they can edit.
-        _step = 1;
-      });
-      _refocusFriendField();
+      _playerName = existingPlayer;
+      _playerController.text = existingPlayer;
+    }
+    if (existingFriends.isNotEmpty) {
+      _friends
+        ..clear()
+        ..addAll(existingFriends);
+    }
+
+    // Resume at the first incomplete step when editing.
+    int step = 0;
+    if (existingUser != null && existingUser.isNotEmpty) {
+      step = 1;
+      if (existingPlayer != null && existingPlayer.isNotEmpty) {
+        step = 2;
+      }
+    }
+    setState(() => _step = step);
+    if (step == 0) {
+      _refocus(_usernameFocus);
+    } else if (step == 1) {
+      _refocus(_playerFocus);
+    } else {
+      _refocus(_friendFocus);
     }
   }
 
   @override
   void dispose() {
+    _usernameController.dispose();
     _playerController.dispose();
     _friendController.dispose();
+    _usernameFocus.dispose();
     _playerFocus.dispose();
     _friendFocus.dispose();
     super.dispose();
+  }
+
+  bool get _usernameValid {
+    return LocalGameService.validateUsername(_usernameController.text) == null;
+  }
+
+  void _goToNameStep() {
+    final err = LocalGameService.validateUsername(_usernameController.text);
+    setState(() => _usernameError = err);
+    if (err != null) {
+      _refocus(_usernameFocus);
+      return;
+    }
+    setState(() {
+      _username = _usernameController.text.trim();
+      _step = 1;
+    });
+    _refocus(_playerFocus);
   }
 
   void _goToFriendsStep() {
@@ -74,15 +120,15 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
     if (name.isEmpty) return;
     setState(() {
       _playerName = name;
-      _step = 1;
+      _step = 2;
     });
-    _refocusFriendField();
+    _refocus(_friendFocus);
   }
 
   void _addFriend() {
     final name = _friendController.text.trim();
     if (name.isEmpty) {
-      _refocusFriendField();
+      _refocus(_friendFocus);
       return;
     }
     final player = (_playerName ?? '').toLowerCase();
@@ -91,19 +137,19 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Это уже твоё имя — добавь одноклассников')),
       );
-      _refocusFriendField();
+      _refocus(_friendFocus);
       return;
     }
     if (_friends.any((n) => n.toLowerCase() == name.toLowerCase())) {
       _friendController.clear();
-      _refocusFriendField();
+      _refocus(_friendFocus);
       return;
     }
     setState(() {
       _friends.add(name);
       _friendController.clear();
     });
-    _refocusFriendField();
+    _refocus(_friendFocus);
   }
 
   void _removeFriend(String name) {
@@ -111,10 +157,17 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
   }
 
   Future<void> _continue() async {
+    final user = _username?.trim() ?? '';
     final player = _playerName?.trim() ?? '';
-    if (player.isEmpty || _friends.length < _minFriends || _saving) return;
+    if (user.isEmpty ||
+        player.isEmpty ||
+        _friends.length < _minFriends ||
+        _saving) {
+      return;
+    }
     setState(() => _saving = true);
     await LocalGameService.instance.savePlayerAndFriends(
+      username: user,
       playerName: player,
       friends: List<String>.from(_friends),
     );
@@ -129,9 +182,94 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
-          child: _step == 0 ? _buildPlayerStep() : _buildFriendsStep(),
+          child: switch (_step) {
+            0 => _buildUsernameStep(),
+            1 => _buildPlayerStep(),
+            _ => _buildFriendsStep(),
+          },
         ),
       ),
+    );
+  }
+
+  Widget _buildUsernameStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Придумай логин',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 30,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Обязательно. Латиница, цифры и _ · минимум 3 символа. '
+          'Так тебя будут видеть в профиле.',
+          style: TextStyle(color: Colors.white70, fontSize: 15, height: 1.4),
+        ),
+        const SizedBox(height: 28),
+        TextField(
+          controller: _usernameController,
+          focusNode: _usernameFocus,
+          autofocus: true,
+          textInputAction: TextInputAction.done,
+          onChanged: (_) {
+            setState(() {
+              _usernameError =
+                  LocalGameService.validateUsername(_usernameController.text);
+            });
+          },
+          onSubmitted: (_) => _goToNameStep(),
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9_]')),
+            LengthLimitingTextInputFormatter(24),
+          ],
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+          decoration: InputDecoration(
+            hintText: 'например: aman_07',
+            prefixText: '@',
+            prefixStyle: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: _primaryBlue,
+            ),
+            errorText: _usernameError,
+            errorStyle: const TextStyle(color: Color(0xFFFFCDD2)),
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+        const Spacer(),
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: _usernameValid ? _goToNameStep : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: _primaryBlue,
+              disabledBackgroundColor: Colors.white.withOpacity(0.4),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              elevation: 0,
+            ),
+            child: const Text(
+              'Дальше',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -140,6 +278,29 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        Row(
+          children: [
+            IconButton(
+              onPressed: () {
+                setState(() => _step = 0);
+                _refocus(_usernameFocus);
+              },
+              icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+            ),
+            Expanded(
+              child: Text(
+                '@${_username ?? ''}',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
         const Text(
           'Как тебя зовут?',
           style: TextStyle(
@@ -150,18 +311,17 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Твоё имя будет в опросах вместе с одноклассниками — '
-          'на каждый вопрос 4 карточки: ты + трое других',
+          'Имя на карточках в опросах — ты + трое одноклассников',
           style: TextStyle(color: Colors.white70, fontSize: 15, height: 1.4),
         ),
         const SizedBox(height: 28),
         TextField(
           controller: _playerController,
           focusNode: _playerFocus,
+          autofocus: true,
           textInputAction: TextInputAction.done,
           onChanged: (_) => setState(() {}),
           onSubmitted: (_) => _goToFriendsStep(),
-          autofocus: true,
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           decoration: InputDecoration(
             hintText: 'Твоё имя',
@@ -208,15 +368,18 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
         Row(
           children: [
             IconButton(
-              onPressed: () => setState(() => _step = 0),
+              onPressed: () {
+                setState(() => _step = 1);
+                _refocus(_playerFocus);
+              },
               icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
             ),
             Expanded(
               child: Text(
-                'Привет, ${_playerName ?? ''}!',
+                'Привет, ${_playerName ?? ''} · @${_username ?? ''}',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 22,
+                  fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -247,7 +410,6 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
                 focusNode: _friendFocus,
                 autofocus: true,
                 textInputAction: TextInputAction.done,
-                // Enter / Done adds name and focus returns to empty field
                 onSubmitted: (_) => _addFriend(),
                 style: const TextStyle(fontSize: 16),
                 decoration: InputDecoration(
@@ -284,7 +446,6 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
           ],
         ),
         const SizedBox(height: 16),
-        // Always show self chip so user sees they are in the pool
         Wrap(
           spacing: 10,
           runSpacing: 10,

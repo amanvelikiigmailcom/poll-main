@@ -31,6 +31,7 @@ class LocalGameService {
   LocalGameService._();
   static final LocalGameService instance = LocalGameService._();
 
+  static const _usernameKey = 'local_username';
   static const _playerNameKey = 'local_player_name';
   static const _namesKey = 'local_friend_names';
   static const _starsKey = 'local_star_balance';
@@ -44,11 +45,40 @@ class LocalGameService {
   /// Always 4 cards: self + 3 others (Gas-style).
   static const int optionsPerQuestion = 4;
   static const int minFriends = 3;
+  static const int minUsernameLength = 3;
   static const List<String> _categoryOrder = ['sympathy', 'normal', 'humor'];
+  static final RegExp usernamePattern = RegExp(r'^[a-zA-Z0-9_]+$');
 
   final Random _random = Random();
 
   Future<SharedPreferences> get _prefs => SharedPreferences.getInstance();
+
+  // ── Username / login (required first) ────────────────────────────────────
+
+  Future<String?> getUsername() async {
+    final prefs = await _prefs;
+    final u = prefs.getString(_usernameKey)?.trim();
+    if (u == null || u.isEmpty) return null;
+    return u;
+  }
+
+  Future<void> saveUsername(String username) async {
+    final prefs = await _prefs;
+    await prefs.setString(_usernameKey, username.trim());
+  }
+
+  /// Local rules only (no backend): latin letters, digits, `_`, min length.
+  static String? validateUsername(String raw) {
+    final v = raw.trim();
+    if (v.isEmpty) return 'Придумай логин';
+    if (v.length < minUsernameLength) {
+      return 'Минимум $minUsernameLength символа';
+    }
+    if (!usernamePattern.hasMatch(v)) {
+      return 'Только латиница, цифры и _';
+    }
+    return null;
+  }
 
   // ── Player name (always included in options) ─────────────────────────────
 
@@ -76,11 +106,14 @@ class LocalGameService {
     await prefs.setStringList(_namesKey, names);
   }
 
-  /// Ready to play: own name + at least [minFriends] classmates.
+  /// Ready to play: login + own name + at least [minFriends] classmates.
   Future<bool> hasEnoughNames() async {
+    final username = await getUsername();
     final player = await getPlayerName();
     final friends = await getNames();
-    return player != null &&
+    return username != null &&
+        username.isNotEmpty &&
+        player != null &&
         player.isNotEmpty &&
         friends.length >= minFriends;
   }
@@ -88,7 +121,11 @@ class LocalGameService {
   Future<void> savePlayerAndFriends({
     required String playerName,
     required List<String> friends,
+    String? username,
   }) async {
+    if (username != null && username.trim().isNotEmpty) {
+      await saveUsername(username);
+    }
     await savePlayerName(playerName);
     await saveNames(friends);
   }
