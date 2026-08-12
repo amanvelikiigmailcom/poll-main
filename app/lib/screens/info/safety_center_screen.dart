@@ -35,7 +35,7 @@ class SafetyCenterScreen extends ConsumerWidget {
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'OISTER заботится о безопасности каждого пользователя',
+                    'Hidavo заботится о безопасности каждого пользователя',
                     style: TextStyle(fontWeight: FontWeight.w600, color: _primaryBlue),
                   ),
                 ),
@@ -44,9 +44,9 @@ class SafetyCenterScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
           _buildSection('Документы', [
-            _DocItem(Icons.privacy_tip_rounded, 'Политика конфиденциальности', () => _openUrl('https://oister.app/privacy')),
-            _DocItem(Icons.gavel_rounded, 'Условия использования', () => _openUrl('https://oister.app/terms')),
-            _DocItem(Icons.people_rounded, 'Правила сообщества', () => _openUrl('https://oister.app/rules')),
+            _DocItem(Icons.privacy_tip_rounded, 'Политика конфиденциальности', () => _openUrl('https://hidavo.app/privacy')),
+            _DocItem(Icons.gavel_rounded, 'Условия использования', () => _openUrl('https://hidavo.app/terms')),
+            _DocItem(Icons.people_rounded, 'Правила сообщества', () => _openUrl('https://hidavo.app/rules')),
           ]),
           const SizedBox(height: 16),
           _buildSection('Безопасность', [

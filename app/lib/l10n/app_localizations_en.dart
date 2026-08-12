@@ -43,10 +43,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboarding4_desc =>
-      'More friends means more fun! Invite your classmates and unlock the full OISTER experience.';
+      'More friends means more fun! Invite your classmates and unlock the full Hidavo experience.';
 
   @override
-  String get auth_phoneTitle => 'Sign in to OISTER';
+  String get auth_phoneTitle => 'Sign in to Hidavo';
 
   @override
   String get auth_phoneSubtitle => 'Enter your phone number';
@@ -162,7 +162,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get photo_camera => 'Take a photo';
 
   @override
-  String get voting_beforeVoteTitle => 'Need friends';
+  String get voting_beforeVoteTitle => 'Wait for friends!';
 
   @override
   String get voting_beforeVoteDesc =>

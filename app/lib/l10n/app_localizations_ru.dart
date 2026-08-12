@@ -43,10 +43,10 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get onboarding4_desc =>
-      'Больше друзей — больше веселья! Приглашай одноклассников и открой полный опыт OISTER.';
+      'Больше друзей — больше веселья! Приглашай одноклассников и открой полный опыт Hidavo.';
 
   @override
-  String get auth_phoneTitle => 'Вход в OISTER';
+  String get auth_phoneTitle => 'Вход в Hidavo';
 
   @override
   String get auth_phoneSubtitle => 'Введите номер телефона';
@@ -164,7 +164,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get photo_camera => 'Снять на камеру';
 
   @override
-  String get voting_beforeVoteTitle => 'Нужны друзья';
+  String get voting_beforeVoteTitle => 'Жди друзей!';
 
   @override
   String get voting_beforeVoteDesc =>

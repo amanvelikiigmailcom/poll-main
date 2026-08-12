@@ -10,8 +10,8 @@ class ForParentsScreen extends ConsumerWidget {
   Future<void> _sendEmail() async {
     final uri = Uri(
       scheme: 'mailto',
-      path: 'parents@oister.app',
-      query: 'subject=Вопрос от родителя&body=Здравствуйте,\n\nУ меня есть вопрос об использовании OISTER моим ребёнком:\n\n',
+      path: 'parents@hidavo.app',
+      query: 'subject=Вопрос от родителя&body=Здравствуйте,\n\nУ меня есть вопрос об использовании Hidavo моим ребёнком:\n\n',
     );
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
@@ -32,7 +32,7 @@ class ForParentsScreen extends ConsumerWidget {
             _section(
               Icons.info_rounded,
               'Как работает приложение',
-              'OISTER — это анонимное приложение для школьников, где ученики голосуют друг за друга в шуточных опросах. Голосование полностью анонимно — невозможно узнать кто за кого голосовал.',
+              'Hidavo — это анонимное приложение для школьников, где ученики голосуют друг за друга в шуточных опросах. Голосование полностью анонимно — невозможно узнать кто за кого голосовал.',
             ),
             _section(
               Icons.lock_rounded,
@@ -47,7 +47,7 @@ class ForParentsScreen extends ConsumerWidget {
             _section(
               Icons.privacy_tip_rounded,
               'Политика конфиденциальности',
-              'Мы соблюдаем требования GDPR и законодательства о защите данных несовершеннолетних (COPPA). Полная политика доступна на сайте oister.app/privacy',
+              'Мы соблюдаем требования GDPR и законодательства о защите данных несовершеннолетних (COPPA). Полная политика доступна на сайте hidavo.app/privacy',
             ),
             _section(
               Icons.supervisor_account_rounded,
@@ -68,7 +68,7 @@ class ForParentsScreen extends ConsumerWidget {
                   const SizedBox(height: 12),
                   const Text('Поддержка для родителей', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
                   const SizedBox(height: 8),
-                  const Text('parents@oister.app', style: TextStyle(color: Colors.grey)),
+                  const Text('parents@hidavo.app', style: TextStyle(color: Colors.grey)),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
                     onPressed: _sendEmail,

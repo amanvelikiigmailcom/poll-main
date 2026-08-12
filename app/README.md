@@ -1,4 +1,4 @@
-# flyprox_app
+# Hidavo
 
 A new Flutter project.
 

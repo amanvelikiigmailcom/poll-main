@@ -1,5 +1,5 @@
 {
-  "appName": "OISTER",
+  "appName": "Hidavo",
   "onboarding": {
     "screen1": {
       "title": "Vote Anonymously",
@@ -24,7 +24,7 @@
     }
   },
   "auth": {
-    "phoneTitle": "Sign in to OISTER",
+    "phoneTitle": "Sign in to Hidavo",
     "phoneSubtitle": "Enter your phone number",
     "phonePlaceholder": "+1 (___) ___-____",
     "phoneContinue": "Continue",
@@ -161,7 +161,7 @@
       "continueWithout": "Continue without friends"
     },
     "beforeVote2": {
-      "title": "How OISTER works",
+      "title": "How Hidavo works",
       "howItWorks": "How does it work?",
       "starsTitle": "Collect stars",
       "starsDesc": "For every vote in your favor you receive a star",
@@ -212,7 +212,7 @@
     "moreParticipants": "People you may know"
   },
   "home": {
-    "title": "OISTER",
+    "title": "Hidavo",
     "feed": "Feed",
     "vote": "Vote",
     "profile": "Profile",

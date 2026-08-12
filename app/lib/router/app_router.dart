@@ -148,7 +148,7 @@ class _SplashRedirectState extends State<_SplashRedirect> {
       backgroundColor: Color(0xFF4B6EF5),
       body: Center(
         child: Text(
-          'OISTER',
+          'Hidavo',
           style: TextStyle(
             color: Colors.white,
             fontSize: 36,

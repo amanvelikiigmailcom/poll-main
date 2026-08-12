@@ -14,7 +14,7 @@ class ApiException implements Exception {
 
 class ApiService {
   static const String _baseUrl =
-      String.fromEnvironment('API_BASE_URL', defaultValue: 'https://api.oister.app');
+      String.fromEnvironment('API_BASE_URL', defaultValue: 'https://api.hidavo.app');
 
   late final Dio _dio;
   final StorageService _storageService;

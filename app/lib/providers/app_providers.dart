@@ -1,7 +1,7 @@
 /// app_providers.dart
 ///
 /// Central re-export file that collects every public Riverpod provider used
-/// across the OISTER app into a single import.  Screens and widgets that need
+/// across the Hidavo app into a single import.  Screens and widgets that need
 /// more than one provider can import this file instead of multiple individual
 /// provider files.
 ///
@@ -87,7 +87,7 @@ final fcmTokenInitProvider = Provider<void>((ref) {
 // ── Locale override ──────────────────────────────────────────────────────────
 
 /// Stores the user-selected [Locale].  When null the app uses the system locale
-/// resolved in [OisterApp.localeResolutionCallback].
+/// resolved in [HidavoApp.localeResolutionCallback].
 final appLocaleProvider = StateProvider<Locale?>((ref) => null);
 
 // ── Timer provider (standalone countdown) ────────────────────────────────────

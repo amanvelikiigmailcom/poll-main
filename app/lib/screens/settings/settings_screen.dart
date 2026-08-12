@@ -196,7 +196,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 title: 'Условия использования',
                 trailingIcon: Icons.open_in_new,
                 onTap: () => _launchUrl(
-                  'https://oister.app/terms',
+                  'https://hidavo.app/terms',
                   'Условия использования',
                 ),
               ),
@@ -207,7 +207,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 title: 'Политика конфиденциальности',
                 trailingIcon: Icons.open_in_new,
                 onTap: () => _launchUrl(
-                  'https://oister.app/privacy',
+                  'https://hidavo.app/privacy',
                   'Политика конфиденциальности',
                 ),
               ),

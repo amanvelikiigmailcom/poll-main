@@ -108,7 +108,7 @@ class _BeforeVote2ScreenState extends State<BeforeVote2Screen>
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'OISTER',
+                            'Hidavo',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 22,

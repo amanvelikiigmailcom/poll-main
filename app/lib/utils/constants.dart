@@ -1,6 +1,6 @@
 class AppConstants {
-  static const String apiBaseUrl = 'https://api.oister.app';
-  static const String appName = 'OISTER';
+  static const String apiBaseUrl = 'https://api.hidavo.app';
+  static const String appName = 'Hidavo';
 
   // Timer
   static const int timerDurationSeconds = 40 * 60; // 40 minutes
@@ -39,10 +39,10 @@ class AppConstants {
   static const String keyCurrentUser = 'current_user';
 
   // Deep links
-  static const String telegramBotDeepLink = 'tg://resolve?domain=OisterBot&start=auth_';
+  static const String telegramBotDeepLink = 'tg://resolve?domain=HidavoBot&start=auth_';
 
   // URLs
-  static const String termsUrl = 'https://oister.app/terms';
-  static const String privacyUrl = 'https://oister.app/privacy';
-  static const String supportEmail = 'support@oister.app';
+  static const String termsUrl = 'https://hidavo.app/terms';
+  static const String privacyUrl = 'https://hidavo.app/privacy';
+  static const String supportEmail = 'support@hidavo.app';
 }

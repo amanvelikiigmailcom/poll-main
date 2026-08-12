@@ -6,7 +6,7 @@ enum Gender { male, female, other }
 /// Premium subscription tier.
 enum PremiumType { none, pro, max }
 
-/// Core user model representing a registered OISTER student.
+/// Core user model representing a registered Hidavo student.
 class User extends Equatable {
   const User({
     required this.id,

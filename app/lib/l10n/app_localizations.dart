@@ -161,13 +161,13 @@ abstract class AppLocalizations {
   /// Onboarding slide 4 description
   ///
   /// In en, this message translates to:
-  /// **'More friends means more fun! Invite your classmates and unlock the full OISTER experience.'**
+  /// **'More friends means more fun! Invite your classmates and unlock the full Hidavo experience.'**
   String get onboarding4_desc;
 
   /// Phone registration screen title
   ///
   /// In en, this message translates to:
-  /// **'Sign in to OISTER'**
+  /// **'Sign in to Hidavo'**
   String get auth_phoneTitle;
 
   /// No description provided for @auth_phoneSubtitle.
@@ -401,7 +401,7 @@ abstract class AppLocalizations {
   /// No description provided for @voting_beforeVoteDesc.
   ///
   /// In en, this message translates to:
-  /// **'Your school doesn\'t have many participants yet. Invite friends to start voting'**
+  /// **'You need to add at least 3 friends to start voting.'**
   String get voting_beforeVoteDesc;
 
   /// No description provided for @voting_continueWithout.

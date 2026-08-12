@@ -5,7 +5,7 @@ import 'l10n/app_localizations.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 
-/// Root widget of the OISTER application.
+/// Root widget of the Hidavo application.
 ///
 /// Responsibilities:
 ///   • Provides [MaterialApp.router] wired to [appRouter] (GoRouter).
@@ -13,14 +13,14 @@ import 'theme/app_theme.dart';
 ///   • Declares localisation delegates and supported locales (ru + en).
 ///   • Keeps the widget tree const-constructible; all mutable state lives in
 ///     Riverpod providers below [ProviderScope] (set up in main.dart).
-class OisterApp extends ConsumerWidget {
-  const OisterApp({super.key});
+class HidavoApp extends ConsumerWidget {
+  const HidavoApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
       // ── Identity ──────────────────────────────────────────────────────────
-      title: 'OISTER',
+      title: 'Hidavo',
       debugShowCheckedModeBanner: false,
 
       // ── Navigation ────────────────────────────────────────────────────────
@@ -55,15 +55,15 @@ class OisterApp extends ConsumerWidget {
       // ── Scroll behaviour ──────────────────────────────────────────────────
       // Use the Material "stretch" overscroll on all platforms for a modern
       // feel consistent with the youth-oriented design spec.
-      scrollBehavior: const _OisterScrollBehaviour(),
+      scrollBehavior: const _HidavoScrollBehaviour(),
     );
   }
 }
 
 /// Custom [ScrollBehavior] that enables the stretch overscroll effect on both
 /// iOS and Android without changing any other default behaviours.
-class _OisterScrollBehaviour extends ScrollBehavior {
-  const _OisterScrollBehaviour();
+class _HidavoScrollBehaviour extends ScrollBehavior {
+  const _HidavoScrollBehaviour();
 
   @override
   ScrollPhysics getScrollPhysics(BuildContext context) =>

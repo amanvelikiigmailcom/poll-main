@@ -16,7 +16,7 @@ class InviteShareService {
   InviteShareService._();
   static final InviteShareService instance = InviteShareService._();
 
-  static const String appStoreFallback = 'https://oister.app';
+  static const String appStoreFallback = 'https://hidavo.app';
 
   Future<InvitePayload> buildPayload() async {
     final username = await LocalGameService.instance.getUsername();
@@ -27,7 +27,7 @@ class InviteShareService {
     final who = (name != null && name.isNotEmpty) ? name : handle;
     final message = '''Йо! 🔥 Это $who
 
-Ставь OISTER — анонимные опросы в классе (как Gas):
+Ставь Hidavo — анонимные опросы в классе (как Gas):
 кто самый красивый, кто краш, кто опоздает на свадьбу 😂
 Никто не увидит, за кого ты голосовал.
 
@@ -87,7 +87,7 @@ $link
     await SharePlus.instance.share(
       ShareParams(
         text: p.message,
-        subject: 'Приглашение в OISTER',
+        subject: 'Приглашение в Hidavo',
       ),
     );
   }

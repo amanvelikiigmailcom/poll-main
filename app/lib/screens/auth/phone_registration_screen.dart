@@ -111,7 +111,7 @@ class _PhoneRegistrationScreenState
 
                         // ── Title ──────────────────────────────────────────
                         const Text(
-                          'Вход в OISTER',
+                          'Вход в Hidavo',
                           style: TextStyle(
                             fontSize: 30,
                             fontWeight: FontWeight.bold,

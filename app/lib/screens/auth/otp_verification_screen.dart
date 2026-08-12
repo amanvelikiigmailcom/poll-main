@@ -84,14 +84,14 @@ class _OTPVerificationScreenState
   // ── Deep links ─────────────────────────────────────────────────────────────
 
   Future<void> _openTelegram() async {
-    const url = 'tg://resolve?domain=OisterBot';
+    const url = 'tg://resolve?domain=HidavoBot';
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
       // Fallback to web
       await launchUrl(
-        Uri.parse('https://t.me/OisterBot'),
+        Uri.parse('https://t.me/HidavoBot'),
         mode: LaunchMode.externalApplication,
       );
     }

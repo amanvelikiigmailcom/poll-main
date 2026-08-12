@@ -69,7 +69,7 @@ const List<_OnboardingSlide> _slides = [
     emojiSize: 100,
     title: 'Приглашай своих друзей',
     description:
-        'Больше друзей — больше веселья! Приглашай одноклассников и открой полный опыт OISTER.',
+        'Больше друзей — больше веселья! Приглашай одноклассников и открой полный опыт Hidavo.',
     gradientColors: [Color(0xFFFF3B5C), Color(0xFFFF8A80)],
     accentColor: Color(0xFFFF3B5C),
   ),
@@ -252,7 +252,7 @@ class _OnboardingPage extends StatelessWidget {
                 top: topPadding + 16,
                 left: 24,
                 child: const Text(
-                  'OISTER',
+                  'Hidavo',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,

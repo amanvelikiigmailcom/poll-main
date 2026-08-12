@@ -1,11 +1,11 @@
 {
-    "name": "flyprox_app",
-    "short_name": "flyprox_app",
+    "name": "Hidavo",
+    "short_name": "Hidavo",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#4B6EF5",
+    "theme_color": "#4B6EF5",
+    "description": "Hidavo — anonymous school polls",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

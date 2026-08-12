@@ -27,10 +27,10 @@
 
   "onboarding4_title": "Invite Your Friends",
   "@onboarding4_title": { "description": "Onboarding slide 4 title" },
-  "onboarding4_desc": "More friends means more fun! Invite your classmates and unlock the full OISTER experience.",
+  "onboarding4_desc": "More friends means more fun! Invite your classmates and unlock the full Hidavo experience.",
   "@onboarding4_desc": { "description": "Onboarding slide 4 description" },
 
-  "auth_phoneTitle": "Sign in to OISTER",
+  "auth_phoneTitle": "Sign in to Hidavo",
   "@auth_phoneTitle": { "description": "Phone registration screen title" },
   "auth_phoneSubtitle": "Enter your phone number",
   "@auth_phoneSubtitle": {},
