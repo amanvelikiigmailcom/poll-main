@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../theme/app_colors.dart';
 
-/// The only app menu: bottom bar.
-/// 0 Polls · 1 Activity · 2 Likes · 3 Profile
+/// Instagram-style tab bar. Always at the bottom of the logged-in app.
+/// 0 Home · 1 Activity · 2 Vote · 3 Likes · 4 Profile
 class AppBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -16,50 +16,46 @@ class AppBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
+    return DecoratedBox(
+      decoration: const BoxDecoration(
         color: AppColors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
-          ),
-        ],
+        border: Border(
+          top: BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
+        ),
       ),
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 62,
+          height: 56,
           child: Row(
             children: [
-              _NavItem(
-                icon: Icons.how_to_vote_outlined,
-                activeIcon: Icons.how_to_vote,
-                label: 'Polls',
-                isSelected: currentIndex == 0,
+              _TabIcon(
+                icon: Icons.home_outlined,
+                activeIcon: Icons.home_rounded,
+                selected: currentIndex == 0,
                 onTap: () => onTap(0),
               ),
-              _NavItem(
+              _TabIcon(
                 icon: Icons.public_outlined,
                 activeIcon: Icons.public,
-                label: 'Activity',
-                isSelected: currentIndex == 1,
+                selected: currentIndex == 1,
                 onTap: () => onTap(1),
               ),
-              _NavItem(
-                icon: Icons.favorite_border,
-                activeIcon: Icons.favorite,
-                label: 'Likes',
-                isSelected: currentIndex == 2,
+              _VoteTab(
+                selected: currentIndex == 2,
                 onTap: () => onTap(2),
               ),
-              _NavItem(
-                icon: Icons.person_outline,
-                activeIcon: Icons.person,
-                label: 'Profile',
-                isSelected: currentIndex == 3,
+              _TabIcon(
+                icon: Icons.favorite_border_rounded,
+                activeIcon: Icons.favorite_rounded,
+                selected: currentIndex == 3,
                 onTap: () => onTap(3),
+              ),
+              _TabIcon(
+                icon: Icons.person_outline_rounded,
+                activeIcon: Icons.person_rounded,
+                selected: currentIndex == 4,
+                onTap: () => onTap(4),
               ),
             ],
           ),
@@ -69,20 +65,18 @@ class AppBottomNavBar extends StatelessWidget {
   }
 }
 
-class _NavItem extends StatelessWidget {
-  final IconData icon;
-  final IconData activeIcon;
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _NavItem({
+class _TabIcon extends StatelessWidget {
+  const _TabIcon({
     required this.icon,
     required this.activeIcon,
-    required this.label,
-    required this.isSelected,
+    required this.selected,
     required this.onTap,
   });
+
+  final IconData icon;
+  final IconData activeIcon;
+  final bool selected;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -90,54 +84,43 @@ class _NavItem extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: isSelected ? 52 : 48,
-                height: isSelected ? 34 : 30,
-                decoration: isSelected
-                    ? BoxDecoration(
-                        color: AppColors.primaryBlue.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      )
-                    : null,
-                child: Center(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 180),
-                    transitionBuilder: (child, anim) => ScaleTransition(
-                      scale: anim,
-                      child: child,
-                    ),
-                    child: Icon(
-                      isSelected ? activeIcon : icon,
-                      key: ValueKey('${label}_$isSelected'),
-                      color: isSelected
-                          ? AppColors.primaryBlue
-                          : AppColors.textHint,
-                      size: isSelected ? 24 : 22,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
-              AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
-                style: TextStyle(
-                  color: isSelected
-                      ? AppColors.primaryBlue
-                      : AppColors.textHint,
-                  fontSize: 10,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
-                  height: 1,
-                ),
-                child: Text(label),
-              ),
-            ],
+        child: Center(
+          child: Icon(
+            selected ? activeIcon : icon,
+            size: 28,
+            color: selected ? AppColors.textPrimary : AppColors.textHint,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _VoteTab extends StatelessWidget {
+  const _VoteTab({required this.selected, required this.onTap});
+
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Center(
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: selected ? AppColors.primaryBlue : AppColors.textPrimary,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.how_to_vote_rounded,
+              color: Colors.white,
+              size: 22,
+            ),
           ),
         ),
       ),

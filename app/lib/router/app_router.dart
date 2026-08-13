@@ -47,6 +47,7 @@ import '../screens/info/how_to_use_screen.dart';
 import '../screens/info/safety_center_screen.dart';
 import '../screens/info/for_parents_screen.dart';
 import '../screens/home/home_screen.dart';
+import '../widgets/common/app_shell.dart';
 
 // ---------------------------------------------------------------------------
 // Route name constants
@@ -227,170 +228,153 @@ final GoRouter appRouter = GoRouter(
       builder: (_, __) => const PhotoUploadScreen(),
     ),
 
-    // ── Main home shell (bottom nav with 5 tabs via IndexedStack) ───────────
-    GoRoute(
-      path: AppRoutes.home,
-      builder: (_, __) => const HomeScreen(),
-    ),
-
-    // ── Voting flow ──────────────────────────────────────────────────────────
-    GoRoute(
-      path: AppRoutes.beforeVote,
-      builder: (_, __) => const BeforeVoteScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.beforeVote2,
-      builder: (_, __) => const BeforeVote2Screen(),
-    ),
-    GoRoute(
-      path: AppRoutes.vote,
-      builder: (_, __) => const VoteScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.starReceived,
-      builder: (_, __) => const StarReceivedScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.starTaking,
-      builder: (_, __) => const StarTakingScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.timer,
-      builder: (_, __) => const TimerScreen(),
-    ),
-
-    // ── Invite ───────────────────────────────────────────────────────────────
-    GoRoute(
-      path: AppRoutes.invite,
-      builder: (_, __) => const InviteFriendScreen(),
-    ),
-
-    // ── Activity / Likes standalone ───────────────────────────────────────────
-    GoRoute(
-      path: AppRoutes.activity,
-      builder: (_, __) => const ActivityScreen(),
-    ),
-
-    // ── Search standalone ─────────────────────────────────────────────────────
-    GoRoute(
-      path: AppRoutes.search,
-      builder: (_, __) => const SearchScreen(),
-    ),
-
-    // ── Profile ───────────────────────────────────────────────────────────────
-    GoRoute(
-      path: AppRoutes.profile,
-      builder: (_, __) => const ProfileScreen(),
-    ),
-    GoRoute(
-      path: '/profile/:userId',
-      builder: (_, state) {
-        final userId = state.pathParameters['userId']!;
-        return ProfileForPeopleScreen(userId: userId);
-      },
-    ),
-    GoRoute(
-      path: AppRoutes.editProfile,
-      builder: (_, __) => const EditProfileScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.collection,
-      builder: (_, __) => const CollectionScreen(),
-    ),
-
-    // ── Social ────────────────────────────────────────────────────────────────
-    GoRoute(
-      path: AppRoutes.friends,
-      builder: (_, __) => const FriendsListScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.friendRequests,
-      builder: (_, __) => const FriendRequestsScreen(),
-    ),
-
-    // ── Premium ──────────────────────────────────────────────────────────────
-    GoRoute(
-      path: AppRoutes.premium,
-      builder: (_, __) => const PremiumScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.premiumResult,
-      builder: (_, state) {
-        final pollQuestion = state.uri.queryParameters['pollQuestion'];
-        return PremiumResultScreen(pollQuestion: pollQuestion ?? '');
-      },
-    ),
-
-    // ── Settings ─────────────────────────────────────────────────────────────
-    GoRoute(
-      path: AppRoutes.settings,
-      builder: (_, __) => const SettingsScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.notificationsSettings,
-      builder: (_, __) => const NotificationsSettingsScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.languageSettings,
-      builder: (_, __) => const LanguageSettingsScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.blockedUsers,
-      builder: (_, __) => const BlockedUsersScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.hiddenUsers,
-      builder: (_, __) => const HiddenUsersScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.deleteAccount,
-      builder: (_, __) => const DeleteAccountScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.settingsPoll,
-      builder: (_, __) => const SettingsPollScreen(),
-    ),
-
-    // ── Likes ────────────────────────────────────────────────────────────────
-    GoRoute(
-      path: AppRoutes.likesFilled,
-      builder: (_, __) => const LikesFilledScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.likesEmpty,
-      builder: (_, __) => const LikesEmptyScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.likesResult,
-      builder: (_, __) => const LikesResultScreen(),
-    ),
-
-    // ── Rooms ────────────────────────────────────────────────────────────────
-    GoRoute(
-      path: AppRoutes.room,
-      builder: (_, __) => const RoomScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.createRoom,
-      builder: (_, __) => const CreateRoomScreen(),
-    ),
-
-    // ── Info ─────────────────────────────────────────────────────────────────
-    GoRoute(
-      path: AppRoutes.faq,
-      builder: (_, __) => const FaqScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.howToUse,
-      builder: (_, __) => const HowToUseScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.safetyCenter,
-      builder: (_, __) => const SafetyCenterScreen(),
-    ),
-    GoRoute(
-      path: AppRoutes.forParents,
-      builder: (_, __) => const ForParentsScreen(),
+    // Tab bar stays on every logged-in screen (Instagram-style).
+    ShellRoute(
+      builder: (context, state, child) => AppShell(child: child),
+      routes: [
+        GoRoute(
+          path: AppRoutes.home,
+          builder: (_, __) => const HomeScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.beforeVote,
+          builder: (_, __) => const BeforeVoteScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.beforeVote2,
+          builder: (_, __) => const BeforeVote2Screen(),
+        ),
+        GoRoute(
+          path: AppRoutes.vote,
+          builder: (_, __) => const VoteScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.starReceived,
+          builder: (_, __) => const StarReceivedScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.starTaking,
+          builder: (_, __) => const StarTakingScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.timer,
+          builder: (_, __) => const TimerScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.invite,
+          builder: (_, __) => const InviteFriendScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.activity,
+          builder: (_, __) => const ActivityScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.search,
+          builder: (_, __) => const SearchScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.profile,
+          builder: (_, __) => const ProfileScreen(),
+        ),
+        GoRoute(
+          path: '/profile/:userId',
+          builder: (_, state) {
+            final userId = state.pathParameters['userId']!;
+            return ProfileForPeopleScreen(userId: userId);
+          },
+        ),
+        GoRoute(
+          path: AppRoutes.editProfile,
+          builder: (_, __) => const EditProfileScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.collection,
+          builder: (_, __) => const CollectionScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.friends,
+          builder: (_, __) => const FriendsListScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.friendRequests,
+          builder: (_, __) => const FriendRequestsScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.premium,
+          builder: (_, __) => const PremiumScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.premiumResult,
+          builder: (_, state) {
+            final pollQuestion = state.uri.queryParameters['pollQuestion'];
+            return PremiumResultScreen(pollQuestion: pollQuestion ?? '');
+          },
+        ),
+        GoRoute(
+          path: AppRoutes.settings,
+          builder: (_, __) => const SettingsScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.notificationsSettings,
+          builder: (_, __) => const NotificationsSettingsScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.languageSettings,
+          builder: (_, __) => const LanguageSettingsScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.blockedUsers,
+          builder: (_, __) => const BlockedUsersScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.hiddenUsers,
+          builder: (_, __) => const HiddenUsersScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.deleteAccount,
+          builder: (_, __) => const DeleteAccountScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.settingsPoll,
+          builder: (_, __) => const SettingsPollScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.likesFilled,
+          builder: (_, __) => const LikesFilledScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.likesEmpty,
+          builder: (_, __) => const LikesEmptyScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.likesResult,
+          builder: (_, __) => const LikesResultScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.room,
+          builder: (_, __) => const RoomScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.createRoom,
+          builder: (_, __) => const CreateRoomScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.faq,
+          builder: (_, __) => const FaqScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.howToUse,
+          builder: (_, __) => const HowToUseScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.safetyCenter,
+          builder: (_, __) => const SafetyCenterScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.forParents,
+          builder: (_, __) => const ForParentsScreen(),
+        ),
+      ],
     ),
   ],
 

@@ -115,7 +115,7 @@ Package name for imports: `package:flyprox_app/...`
 - `LocalGameService.minFriends = 3`
 - Ready to play: username + playerName + ≥3 friends (`hasEnoughNames`)
 - Start poll: `MainTab` → `/vote` (not school-wait screen)
-- **Only the bottom bar is the app menu.** No top tab bars, no home “quick actions”, no second menu sliding from the top.
+- **Instagram tab bar:** 5 icons always at the bottom after login (Home, Activity, Vote, Likes, Profile). Lives in `AppShell` — not a second menu on top. No bar on splash / onboarding / names.
 - Invite copy + deep links: `InviteShareService` (IG = copy + open app)
 - Profile identity: `localProfileProvider` / `LocalGameService` (not demo `User`)
 - University + year 1–4 live in prefs (`local_university`, `local_university_year`)
