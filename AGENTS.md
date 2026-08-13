@@ -88,14 +88,18 @@ Working **local Gas-style loop**:
 
 ---
 
-## How to run
+## How to run (always Chrome — no Xcode)
+
+**Always publish / preview this app on localhost via Google Chrome.**  
+Do **not** use Xcode, iOS Simulator, `flutter run -d macos`, or any Apple device unless the user explicitly asks.
 
 ```bash
 cd app
 flutter pub get
-flutter run -d chrome    # no Xcode required
-# or: flutter run -d macos
+flutter run -d chrome    # localhost in Google Chrome — this is the default
 ```
+
+Typical URL: `http://localhost:xxxxx` (Flutter prints the port). Chrome device id: `chrome`.
 
 Package name for imports: `package:flyprox_app/...`
 
