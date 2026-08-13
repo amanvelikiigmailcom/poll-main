@@ -31,6 +31,7 @@
 | **Onboarding (login → name → friends)** | `app/lib/screens/onboarding/names_entry_screen.dart` |
 | **Vote UI** | `app/lib/screens/voting/vote_screen.dart` |
 | **Home / start poll** | `app/lib/screens/home/main_tab.dart` |
+| **Bottom nav (only menu)** | `app/lib/widgets/common/bottom_nav_bar.dart` — Polls / Activity / Likes / Profile |
 | **Question seeds** | `app/lib/data/poll_questions.dart` |
 | **Constants / brand URLs** | `app/lib/utils/constants.dart` |
 | **Flutter package root** | `app/` (`pubspec.yaml`) |
@@ -114,6 +115,7 @@ Package name for imports: `package:flyprox_app/...`
 - `LocalGameService.minFriends = 3`
 - Ready to play: username + playerName + ≥3 friends (`hasEnoughNames`)
 - Start poll: `MainTab` → `/vote` (not school-wait screen)
+- **Only the bottom bar is the app menu.** No top tab bars, no home “quick actions”, no second menu sliding from the top.
 - Invite copy + deep links: `InviteShareService` (IG = copy + open app)
 - Profile identity: `localProfileProvider` / `LocalGameService` (not demo `User`)
 - University + year 1–4 live in prefs (`local_university`, `local_university_year`)

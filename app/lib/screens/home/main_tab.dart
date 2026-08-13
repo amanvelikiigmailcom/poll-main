@@ -108,39 +108,20 @@ class _MainTabState extends ConsumerState<MainTab> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F8F8),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-        title: const Text(
-          'Главная',
-          style: TextStyle(
-            color: Color(0xFF1A1A2E),
-            fontSize: 17,
-            fontWeight: FontWeight.w600,
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: _loadState,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            children: [
+              _buildStatsRow(),
+              const SizedBox(height: 20),
+              if (_tabState == _HomeTabState.loading) _buildLoadingCard(),
+              if (_tabState == _HomeTabState.timerActive) _buildTimerCard(),
+              if (_tabState == _HomeTabState.voteAvailable) _buildVoteCard(),
+            ],
           ),
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Изменить имена',
-            icon: const Icon(Icons.edit_outlined, color: Color(0xFF1A1A2E)),
-            onPressed: () => context.push(AppRoutes.namesEntry),
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: _loadState,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _buildStatsRow(),
-            const SizedBox(height: 20),
-            if (_tabState == _HomeTabState.loading) _buildLoadingCard(),
-            if (_tabState == _HomeTabState.timerActive) _buildTimerCard(),
-            if (_tabState == _HomeTabState.voteAvailable) _buildVoteCard(),
-            const SizedBox(height: 20),
-            _buildQuickActions(),
-          ],
         ),
       ),
     );
@@ -310,52 +291,6 @@ class _MainTabState extends ConsumerState<MainTab> {
     );
   }
 
-  Widget _buildQuickActions() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Быстрые действия',
-          style: TextStyle(
-            color: Color(0xFF1A1A2E),
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _ActionCard(
-                icon: Icons.people_outline,
-                label: 'Друзья',
-                color: const Color(0xFF4B6EF5),
-                onTap: () => context.push(AppRoutes.friends),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _ActionCard(
-                icon: Icons.workspace_premium_outlined,
-                label: 'Премиум',
-                color: const Color(0xFFFFB800),
-                onTap: () => context.push(AppRoutes.premium),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _ActionCard(
-                icon: Icons.settings_outlined,
-                label: 'Настройки',
-                color: const Color(0xFF6B7280),
-                onTap: () => context.push(AppRoutes.settings),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 }
 
 // ── Helper widgets ────────────────────────────────────────────────────────────
@@ -413,55 +348,6 @@ class _StatCard extends StatelessWidget {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ActionCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _ActionCard({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 26),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF374151),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

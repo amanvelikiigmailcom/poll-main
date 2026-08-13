@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../widgets/common/bottom_nav_bar.dart';
 import '../social/activity_screen.dart';
+import '../social/likes_empty_screen.dart';
 import '../profile/profile_screen.dart';
 import 'main_tab.dart';
 
@@ -15,12 +16,10 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _currentIndex = 0;
 
-  // Unread activity badge count — replace with a real Riverpod provider value.
-  int get _activityBadgeCount => 3;
-
   static const List<Widget> _tabs = [
     MainTab(),
     ActivityScreen(),
+    LikesEmptyScreen(),
     ProfileScreen(),
   ];
 
@@ -38,7 +37,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       bottomNavigationBar: AppBottomNavBar(
         currentIndex: _currentIndex,
         onTap: _onTabChanged,
-        activityBadgeCount: _activityBadgeCount,
       ),
     );
   }

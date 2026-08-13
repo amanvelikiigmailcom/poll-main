@@ -30,49 +30,35 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        centerTitle: false,
-        title: const Text(
-          'Профиль',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined, color: AppColors.textPrimary),
-            onPressed: () => context.push(AppRoutes.settings),
-          ),
-        ],
-      ),
-      body: userState.isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue))
-          : RefreshIndicator(
-              color: AppColors.primaryBlue,
-              onRefresh: () async {
-                await ref.read(localProfileProvider.notifier).refresh();
-              },
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  children: [
-                    _ProfileHeaderCard(user: user, local: local),
-                    const SizedBox(height: 12),
-                    _FriendsPreviewSection(user: user),
-                    const SizedBox(height: 12),
-                    _ProfileMenuSection(
-                      user: user,
-                      requestCount: requestCount,
-                    ),
-                    const SizedBox(height: 32),
-                  ],
+      body: SafeArea(
+        bottom: false,
+        child: userState.isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: AppColors.primaryBlue),
+              )
+            : RefreshIndicator(
+                color: AppColors.primaryBlue,
+                onRefresh: () async {
+                  await ref.read(localProfileProvider.notifier).refresh();
+                },
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Column(
+                    children: [
+                      _ProfileHeaderCard(user: user, local: local),
+                      const SizedBox(height: 12),
+                      _FriendsPreviewSection(user: user),
+                      const SizedBox(height: 12),
+                      _ProfileMenuSection(
+                        user: user,
+                        requestCount: requestCount,
+                      ),
+                      const SizedBox(height: 32),
+                    ],
+                  ),
                 ),
               ),
-            ),
+      ),
     );
   }
 }
@@ -560,8 +546,14 @@ class _ProfileMenuSection extends StatelessWidget {
           const _ItemDivider(),
           _MenuItem(
             icon: Icons.edit_outlined,
-            label: 'Редактировать профиль',
+            label: 'Edit profile',
             onTap: () => context.push(AppRoutes.editProfile),
+          ),
+          const _ItemDivider(),
+          _MenuItem(
+            icon: Icons.settings_outlined,
+            label: 'Settings',
+            onTap: () => context.push(AppRoutes.settings),
           ),
         ],
       ),
