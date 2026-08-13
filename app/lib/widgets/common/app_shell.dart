@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../router/app_router.dart';
 import '../../services/local_game_service.dart';
 import 'bottom_nav_bar.dart';
+import 'more_menu_sheet.dart';
 
 /// Logged-in chrome: page on top, Instagram-style tab bar always at the bottom.
 class AppShell extends StatelessWidget {
@@ -51,7 +52,7 @@ class AppShell extends StatelessWidget {
       case 3:
         context.go(AppRoutes.likesEmpty);
       case 4:
-        context.go(AppRoutes.profile);
+        showMoreMenu(context);
     }
   }
 

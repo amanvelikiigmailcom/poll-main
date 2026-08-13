@@ -9,12 +9,6 @@ import '../../services/local_game_service.dart';
 import '../../theme/app_colors.dart';
 
 // ---------------------------------------------------------------------------
-// Providers for social counts (would be wired to real API in production)
-// ---------------------------------------------------------------------------
-
-final friendRequestCountProvider = StateProvider<int>((ref) => 5);
-
-// ---------------------------------------------------------------------------
 // Screen
 // ---------------------------------------------------------------------------
 
@@ -26,7 +20,6 @@ class ProfileScreen extends ConsumerWidget {
     final userState = ref.watch(userNotifierProvider);
     final user = userState.user;
     final local = ref.watch(localProfileProvider);
-    final requestCount = ref.watch(friendRequestCountProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -48,11 +41,6 @@ class ProfileScreen extends ConsumerWidget {
                       _ProfileHeaderCard(user: user, local: local),
                       const SizedBox(height: 12),
                       _FriendsPreviewSection(user: user),
-                      const SizedBox(height: 12),
-                      _ProfileMenuSection(
-                        user: user,
-                        requestCount: requestCount,
-                      ),
                       const SizedBox(height: 32),
                     ],
                   ),
@@ -500,142 +488,6 @@ class _FriendsPreviewSection extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Menu section
-// ---------------------------------------------------------------------------
-
-class _ProfileMenuSection extends StatelessWidget {
-  const _ProfileMenuSection({this.user, required this.requestCount});
-
-  final User? user;
-  final int requestCount;
-
-  @override
-  Widget build(BuildContext context) {
-    final friendsCount = user?.friendsCount ?? 0;
-
-    return Container(
-      color: AppColors.white,
-      child: Column(
-        children: [
-          _MenuItem(
-            icon: Icons.collections_bookmark_outlined,
-            label: 'Мои коллекции',
-            onTap: () => context.push(AppRoutes.collection),
-          ),
-          const _ItemDivider(),
-          _MenuItem(
-            icon: Icons.group_outlined,
-            label: 'Мои друзья',
-            badge: friendsCount > 0 ? '$friendsCount' : null,
-            badgeColor: AppColors.primaryBlue,
-            onTap: () => context.push(AppRoutes.friends),
-          ),
-          const _ItemDivider(),
-          _MenuItem(
-            icon: Icons.person_add_outlined,
-            label: 'Запросы в друзья',
-            badge: requestCount > 0 ? '$requestCount' : null,
-            badgeColor: AppColors.accentRed,
-            onTap: () => context.push(AppRoutes.friendRequests),
-          ),
-          const _ItemDivider(),
-          _MenuItem(
-            icon: Icons.edit_outlined,
-            label: 'Edit profile',
-            onTap: () => context.push(AppRoutes.editProfile),
-          ),
-          const _ItemDivider(),
-          _MenuItem(
-            icon: Icons.settings_outlined,
-            label: 'Settings',
-            onTap: () => context.push(AppRoutes.settings),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MenuItem extends StatelessWidget {
-  const _MenuItem({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.badge,
-    this.badgeColor = AppColors.accentRed,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final String? badge;
-  final Color badgeColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            Icon(icon, color: AppColors.primaryBlue, size: 22),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 15,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-            ),
-            if (badge != null) ...[
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: badgeColor,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  badge!,
-                  style: const TextStyle(
-                    color: AppColors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-            ],
-            const Icon(
-              Icons.chevron_right,
-              color: AppColors.textSecondary,
-              size: 20,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ItemDivider extends StatelessWidget {
-  const _ItemDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Divider(
-      height: 1,
-      thickness: 1,
-      color: AppColors.divider,
-      indent: 52,
     );
   }
 }
