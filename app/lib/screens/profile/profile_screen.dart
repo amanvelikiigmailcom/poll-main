@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../models/user.dart';
 import '../../providers/user_provider.dart';
 import '../../router/app_router.dart';
+import '../../services/local_game_service.dart';
 import '../../theme/app_colors.dart';
 
 // ---------------------------------------------------------------------------
@@ -24,6 +25,7 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final userState = ref.watch(userNotifierProvider);
     final user = userState.user;
+    final local = ref.watch(localProfileProvider);
     final requestCount = ref.watch(friendRequestCountProvider);
 
     return Scaffold(
@@ -51,12 +53,14 @@ class ProfileScreen extends ConsumerWidget {
           ? const Center(child: CircularProgressIndicator(color: AppColors.primaryBlue))
           : RefreshIndicator(
               color: AppColors.primaryBlue,
-              onRefresh: () => ref.read(userNotifierProvider.notifier).fetchProfile(),
+              onRefresh: () async {
+                await ref.read(localProfileProvider.notifier).refresh();
+              },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
                   children: [
-                    _ProfileHeaderCard(user: user),
+                    _ProfileHeaderCard(user: user, local: local),
                     const SizedBox(height: 12),
                     _FriendsPreviewSection(user: user),
                     const SizedBox(height: 12),
@@ -78,16 +82,26 @@ class ProfileScreen extends ConsumerWidget {
 // ---------------------------------------------------------------------------
 
 class _ProfileHeaderCard extends StatelessWidget {
-  const _ProfileHeaderCard({this.user});
+  const _ProfileHeaderCard({this.user, required this.local});
 
   final User? user;
+  final LocalProfile local;
 
   @override
   Widget build(BuildContext context) {
-    final displayName = user?.fullName ?? 'Имя пользователя';
-    final username = user?.username != null ? '@${user!.username}' : '';
-    final schoolInfo = _buildSchoolInfo(user);
+    final displayName = local.playerName.isNotEmpty
+        ? local.playerName
+        : (user?.firstName ?? '');
+    final login = local.username.isNotEmpty
+        ? local.username
+        : (user?.username ?? '');
+    final username = login.isNotEmpty ? '@$login' : '';
+    final universityInfo = local.universityLine;
     final isPremium = user?.isPremium ?? false;
+    final letter = LocalGameService.avatarLetter(
+      displayName: displayName,
+      username: login,
+    );
 
     return Container(
       width: double.infinity,
@@ -95,7 +109,7 @@ class _ProfileHeaderCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 28, 16, 24),
       child: Column(
         children: [
-          _AvatarWidget(user: user, radius: 52),
+          _AvatarWidget(user: user, letter: letter, radius: 52),
           const SizedBox(height: 14),
           // Name + verified badge
           Row(
@@ -128,10 +142,10 @@ class _ProfileHeaderCard extends StatelessWidget {
               ),
             ),
           ],
-          if (schoolInfo.isNotEmpty) ...[
+          if (universityInfo.isNotEmpty) ...[
             const SizedBox(height: 6),
             Text(
-              schoolInfo,
+              universityInfo,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 13,
@@ -146,15 +160,6 @@ class _ProfileHeaderCard extends StatelessWidget {
     );
   }
 
-  String _buildSchoolInfo(User? user) {
-    if (user == null) return '';
-    final parts = <String>[];
-    if (user.schoolName != null && user.schoolName!.isNotEmpty) {
-      parts.add(user.schoolName!);
-    }
-    parts.add(user.displayGrade);
-    return parts.join(' · ');
-  }
 }
 
 class _VerifiedBadge extends StatelessWidget {
@@ -177,14 +182,18 @@ class _VerifiedBadge extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _AvatarWidget extends StatelessWidget {
-  const _AvatarWidget({this.user, this.radius = 40});
+  const _AvatarWidget({
+    this.user,
+    required this.letter,
+    this.radius = 40,
+  });
 
   final User? user;
+  final String letter;
   final double radius;
 
   @override
   Widget build(BuildContext context) {
-    final initials = _initials(user);
     final hasAvatar = user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty;
 
     Widget avatar;
@@ -199,7 +208,7 @@ class _AvatarWidget extends StatelessWidget {
         radius: radius,
         backgroundColor: AppColors.primaryBlue,
         child: Text(
-          initials,
+          letter,
           style: TextStyle(
             color: AppColors.white,
             fontSize: radius * 0.5,
@@ -210,7 +219,7 @@ class _AvatarWidget extends StatelessWidget {
     }
 
     return GestureDetector(
-      onTap: () => _showFullscreen(context, user, hasAvatar, initials),
+      onTap: () => _showFullscreen(context, user, hasAvatar, letter),
       child: Stack(
         children: [
           avatar,
@@ -236,13 +245,6 @@ class _AvatarWidget extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _initials(User? user) {
-    if (user == null) return '??';
-    final first = user.firstName.isNotEmpty ? user.firstName[0] : '';
-    final last = user.lastName.isNotEmpty ? user.lastName[0] : '';
-    return '$first$last'.toUpperCase();
   }
 
   void _showFullscreen(

@@ -10,14 +10,14 @@ const Color _background = Color(0xFFF6F8FF);
 // Data models
 // ---------------------------------------------------------------------------
 
-class SchoolActivityItem {
-  final String grade;
+class CampusActivityItem {
+  final String year;
   final String chosenName;
   final String question;
   final DateTime time;
 
-  const SchoolActivityItem({
-    required this.grade,
+  const CampusActivityItem({
+    required this.year,
     required this.chosenName,
     required this.question,
     required this.time,
@@ -38,87 +38,7 @@ class MyLikeItem {
   });
 }
 
-// ---------------------------------------------------------------------------
-// Sample data
-// ---------------------------------------------------------------------------
-
-final List<SchoolActivityItem> _sampleSchoolFeed = [
-  SchoolActivityItem(
-    grade: '10',
-    chosenName: 'Аня',
-    question: 'Кто всегда поднимает настроение?',
-    time: DateTime.now().subtract(const Duration(minutes: 3)),
-  ),
-  SchoolActivityItem(
-    grade: '11',
-    chosenName: 'Максим',
-    question: 'Кто станет знаменитым?',
-    time: DateTime.now().subtract(const Duration(minutes: 17)),
-  ),
-  SchoolActivityItem(
-    grade: '9',
-    chosenName: 'Соня',
-    question: 'Кто лучше всех объясняет?',
-    time: DateTime.now().subtract(const Duration(minutes: 45)),
-  ),
-  SchoolActivityItem(
-    grade: '10',
-    chosenName: 'Дима',
-    question: 'Кто самый спортивный?',
-    time: DateTime.now().subtract(const Duration(hours: 1, minutes: 12)),
-  ),
-  SchoolActivityItem(
-    grade: '8',
-    chosenName: 'Маша',
-    question: 'Кто лучше всех знает английский?',
-    time: DateTime.now().subtract(const Duration(hours: 3)),
-  ),
-  SchoolActivityItem(
-    grade: '11',
-    chosenName: 'Артём',
-    question: 'Кто станет успешным предпринимателем?',
-    time: DateTime.now().subtract(const Duration(hours: 5, minutes: 30)),
-  ),
-  SchoolActivityItem(
-    grade: '9',
-    chosenName: 'Катя',
-    question: 'Кто всегда помогает другим?',
-    time: DateTime.now().subtract(const Duration(hours: 8)),
-  ),
-  SchoolActivityItem(
-    grade: '10',
-    chosenName: 'Никита',
-    question: 'Кто самый креативный?',
-    time: DateTime.now().subtract(const Duration(days: 1)),
-  ),
-];
-
-const List<MyLikeItem> _sampleMyLikes = [
-  MyLikeItem(
-    question: 'Кто всегда поднимает настроение?',
-    timesChosen: 5,
-    starsEarned: 250,
-    hasPremium: false,
-  ),
-  MyLikeItem(
-    question: 'Кто станет знаменитым?',
-    timesChosen: 3,
-    starsEarned: 150,
-    hasPremium: false,
-  ),
-  MyLikeItem(
-    question: 'Кто лучше всех объясняет?',
-    timesChosen: 7,
-    starsEarned: 350,
-    hasPremium: true,
-  ),
-  MyLikeItem(
-    question: 'Кто самый спортивный?',
-    timesChosen: 2,
-    starsEarned: 100,
-    hasPremium: false,
-  ),
-];
+// New accounts start with an empty campus feed and no likes.
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -126,10 +46,10 @@ const List<MyLikeItem> _sampleMyLikes = [
 
 String _timeAgo(DateTime dt) {
   final diff = DateTime.now().difference(dt);
-  if (diff.inMinutes < 1) return 'только что';
-  if (diff.inMinutes < 60) return '${diff.inMinutes} мин назад';
-  if (diff.inHours < 24) return '${diff.inHours} ч назад';
-  return '${diff.inDays} д назад';
+  if (diff.inMinutes < 1) return 'just now';
+  if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+  if (diff.inHours < 24) return '${diff.inHours}h ago';
+  return '${diff.inDays}d ago';
 }
 
 // ---------------------------------------------------------------------------
@@ -251,7 +171,7 @@ class _ActivityScreenState extends State<ActivityScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _loading = true;
-  List<SchoolActivityItem> _schoolFeed = [];
+  List<CampusActivityItem> _campusFeed = [];
   List<MyLikeItem> _myLikes = [];
 
   @override
@@ -265,13 +185,13 @@ class _ActivityScreenState extends State<ActivityScreen>
     await Future<void>.delayed(const Duration(milliseconds: 1200));
     if (!mounted) return;
     setState(() {
-      _schoolFeed = List.from(_sampleSchoolFeed);
-      _myLikes = List.from(_sampleMyLikes);
+      _campusFeed = [];
+      _myLikes = [];
       _loading = false;
     });
   }
 
-  Future<void> _refreshSchool() async {
+  Future<void> _refreshCampus() async {
     await Future<void>.delayed(const Duration(milliseconds: 800));
     if (!mounted) return;
     setState(() {}); // refresh timestamp display
@@ -298,7 +218,7 @@ class _ActivityScreenState extends State<ActivityScreen>
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         title: const Text(
-          'Активность',
+          'Activity',
           style: TextStyle(
             color: Color(0xFF1A1A2E),
             fontWeight: FontWeight.bold,
@@ -333,8 +253,8 @@ class _ActivityScreenState extends State<ActivityScreen>
               padding: const EdgeInsets.all(4),
               dividerColor: Colors.transparent,
               tabs: const [
-                Tab(text: 'В школе'),
-                Tab(text: 'Мои лайки'),
+                Tab(text: 'Campus'),
+                Tab(text: 'My likes'),
               ],
             ),
           ),
@@ -343,36 +263,36 @@ class _ActivityScreenState extends State<ActivityScreen>
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildSchoolTab(),
+          _buildCampusTab(),
           _buildMyLikesTab(),
         ],
       ),
     );
   }
 
-  // ── Tab 1: В школе ──────────────────────────────────────────────────────
+  // ── Tab 1: Campus ───────────────────────────────────────────────────────
 
-  Widget _buildSchoolTab() {
+  Widget _buildCampusTab() {
     if (_loading) return _buildShimmerList();
-    if (_schoolFeed.isEmpty) return _buildSchoolEmpty();
+    if (_campusFeed.isEmpty) return _buildCampusEmpty();
 
     return RefreshIndicator(
-      onRefresh: _refreshSchool,
+      onRefresh: _refreshCampus,
       color: _primaryBlue,
       child: ListView.builder(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-        itemCount: _schoolFeed.length,
+        itemCount: _campusFeed.length,
         itemBuilder: (context, i) {
           return _AnimatedCard(
             delay: Duration(milliseconds: i * 60),
-            child: _buildSchoolCard(_schoolFeed[i]),
+            child: _buildCampusCard(_campusFeed[i]),
           );
         },
       ),
     );
   }
 
-  Widget _buildSchoolCard(SchoolActivityItem item) {
+  Widget _buildCampusCard(CampusActivityItem item) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -417,22 +337,22 @@ class _ActivityScreenState extends State<ActivityScreen>
                         height: 1.4,
                       ),
                       children: [
-                        const TextSpan(text: 'Кто-то из '),
+                        const TextSpan(text: 'Someone in '),
                         TextSpan(
-                          text: '${item.grade} класса',
+                          text: item.year,
                           style: const TextStyle(
                             fontWeight: FontWeight.w700,
                             color: _primaryBlue,
                           ),
                         ),
-                        const TextSpan(text: ' выбрал '),
+                        const TextSpan(text: ' picked '),
                         TextSpan(
                           text: item.chosenName,
                           style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
-                        const TextSpan(text: ' в опросе '),
+                        const TextSpan(text: ' in '),
                         TextSpan(
-                          text: '«${item.question}»',
+                          text: '“${item.question}”',
                           style: const TextStyle(fontStyle: FontStyle.italic),
                         ),
                       ],
@@ -462,7 +382,7 @@ class _ActivityScreenState extends State<ActivityScreen>
     );
   }
 
-  Widget _buildSchoolEmpty() {
+  Widget _buildCampusEmpty() {
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 40),
@@ -477,14 +397,14 @@ class _ActivityScreenState extends State<ActivityScreen>
                 shape: BoxShape.circle,
               ),
               child: const Icon(
-                Icons.school_outlined,
+                Icons.account_balance_outlined,
                 size: 40,
                 color: _primaryBlue,
               ),
             ),
             const SizedBox(height: 20),
             const Text(
-              'Пока нет активности',
+              'No campus activity yet',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -493,7 +413,7 @@ class _ActivityScreenState extends State<ActivityScreen>
             ),
             const SizedBox(height: 8),
             const Text(
-              'Как только кто-то из школы проголосует, здесь появятся записи',
+              'When someone on campus votes, their picks will show up here.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -721,7 +641,7 @@ class _ActivityScreenState extends State<ActivityScreen>
             ),
             const SizedBox(height: 20),
             const Text(
-              'Пока нет лайков',
+              'No likes yet',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -730,7 +650,7 @@ class _ActivityScreenState extends State<ActivityScreen>
             ),
             const SizedBox(height: 8),
             const Text(
-              'Когда тебя выберут в голосовании, здесь появятся твои лайки',
+              'You just joined. Likes appear when people pick you in polls.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -752,7 +672,7 @@ class _ActivityScreenState extends State<ActivityScreen>
                 elevation: 0,
               ),
               child: const Text(
-                'Перейти к опросам',
+                'Go to polls',
                 style: TextStyle(fontWeight: FontWeight.w600),
               ),
             ),

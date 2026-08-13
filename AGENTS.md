@@ -71,20 +71,24 @@ poll-main/                 # git root
 
 Working **local Gas-style loop**:
 
-1. Onboarding: **username (login)** → **display name** → **≥3 classmates**
-2. Focus stays on name field after each add
+1. Onboarding: **username (login)** → **display name** → **≥3 friends**
+2. After 3 friends: banner **“Three is enough”** — continue or add more + invite-by-login
 3. Round: **12 questions** (4 sympathy + 4 normal + 4 humor)
 4. Each question: **4 cards = player + 3 friends** (shuffled)
 5. No “school wait / 3 of 5 participants” gate — min **3 friends** is enough
 6. After round: stars (+1000), timer 40 min, **invite** (WhatsApp / Telegram / Instagram + system share)
 7. Brand rename **OISTER → Hidavo** (UI, l10n, domains `hidavo.app`; package name still `flyprox_app`)
+8. Profile / Edit profile read **LocalGameService** (login + name + university + year). Avatar = first letter of name.
+9. University + 1st–4th year (user types university). No school/class, surname, or phone on profile.
+10. New-user likes are empty. Activity campus tab uses years 1–4.
+11. UI default **English** (device `ru` still allowed). No “timer expired” notification toggle.
 
 **Still shell / mock (don’t treat as finished product):**
 
-- Profile / friends list / activity / premium / rooms — mostly demo UI
-- Profile does not always show local username/name
+- Friends list / premium / rooms — mostly demo UI
 - Friends tab ≠ onboarding name list (demo data)
 - No real server, matching, or live multi-user votes
+- The 3 onboarding names are **local vote-card labels only**. Friends join via shared **@login** invite (`InviteShareService` + optional `FriendInviteService`).
 
 ---
 
@@ -111,6 +115,8 @@ Package name for imports: `package:flyprox_app/...`
 - Ready to play: username + playerName + ≥3 friends (`hasEnoughNames`)
 - Start poll: `MainTab` → `/vote` (not school-wait screen)
 - Invite copy + deep links: `InviteShareService` (IG = copy + open app)
+- Profile identity: `localProfileProvider` / `LocalGameService` (not demo `User`)
+- University + year 1–4 live in prefs (`local_university`, `local_university_year`)
 
 ---
 

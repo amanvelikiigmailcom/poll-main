@@ -33,6 +33,8 @@ class LocalGameService {
 
   static const _usernameKey = 'local_username';
   static const _playerNameKey = 'local_player_name';
+  static const _universityKey = 'local_university';
+  static const _universityYearKey = 'local_university_year';
   static const _namesKey = 'local_friend_names';
   static const _starsKey = 'local_star_balance';
   static const _lastRoundKey = 'local_last_round_completed_at';
@@ -92,6 +94,77 @@ class LocalGameService {
   Future<void> savePlayerName(String name) async {
     final prefs = await _prefs;
     await prefs.setString(_playerNameKey, name.trim());
+  }
+
+  // ── University / year (typed by the user; not school/class) ───────────────
+
+  Future<String?> getUniversity() async {
+    final prefs = await _prefs;
+    final v = prefs.getString(_universityKey)?.trim();
+    if (v == null || v.isEmpty) return null;
+    return v;
+  }
+
+  Future<void> saveUniversity(String university) async {
+    final prefs = await _prefs;
+    final v = university.trim();
+    if (v.isEmpty) {
+      await prefs.remove(_universityKey);
+    } else {
+      await prefs.setString(_universityKey, v);
+    }
+  }
+
+  /// 1–4, or null if the user has not picked a year.
+  Future<int?> getUniversityYear() async {
+    final prefs = await _prefs;
+    final y = prefs.getInt(_universityYearKey);
+    if (y == null || y < 1 || y > 4) return null;
+    return y;
+  }
+
+  Future<void> saveUniversityYear(int? year) async {
+    final prefs = await _prefs;
+    if (year == null || year < 1 || year > 4) {
+      await prefs.remove(_universityYearKey);
+    } else {
+      await prefs.setInt(_universityYearKey, year);
+    }
+  }
+
+  /// English ordinal label for a persisted year (1–4).
+  static String universityYearLabel(int year) {
+    switch (year) {
+      case 1:
+        return '1st year';
+      case 2:
+        return '2nd year';
+      case 3:
+        return '3rd year';
+      case 4:
+        return '4th year';
+      default:
+        return '';
+    }
+  }
+
+  /// Header line: "University name · 2nd year", or empty if neither is set.
+  static String universitySubtitle(String? university, int? year) {
+    final uni = university?.trim() ?? '';
+    final yearText =
+        (year != null && year >= 1 && year <= 4) ? universityYearLabel(year) : '';
+    if (uni.isNotEmpty && yearText.isNotEmpty) return '$uni · $yearText';
+    if (uni.isNotEmpty) return uni;
+    return yearText;
+  }
+
+  /// Round avatar letter: first letter of display name, else login, else "?".
+  static String avatarLetter({String? displayName, String? username}) {
+    final name = displayName?.trim() ?? '';
+    if (name.isNotEmpty) return name[0].toUpperCase();
+    final login = username?.trim() ?? '';
+    if (login.isNotEmpty) return login[0].toUpperCase();
+    return '?';
   }
 
   // ── Friend names ──────────────────────────────────────────────────────────

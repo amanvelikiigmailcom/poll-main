@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user.dart';
+import '../services/local_game_service.dart';
 import '../services/user_service.dart';
 import 'service_providers.dart';
 
@@ -134,4 +135,70 @@ final userNotifierProvider =
 /// Convenience read-only provider for the current [User] (may be null).
 final currentUserProvider = Provider<User?>((ref) {
   return ref.watch(userNotifierProvider).user;
+});
+
+// ── Local registration profile (login + display name + university) ───────────
+
+class LocalProfile {
+  const LocalProfile({
+    this.username = '',
+    this.playerName = '',
+    this.university = '',
+    this.universityYear,
+    this.isLoaded = false,
+  });
+
+  final String username;
+  final String playerName;
+  final String university;
+  final int? universityYear;
+  final bool isLoaded;
+
+  String get avatarLetter => LocalGameService.avatarLetter(
+        displayName: playerName,
+        username: username,
+      );
+
+  String get universityLine =>
+      LocalGameService.universitySubtitle(university, universityYear);
+}
+
+class LocalProfileNotifier extends StateNotifier<LocalProfile> {
+  LocalProfileNotifier() : super(const LocalProfile()) {
+    refresh();
+  }
+
+  Future<void> refresh() async {
+    final game = LocalGameService.instance;
+    final username = await game.getUsername() ?? '';
+    final playerName = await game.getPlayerName() ?? '';
+    final university = await game.getUniversity() ?? '';
+    final universityYear = await game.getUniversityYear();
+    state = LocalProfile(
+      username: username,
+      playerName: playerName,
+      university: university,
+      universityYear: universityYear,
+      isLoaded: true,
+    );
+  }
+
+  Future<void> save({
+    required String username,
+    required String playerName,
+    required String university,
+    int? universityYear,
+  }) async {
+    final game = LocalGameService.instance;
+    await game.saveUsername(username);
+    await game.savePlayerName(playerName);
+    await game.saveUniversity(university);
+    await game.saveUniversityYear(universityYear);
+    await refresh();
+  }
+}
+
+final localProfileProvider =
+    StateNotifierProvider<LocalProfileNotifier, LocalProfile>((ref) {
+  return LocalProfileNotifier();
 });

@@ -25,17 +25,17 @@ class InviteShareService {
     final link = '$appStoreFallback/invite/$handle';
 
     final who = (name != null && name.isNotEmpty) ? name : handle;
-    final message = '''Йо! 🔥 Это $who
+    final message = '''Hey! 🔥 It's $who
 
-Ставь Hidavo — анонимные опросы в классе (как Gas):
-кто самый красивый, кто краш, кто опоздает на свадьбу 😂
-Никто не увидит, за кого ты голосовал.
+Join me on Hidavo — anonymous polls with your group (like Gas):
+who's the hottest, who's a crush, who'll be late to the wedding 😂
+Nobody sees who you voted for.
 
-Скачай и зайди:
+Download and sign in:
 $link
 
-Мой логин: @$handle
-Добавь меня и начнём голосовать 👀''';
+My login: @$handle
+Add me and we can start voting 👀''';
 
     return InvitePayload(
       username: handle,
@@ -87,7 +87,7 @@ $link
     await SharePlus.instance.share(
       ShareParams(
         text: p.message,
-        subject: 'Приглашение в Hidavo',
+        subject: 'Invite to Hidavo',
       ),
     );
   }

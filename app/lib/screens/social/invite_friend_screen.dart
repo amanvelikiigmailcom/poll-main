@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../services/invite_share_service.dart';
 import '../../theme/app_colors.dart';
 
-/// After voting / timer: invite classmates via WhatsApp, Telegram, Instagram
+/// After voting / timer: invite friends via WhatsApp, Telegram, Instagram
 /// with a ready-made message (deep links where supported).
 class InviteFriendScreen extends StatefulWidget {
   const InviteFriendScreen({super.key});
@@ -45,12 +45,12 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
 
   Future<void> _whatsapp() async {
     await InviteShareService.instance.shareWhatsApp();
-    _toast('Открываем WhatsApp…');
+    _toast('Opening WhatsApp…');
   }
 
   Future<void> _telegram() async {
     await InviteShareService.instance.shareTelegram();
-    _toast('Открываем Telegram…');
+    _toast('Opening Telegram…');
   }
 
   Future<void> _instagram() async {
@@ -58,8 +58,8 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
     if (r.copied) {
       _toast(
         r.openedApp
-            ? 'Текст скопирован — вставь в Direct / Stories'
-            : 'Текст скопирован. Открой Instagram и вставь сообщение',
+            ? 'Copied — paste it in Direct / Stories'
+            : 'Copied. Open Instagram and paste the invite',
       );
     }
   }
@@ -70,12 +70,12 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
 
   Future<void> _copyMessage() async {
     await InviteShareService.instance.copyMessage();
-    _toast('Сообщение скопировано');
+    _toast('Message copied');
   }
 
   Future<void> _copyLink() async {
     await InviteShareService.instance.copyLink();
-    _toast('Ссылка скопирована');
+    _toast('Link copied');
   }
 
   @override
@@ -88,7 +88,7 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
         elevation: 0,
         centerTitle: true,
         title: const Text(
-          'Пригласи друга',
+          'Invite a friend',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -116,7 +116,7 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
                 if (p != null) _PromoCodeCard(code: p.username, onCopy: _copyLink),
                 const SizedBox(height: 20),
                 const Text(
-                  'Отправить с готовым текстом',
+                  'Send a ready-made invite',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -125,7 +125,7 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Выбери приложение — сообщение уже готово, останется отправить',
+                  'Share your login so they can add you. Pick an app — the message is ready.',
                   style: TextStyle(
                     fontSize: 13,
                     color: AppColors.textSecondary,
@@ -135,7 +135,7 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
                 const SizedBox(height: 14),
                 _SocialButton(
                   label: 'WhatsApp',
-                  subtitle: 'Чат с готовым текстом',
+                  subtitle: 'Chat with a ready-made message',
                   color: const Color(0xFF25D366),
                   icon: Icons.chat_rounded,
                   onTap: _whatsapp,
@@ -143,7 +143,7 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
                 const SizedBox(height: 10),
                 _SocialButton(
                   label: 'Telegram',
-                  subtitle: 'Поделиться ссылкой + текст',
+                  subtitle: 'Share the link + message',
                   color: const Color(0xFF2AABEE),
                   icon: Icons.send_rounded,
                   onTap: _telegram,
@@ -151,15 +151,15 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
                 const SizedBox(height: 10),
                 _SocialButton(
                   label: 'Instagram',
-                  subtitle: 'Текст скопируется → вставь в Direct',
+                  subtitle: 'Message copied → paste in Direct',
                   color: const Color(0xFFE1306C),
                   icon: Icons.camera_alt_rounded,
                   onTap: _instagram,
                 ),
                 const SizedBox(height: 10),
                 _SocialButton(
-                  label: 'Все приложения',
-                  subtitle: 'Системное меню «Поделиться»',
+                  label: 'All apps',
+                  subtitle: 'System share menu',
                   color: AppColors.primaryBlue,
                   icon: Icons.ios_share_rounded,
                   onTap: _everywhere,
@@ -170,7 +170,7 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
                 OutlinedButton.icon(
                   onPressed: _copyMessage,
                   icon: const Icon(Icons.copy_rounded),
-                  label: const Text('Скопировать сообщение'),
+                  label: const Text('Copy message'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primaryBlue,
                     side: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
@@ -184,7 +184,7 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
                 OutlinedButton.icon(
                   onPressed: _copyLink,
                   icon: const Icon(Icons.link_rounded),
-                  label: const Text('Скопировать только ссылку'),
+                  label: const Text('Copy link only'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.textSecondary,
                     side: const BorderSide(color: AppColors.border, width: 1.5),
@@ -218,7 +218,7 @@ class _BenefitBanner extends StatelessWidget {
           SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Друг установил приложение — можно сразу голосовать снова и пропустить 40 минут ожидания.',
+              'They join Hidavo with your login — then you can vote together and skip the 40-minute wait.',
               style: TextStyle(
                 fontSize: 13,
                 color: AppColors.primaryBlue,
@@ -257,7 +257,7 @@ class _PromoCodeCard extends StatelessWidget {
       child: Column(
         children: [
           const Text(
-            'ТВОЙ ИНВАЙТ',
+            'YOUR LOGIN',
             style: TextStyle(
               color: Colors.white70,
               fontSize: 11,
@@ -390,7 +390,7 @@ class _MessagePreview extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Текст приглашения',
+            'Invite message',
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w700,

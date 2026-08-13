@@ -40,7 +40,7 @@ class LikesEmptyScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 28),
                       const Text(
-                        'У вас пока нет лайков',
+                        'No likes yet',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 22,
@@ -50,7 +50,7 @@ class LikesEmptyScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        'Участвуйте в голосованиях, чтобы получить лайки',
+                        'You just joined. Likes appear when people pick you in polls.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 15,
@@ -73,7 +73,7 @@ class LikesEmptyScreen extends ConsumerWidget {
                             elevation: 0,
                           ),
                           child: const Text(
-                            'Начать голосование',
+                            'Go to polls',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -125,7 +125,7 @@ class _HeaderCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Лайки',
+                'Likes',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 26,
@@ -142,7 +142,7 @@ class _HeaderCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Text(
-                  'Всего: 0',
+                  'Total: 0',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 14,
@@ -154,7 +154,7 @@ class _HeaderCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Узнайте, кто выбрал вас в голосовании',
+            'Likes appear when people pick you in polls.',
             style: TextStyle(
               color: Colors.white70,
               fontSize: 14,

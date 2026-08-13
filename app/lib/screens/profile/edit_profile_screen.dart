@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../models/user.dart';
 import '../../providers/user_provider.dart';
 import '../../router/app_router.dart';
+import '../../services/local_game_service.dart';
 import '../../theme/app_colors.dart';
 
 // ---------------------------------------------------------------------------
@@ -17,36 +18,46 @@ import '../../theme/app_colors.dart';
 class _EditFormState {
   const _EditFormState({
     this.firstName = '',
-    this.lastName = '',
     this.username = '',
+    this.university = '',
+    this.universityYear,
     this.localAvatarPath,
+    this.isHydrated = false,
     this.isSaving = false,
     this.errorMessage,
   });
 
   final String firstName;
-  final String lastName;
   final String username;
+  final String university;
+  final int? universityYear;
   final String? localAvatarPath;
+  final bool isHydrated;
   final bool isSaving;
   final String? errorMessage;
 
   _EditFormState copyWith({
     String? firstName,
-    String? lastName,
     String? username,
+    String? university,
+    int? universityYear,
+    bool clearYear = false,
     String? localAvatarPath,
     bool clearLocalAvatar = false,
+    bool? isHydrated,
     bool? isSaving,
     String? errorMessage,
     bool clearError = false,
   }) {
     return _EditFormState(
       firstName: firstName ?? this.firstName,
-      lastName: lastName ?? this.lastName,
       username: username ?? this.username,
+      university: university ?? this.university,
+      universityYear:
+          clearYear ? null : universityYear ?? this.universityYear,
       localAvatarPath:
           clearLocalAvatar ? null : localAvatarPath ?? this.localAvatarPath,
+      isHydrated: isHydrated ?? this.isHydrated,
       isSaving: isSaving ?? this.isSaving,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
     );
@@ -58,31 +69,42 @@ class _EditFormState {
 // ---------------------------------------------------------------------------
 
 class _EditFormNotifier extends StateNotifier<_EditFormState> {
-  _EditFormNotifier(User? user)
-      : super(_EditFormState(
-          firstName: user?.firstName ?? '',
-          lastName: user?.lastName ?? '',
-          username: user?.username ?? '',
-        ));
+  _EditFormNotifier() : super(const _EditFormState());
+
+  void hydrate({
+    required String firstName,
+    required String username,
+    required String university,
+    int? universityYear,
+  }) {
+    state = _EditFormState(
+      firstName: firstName,
+      username: username,
+      university: university,
+      universityYear: universityYear,
+      isHydrated: true,
+    );
+  }
 
   void setFirstName(String v) => state = state.copyWith(firstName: v);
-  void setLastName(String v) => state = state.copyWith(lastName: v);
   void setUsername(String v) => state = state.copyWith(username: v);
+  void setUniversity(String v) => state = state.copyWith(university: v);
+  void setUniversityYear(int? year) => state = state.copyWith(
+        universityYear: year,
+        clearYear: year == null,
+      );
   void setLocalAvatar(String path) =>
       state = state.copyWith(localAvatarPath: path);
-  void clearError() => state = state.copyWith(clearError: true);
-
-  Map<String, dynamic> toPayload() => {
-        'firstName': state.firstName.trim(),
-        'lastName': state.lastName.trim(),
-        'username': state.username.trim(),
-      };
+  void setSaving(bool v) => state = state.copyWith(isSaving: v);
+  void setError(String? message) => state = state.copyWith(
+        errorMessage: message,
+        clearError: message == null,
+      );
 }
 
 final _editFormProvider =
-    StateNotifierProvider<_EditFormNotifier, _EditFormState>((ref) {
-  final user = ref.watch(currentUserProvider);
-  return _EditFormNotifier(user);
+    StateNotifierProvider.autoDispose<_EditFormNotifier, _EditFormState>((ref) {
+  return _EditFormNotifier();
 });
 
 // ---------------------------------------------------------------------------
@@ -98,8 +120,8 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late final TextEditingController _firstNameCtrl;
-  late final TextEditingController _lastNameCtrl;
   late final TextEditingController _usernameCtrl;
+  late final TextEditingController _universityCtrl;
   final _formKey = GlobalKey<FormState>();
   String? _deleteReason;
 
@@ -114,17 +136,44 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    final formState = ref.read(_editFormProvider);
-    _firstNameCtrl = TextEditingController(text: formState.firstName);
-    _lastNameCtrl = TextEditingController(text: formState.lastName);
-    _usernameCtrl = TextEditingController(text: formState.username);
+    _firstNameCtrl = TextEditingController();
+    _usernameCtrl = TextEditingController();
+    _universityCtrl = TextEditingController();
+    _prefillFromLocal();
+  }
+
+  Future<void> _prefillFromLocal() async {
+    final game = LocalGameService.instance;
+    final cached = ref.read(localProfileProvider);
+    var name = cached.playerName;
+    var username = cached.username;
+    var university = cached.university;
+    var year = cached.universityYear;
+
+    // Always read SharedPreferences so the form matches registration
+    // even if the in-memory provider has not finished loading yet.
+    name = await game.getPlayerName() ?? name;
+    username = await game.getUsername() ?? username;
+    university = await game.getUniversity() ?? university;
+    year = await game.getUniversityYear() ?? year;
+
+    if (!mounted) return;
+    _firstNameCtrl.text = name;
+    _usernameCtrl.text = username;
+    _universityCtrl.text = university;
+    ref.read(_editFormProvider.notifier).hydrate(
+          firstName: name,
+          username: username,
+          university: university,
+          universityYear: year,
+        );
   }
 
   @override
   void dispose() {
     _firstNameCtrl.dispose();
-    _lastNameCtrl.dispose();
     _usernameCtrl.dispose();
+    _universityCtrl.dispose();
     super.dispose();
   }
 
@@ -140,18 +189,22 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    final notifier = ref.read(userNotifierProvider.notifier);
     final formNotifier = ref.read(_editFormProvider.notifier);
     final formState = ref.read(_editFormProvider);
+    formNotifier.setSaving(true);
+    formNotifier.setError(null);
 
-    // Upload avatar if changed
-    if (formState.localAvatarPath != null) {
-      await notifier.uploadPhoto(formState.localAvatarPath!);
-    }
-
-    final success = await notifier.updateProfile(formNotifier.toPayload());
-    if (success && mounted) {
-      context.pop();
+    try {
+      await ref.read(localProfileProvider.notifier).save(
+            username: formState.username.trim(),
+            playerName: formState.firstName.trim(),
+            university: formState.university.trim(),
+            universityYear: formState.universityYear,
+          );
+      if (mounted) context.pop();
+    } catch (e) {
+      formNotifier.setSaving(false);
+      formNotifier.setError(e.toString());
     }
   }
 
@@ -172,7 +225,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           onPressed: () => context.pop(),
         ),
         title: const Text(
-          'Редактировать профиль',
+          'Edit Profile',
           style: TextStyle(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.bold,
@@ -188,31 +241,40 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               const SizedBox(height: 20),
               _AvatarSection(
                 user: user,
+                letter: LocalGameService.avatarLetter(
+                  displayName: formState.firstName,
+                  username: formState.username,
+                ),
                 localPath: formState.localAvatarPath,
                 onTap: _pickImage,
               ),
               const SizedBox(height: 20),
               _TextFieldsSection(
                 firstNameCtrl: _firstNameCtrl,
-                lastNameCtrl: _lastNameCtrl,
                 usernameCtrl: _usernameCtrl,
                 onFirstNameChanged: (v) =>
                     ref.read(_editFormProvider.notifier).setFirstName(v),
-                onLastNameChanged: (v) =>
-                    ref.read(_editFormProvider.notifier).setLastName(v),
                 onUsernameChanged: (v) =>
                     ref.read(_editFormProvider.notifier).setUsername(v),
               ),
               const SizedBox(height: 12),
-              _SchoolClassSection(user: user),
+              _UniversitySection(
+                universityCtrl: _universityCtrl,
+                year: formState.universityYear,
+                onUniversityChanged: (v) =>
+                    ref.read(_editFormProvider.notifier).setUniversity(v),
+                onYearChanged: (y) =>
+                    ref.read(_editFormProvider.notifier).setUniversityYear(y),
+              ),
               const SizedBox(height: 12),
               _PremiumRow(user: user),
-              if (userState.errorMessage != null) ...[
+              if (formState.errorMessage != null ||
+                  userState.errorMessage != null) ...[
                 const SizedBox(height: 8),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Text(
-                    userState.errorMessage!,
+                    formState.errorMessage ?? userState.errorMessage!,
                     style: const TextStyle(
                         color: AppColors.error, fontSize: 13),
                     textAlign: TextAlign.center,
@@ -221,7 +283,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ],
               const SizedBox(height: 20),
               _SaveButton(
-                isSaving: userState.isLoading,
+                isSaving: formState.isSaving || userState.isLoading,
                 onPressed: _save,
               ),
               const SizedBox(height: 16),
@@ -240,37 +302,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  void _showSchoolDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16)),
-        title: const Text('Изменить школу',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text(
-          'Вы уверены? После смены школы вам нужно будет заново выбрать класс.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Отмена'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.push(AppRoutes.school);
-            },
-            child: const Text(
-              'Изменить',
-              style: TextStyle(color: AppColors.primaryBlue),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -350,17 +381,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 class _AvatarSection extends StatelessWidget {
   const _AvatarSection({
     this.user,
+    required this.letter,
     this.localPath,
     required this.onTap,
   });
 
   final User? user;
+  final String letter;
   final String? localPath;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final initials = _initials(user);
     final hasNetwork =
         user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty;
 
@@ -383,7 +415,7 @@ class _AvatarSection extends StatelessWidget {
         radius: 48,
         backgroundColor: AppColors.primaryBlue,
         child: Text(
-          initials,
+          letter,
           style: const TextStyle(
             color: AppColors.white,
             fontSize: 24,
@@ -426,7 +458,7 @@ class _AvatarSection extends StatelessWidget {
         GestureDetector(
           onTap: onTap,
           child: const Text(
-            'Изменить фото',
+            'Change photo',
             style: TextStyle(
               color: AppColors.primaryBlue,
               fontSize: 14,
@@ -438,12 +470,6 @@ class _AvatarSection extends StatelessWidget {
     );
   }
 
-  String _initials(User? user) {
-    if (user == null) return 'МЯ';
-    final f = user.firstName.isNotEmpty ? user.firstName[0] : '';
-    final l = user.lastName.isNotEmpty ? user.lastName[0] : '';
-    return '$f$l'.toUpperCase();
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -453,18 +479,14 @@ class _AvatarSection extends StatelessWidget {
 class _TextFieldsSection extends StatelessWidget {
   const _TextFieldsSection({
     required this.firstNameCtrl,
-    required this.lastNameCtrl,
     required this.usernameCtrl,
     required this.onFirstNameChanged,
-    required this.onLastNameChanged,
     required this.onUsernameChanged,
   });
 
   final TextEditingController firstNameCtrl;
-  final TextEditingController lastNameCtrl;
   final TextEditingController usernameCtrl;
   final ValueChanged<String> onFirstNameChanged;
-  final ValueChanged<String> onLastNameChanged;
   final ValueChanged<String> onUsernameChanged;
 
   @override
@@ -475,29 +497,21 @@ class _TextFieldsSection extends StatelessWidget {
       child: Column(
         children: [
           _InputField(
-            label: 'Имя',
+            label: 'Name',
             controller: firstNameCtrl,
             onChanged: onFirstNameChanged,
             validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Введите имя' : null,
+                (v == null || v.trim().isEmpty) ? 'Enter your name' : null,
           ),
           const SizedBox(height: 14),
           _InputField(
-            label: 'Фамилия',
-            controller: lastNameCtrl,
-            onChanged: onLastNameChanged,
-            validator: (v) =>
-                (v == null || v.trim().isEmpty) ? 'Введите фамилию' : null,
-          ),
-          const SizedBox(height: 14),
-          _InputField(
-            label: 'Логин',
+            label: 'Login',
             controller: usernameCtrl,
             onChanged: onUsernameChanged,
             prefixText: '@',
             validator: (v) {
-              if (v == null || v.trim().isEmpty) return 'Введите логин';
-              if (v.contains(' ')) return 'Логин не должен содержать пробелы';
+              if (v == null || v.trim().isEmpty) return 'Enter a login';
+              if (v.contains(' ')) return 'Login cannot contain spaces';
               return null;
             },
           ),
@@ -513,6 +527,7 @@ class _InputField extends StatelessWidget {
     required this.controller,
     required this.onChanged,
     this.prefixText,
+    this.hintText,
     this.validator,
   });
 
@@ -520,6 +535,7 @@ class _InputField extends StatelessWidget {
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
   final String? prefixText;
+  final String? hintText;
   final FormFieldValidator<String>? validator;
 
   @override
@@ -530,6 +546,7 @@ class _InputField extends StatelessWidget {
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
+        hintText: hintText,
         prefixText: prefixText,
         filled: true,
         fillColor: AppColors.background,
@@ -565,107 +582,68 @@ class _InputField extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// School / class section
+// University / year
 // ---------------------------------------------------------------------------
 
-class _SchoolClassSection extends StatelessWidget {
-  const _SchoolClassSection({this.user});
+class _UniversitySection extends StatelessWidget {
+  const _UniversitySection({
+    required this.universityCtrl,
+    required this.year,
+    required this.onUniversityChanged,
+    required this.onYearChanged,
+  });
 
-  final User? user;
+  final TextEditingController universityCtrl;
+  final int? year;
+  final ValueChanged<String> onUniversityChanged;
+  final ValueChanged<int?> onYearChanged;
 
   @override
   Widget build(BuildContext context) {
-    final schoolName =
-        user?.schoolName?.isNotEmpty == true ? user!.schoolName! : 'Не указана';
-    final gradeText = user?.displayGrade ?? 'Не указан';
-
     return Container(
       color: AppColors.white,
+      padding: const EdgeInsets.all(16),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ListTile(
-            title: const Text(
-              'Школа',
-              style: TextStyle(
-                  fontSize: 12, color: AppColors.textSecondary),
-            ),
-            subtitle: Text(
-              schoolName,
-              style: const TextStyle(
-                fontSize: 15,
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            trailing: GestureDetector(
-              onTap: () => _showChangeSchoolDialog(context),
-              child: const Text(
-                'Изменить',
-                style: TextStyle(
-                  color: AppColors.primaryBlue,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
+          _InputField(
+            label: 'University',
+            controller: universityCtrl,
+            onChanged: onUniversityChanged,
+            hintText: 'Your university',
           ),
-          const Divider(height: 1, indent: 16, endIndent: 16),
-          ListTile(
-            title: const Text(
-              'Класс',
-              style: TextStyle(
-                  fontSize: 12, color: AppColors.textSecondary),
-            ),
-            subtitle: Text(
-              gradeText,
-              style: const TextStyle(
-                fontSize: 15,
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w500,
+          const SizedBox(height: 14),
+          DropdownButtonFormField<int>(
+            key: ValueKey(year),
+            initialValue: year,
+            decoration: InputDecoration(
+              labelText: 'Year',
+              hintText: 'Select year',
+              filled: true,
+              fillColor: AppColors.background,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide.none,
               ),
-            ),
-            trailing: GestureDetector(
-              onTap: () => context.push(AppRoutes.classSelect),
-              child: const Text(
-                'Изменить',
-                style: TextStyle(
-                  color: AppColors.primaryBlue,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: AppColors.border, width: 1),
               ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(
+                    color: AppColors.primaryBlue, width: 1.5),
+              ),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showChangeSchoolDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16)),
-        title: const Text('Изменить школу',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        content: const Text(
-          'Вы уверены? После смены школы вам нужно будет заново выбрать класс.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Отмена'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.push(AppRoutes.school);
-            },
-            child: const Text(
-              'Изменить',
-              style: TextStyle(color: AppColors.primaryBlue),
-            ),
+            items: const [
+              DropdownMenuItem(value: 1, child: Text('1st year')),
+              DropdownMenuItem(value: 2, child: Text('2nd year')),
+              DropdownMenuItem(value: 3, child: Text('3rd year')),
+              DropdownMenuItem(value: 4, child: Text('4th year')),
+            ],
+            onChanged: onYearChanged,
           ),
         ],
       ),
@@ -783,7 +761,7 @@ class _SaveButton extends StatelessWidget {
                   ),
                 )
               : const Text(
-                  'Сохранить',
+                  'Save',
                   style: TextStyle(
                       fontSize: 16, fontWeight: FontWeight.bold),
                 ),

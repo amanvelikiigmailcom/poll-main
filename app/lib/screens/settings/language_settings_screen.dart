@@ -15,8 +15,8 @@ class _Language {
 }
 
 const _languages = [
-  _Language(flag: '🇷🇺', name: 'Русский', code: 'ru'),
   _Language(flag: '🇬🇧', name: 'English', code: 'en'),
+  _Language(flag: '🇷🇺', name: 'Русский', code: 'ru'),
   _Language(flag: '🇯🇵', name: '日本語', code: 'ja'),
   _Language(flag: '🇰🇷', name: '한국어', code: 'ko'),
   _Language(flag: '🇪🇸', name: 'Español', code: 'es'),
@@ -35,7 +35,7 @@ class LanguageSettingsScreen extends ConsumerStatefulWidget {
 
 class _LanguageSettingsScreenState
     extends ConsumerState<LanguageSettingsScreen> {
-  String _selectedCode = 'ru';
+  String _selectedCode = 'en';
 
   @override
   void initState() {
@@ -73,7 +73,7 @@ class _LanguageSettingsScreenState
           onPressed: () => context.pop(),
         ),
         title: const Text(
-          'Выбор языка',
+          'Language',
           style: TextStyle(
             color: Colors.black87,
             fontSize: 18,
@@ -156,7 +156,7 @@ class _LanguageSettingsScreenState
                   elevation: 0,
                 ),
                 child: const Text(
-                  'Сохранить',
+                  'Save',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
               ),

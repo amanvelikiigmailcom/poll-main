@@ -19,12 +19,11 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   // Notification toggles
   bool _notifyNewVotes = true;
-  bool _notifyTimerExpired = true; // always on, disabled
   bool _notifyFriendRequests = true;
   bool _notifyPremium = false;
 
   // Language
-  String _selectedLanguage = 'Русский';
+  String _selectedLanguage = 'English';
 
   // App version (would normally come from package_info_plus)
   static const String _appVersion = '1.0.0 (build 1)';
@@ -44,7 +43,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           onPressed: () => context.pop(),
         ),
         title: const Text(
-          'Настройки',
+          'Settings',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -59,33 +58,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       body: ListView(
         children: [
-          // ── УВЕДОМЛЕНИЯ ─────────────────────────────────────────────────────
-          _SectionHeader(title: 'УВЕДОМЛЕНИЯ'),
+          // ── NOTIFICATIONS ───────────────────────────────────────────────────
+          _SectionHeader(title: 'NOTIFICATIONS'),
           _SettingsCard(
             children: [
               _SwitchTile(
                 icon: Icons.star_outline,
                 iconColor: AppColors.premiumGold,
-                title: 'Новые голоса',
-                subtitle: 'Когда кто-то проголосовал за вас',
+                title: 'New votes',
+                subtitle: 'When someone voted for you',
                 value: _notifyNewVotes,
                 onChanged: (v) => setState(() => _notifyNewVotes = v),
               ),
               _Divider(),
               _SwitchTile(
-                icon: Icons.timer_outlined,
-                iconColor: AppColors.primaryBlue,
-                title: 'Таймер истёк',
-                subtitle: 'Всегда включено',
-                value: _notifyTimerExpired,
-                onChanged: null, // disabled — always on
-              ),
-              _Divider(),
-              _SwitchTile(
                 icon: Icons.person_add_outlined,
                 iconColor: AppColors.success,
-                title: 'Запросы в друзья',
-                subtitle: 'Новые запросы на добавление',
+                title: 'Friend requests',
+                subtitle: 'New requests to add you',
                 value: _notifyFriendRequests,
                 onChanged: (v) => setState(() => _notifyFriendRequests = v),
               ),
@@ -93,36 +83,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _SwitchTile(
                 icon: Icons.workspace_premium_outlined,
                 iconColor: AppColors.premiumPurple,
-                title: 'Подписка Premium',
-                subtitle: 'Акции и обновления подписки',
+                title: 'Premium subscription',
+                subtitle: 'Offers and subscription updates',
                 value: _notifyPremium,
                 onChanged: (v) => setState(() => _notifyPremium = v),
               ),
             ],
           ),
 
-          // ── АККАУНТ ─────────────────────────────────────────────────────────
-          _SectionHeader(title: 'АККАУНТ'),
+          // ── ACCOUNT ─────────────────────────────────────────────────────────
+          _SectionHeader(title: 'ACCOUNT'),
           _SettingsCard(
             children: [
               _ArrowTile(
                 icon: Icons.person_outline,
                 iconColor: AppColors.primaryBlue,
-                title: 'Изменить профиль',
+                title: 'Edit profile',
                 onTap: () => context.push(AppRoutes.editProfile),
-              ),
-              _Divider(),
-              _ArrowTile(
-                icon: Icons.phone_outlined,
-                iconColor: AppColors.primaryBlue,
-                title: 'Изменить номер телефона',
-                onTap: () => _showChangePhoneDialog(),
               ),
               _Divider(),
               _ArrowTile(
                 icon: Icons.language_outlined,
                 iconColor: AppColors.primaryBlue,
-                title: 'Язык',
+                title: 'Language',
                 trailing: Text(
                   _selectedLanguage,
                   style: const TextStyle(
@@ -136,7 +119,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _ArrowTile(
                 icon: Icons.delete_outline,
                 iconColor: AppColors.accentRed,
-                title: 'Удалить аккаунт',
+                title: 'Delete account',
                 titleColor: AppColors.accentRed,
                 onTap: () => _showDeleteAccountDialog(),
               ),
@@ -144,15 +127,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _ArrowTile(
                 icon: Icons.logout,
                 iconColor: AppColors.accentRed,
-                title: 'Выйти',
+                title: 'Log out',
                 titleColor: AppColors.accentRed,
                 onTap: () => _showLogoutDialog(),
               ),
             ],
           ),
 
-          // ── ПРИЛОЖЕНИЕ ───────────────────────────────────────────────────────
-          _SectionHeader(title: 'ПРИЛОЖЕНИЕ'),
+          // ── APP ─────────────────────────────────────────────────────────────
+          _SectionHeader(title: 'APP'),
           _SettingsCard(
             children: [
               ListTile(
@@ -174,7 +157,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
                 title: const Text(
-                  'Версия приложения',
+                  'App version',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w500,
@@ -193,22 +176,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               _ArrowTile(
                 icon: Icons.article_outlined,
                 iconColor: AppColors.textSecondary,
-                title: 'Условия использования',
+                title: 'Terms of use',
                 trailingIcon: Icons.open_in_new,
                 onTap: () => _launchUrl(
                   'https://hidavo.app/terms',
-                  'Условия использования',
+                  'Terms of use',
                 ),
               ),
               _Divider(),
               _ArrowTile(
                 icon: Icons.privacy_tip_outlined,
                 iconColor: AppColors.textSecondary,
-                title: 'Политика конфиденциальности',
+                title: 'Privacy policy',
                 trailingIcon: Icons.open_in_new,
                 onTap: () => _launchUrl(
                   'https://hidavo.app/privacy',
-                  'Политика конфиденциальности',
+                  'Privacy policy',
                 ),
               ),
             ],
@@ -232,29 +215,29 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
-            title: const Text('Выберите язык'),
+            title: const Text('Choose language'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _LanguageOption(
-                  label: 'Русский',
-                  flag: '🇷🇺',
-                  selected: localSelected == 'Русский',
-                  onTap: () => setDialogState(() => localSelected = 'Русский'),
-                ),
-                const SizedBox(height: 8),
                 _LanguageOption(
                   label: 'English',
                   flag: '🇬🇧',
                   selected: localSelected == 'English',
                   onTap: () => setDialogState(() => localSelected = 'English'),
                 ),
+                const SizedBox(height: 8),
+                _LanguageOption(
+                  label: 'Русский',
+                  flag: '🇷🇺',
+                  selected: localSelected == 'Русский',
+                  onTap: () => setDialogState(() => localSelected = 'Русский'),
+                ),
               ],
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('Отмена'),
+                child: const Text('Cancel'),
               ),
               ElevatedButton(
                 onPressed: () {
@@ -269,7 +252,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   elevation: 0,
                 ),
-                child: const Text('Применить'),
+                child: const Text('Apply'),
               ),
             ],
           ),
@@ -278,48 +261,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _showChangePhoneDialog() {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Изменить номер'),
-        content: const Text(
-          'Для изменения номера телефона вам будет отправлен код подтверждения на новый номер.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Отмена'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              context.push(AppRoutes.phone);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryBlue,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              elevation: 0,
-            ),
-            child: const Text('Продолжить'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showDeleteAccountDialog() {
     String? selectedReason;
     const reasons = [
-      'Больше не хочу пользоваться',
-      'Создам новый аккаунт',
-      'Проблемы с приватностью',
-      'Беспокоит безопасность данных',
-      'Другая причина',
+      'I no longer want to use the app',
+      'I will create a new account',
+      'Privacy concerns',
+      'Data security concerns',
+      'Other',
     ];
 
     showDialog<void>(
@@ -330,7 +279,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             borderRadius: BorderRadius.circular(16),
           ),
           title: const Text(
-            'Удалить аккаунт',
+            'Delete account',
             style: TextStyle(color: AppColors.accentRed),
           ),
           content: SingleChildScrollView(
@@ -339,7 +288,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Это действие нельзя отменить. Все ваши данные будут удалены через 30 дней.',
+                  'This cannot be undone. All your data will be deleted after 30 days.',
                   style: TextStyle(
                     fontSize: 13,
                     color: AppColors.textSecondary,
@@ -347,7 +296,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 16),
                 const Text(
-                  'Укажите причину:',
+                  'Please select a reason:',
                   style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                 ),
                 const SizedBox(height: 8),
@@ -372,7 +321,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Отмена'),
+              child: const Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: selectedReason == null
@@ -390,7 +339,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 elevation: 0,
               ),
-              child: const Text('Удалить аккаунт'),
+              child: const Text('Delete account'),
             ),
           ],
         ),
@@ -403,21 +352,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Вы уверены?'),
+        title: const Text('Are you sure?'),
         content: const Text(
-          'Аккаунт будет помечен для удаления и полностью удалён через 30 дней. Вы можете отменить это в течение 30 дней, войдя в приложение.',
+          'Your account will be marked for deletion and fully removed after 30 days. You can cancel this within 30 days by signing in.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Отмена'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.of(ctx).pop();
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Запрос на удаление аккаунта отправлен'),
+                  content: Text('Account deletion request sent'),
                   backgroundColor: AppColors.accentRed,
                 ),
               );
@@ -430,7 +379,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               elevation: 0,
             ),
-            child: const Text('Да, удалить'),
+            child: const Text('Yes, delete'),
           ),
         ],
       ),
@@ -442,14 +391,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Выйти из аккаунта'),
+        title: const Text('Log out'),
         content: const Text(
-          'Вы уверены, что хотите выйти? Для входа потребуется повторная верификация.',
+          'Are you sure you want to log out? You will need to verify again to sign in.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Отмена'),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
@@ -464,7 +413,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               elevation: 0,
             ),
-            child: const Text('Выйти'),
+            child: const Text('Log out'),
           ),
         ],
       ),
@@ -484,7 +433,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось открыть $label')),
+          SnackBar(content: Text('Could not open $label')),
         );
       }
     }

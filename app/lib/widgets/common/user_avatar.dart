@@ -70,10 +70,6 @@ class UserAvatar extends StatelessWidget {
   String _initials() {
     final raw = name?.trim() ?? '';
     if (raw.isEmpty) return '?';
-    final parts = raw.split(RegExp(r'\s+'));
-    if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    }
     return raw[0].toUpperCase();
   }
 

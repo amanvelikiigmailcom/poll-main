@@ -38,18 +38,16 @@ class HidavoApp extends ConsumerWidget {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
 
-      // Resolve locale: prefer Russian when available (primary market),
-      // fall back to English for any other system locale.
+      // Device English → English, device Russian → Russian.
+      // Any other language (or missing device locale) → English.
       localeResolutionCallback: (deviceLocale, supportedLocales) {
         if (deviceLocale != null) {
-          for (final supported in supportedLocales) {
-            if (supported.languageCode == deviceLocale.languageCode) {
-              return supported;
-            }
+          final code = deviceLocale.languageCode;
+          if (code == 'en' || code == 'ru') {
+            return Locale(code);
           }
         }
-        // Default to Russian.
-        return const Locale('ru');
+        return const Locale('en');
       },
 
       // ── Scroll behaviour ──────────────────────────────────────────────────
