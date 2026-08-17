@@ -266,8 +266,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 onYearChanged: (y) =>
                     ref.read(_editFormProvider.notifier).setUniversityYear(y),
               ),
-              const SizedBox(height: 12),
-              _PremiumRow(user: user),
               if (formState.errorMessage != null ||
                   userState.errorMessage != null) ...[
                 const SizedBox(height: 8),

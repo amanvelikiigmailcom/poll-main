@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../router/app_router.dart';
 import '../../theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/local_game_service.dart';
 
 // ── Settings state managed locally + via Riverpod auth for logout/delete ──────
 
@@ -17,12 +17,6 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  // Notification toggles
-  bool _notifyNewVotes = true;
-  bool _notifyFriendRequests = true;
-  bool _notifyPremium = false;
-
-  // Language
   String _selectedLanguage = 'English';
 
   // App version (would normally come from package_info_plus)
@@ -58,39 +52,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       body: ListView(
         children: [
-          // ── NOTIFICATIONS ───────────────────────────────────────────────────
-          _SectionHeader(title: 'NOTIFICATIONS'),
-          _SettingsCard(
-            children: [
-              _SwitchTile(
-                icon: Icons.star_outline,
-                iconColor: AppColors.premiumGold,
-                title: 'New votes',
-                subtitle: 'When someone voted for you',
-                value: _notifyNewVotes,
-                onChanged: (v) => setState(() => _notifyNewVotes = v),
-              ),
-              _Divider(),
-              _SwitchTile(
-                icon: Icons.person_add_outlined,
-                iconColor: AppColors.success,
-                title: 'Friend requests',
-                subtitle: 'New requests to add you',
-                value: _notifyFriendRequests,
-                onChanged: (v) => setState(() => _notifyFriendRequests = v),
-              ),
-              _Divider(),
-              _SwitchTile(
-                icon: Icons.workspace_premium_outlined,
-                iconColor: AppColors.premiumPurple,
-                title: 'Premium subscription',
-                subtitle: 'Offers and subscription updates',
-                value: _notifyPremium,
-                onChanged: (v) => setState(() => _notifyPremium = v),
-              ),
-            ],
-          ),
-
           // ── ACCOUNT ─────────────────────────────────────────────────────────
           _SectionHeader(title: 'ACCOUNT'),
           _SettingsCard(
@@ -174,25 +135,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               _Divider(),
               _ArrowTile(
+                icon: Icons.help_outline,
+                iconColor: AppColors.textSecondary,
+                title: 'How to use',
+                onTap: () => context.push(AppRoutes.howToUse),
+              ),
+              _Divider(),
+              _ArrowTile(
+                icon: Icons.shield_outlined,
+                iconColor: AppColors.textSecondary,
+                title: 'Safety',
+                onTap: () => context.push(AppRoutes.safetyCenter),
+              ),
+              _Divider(),
+              _ArrowTile(
                 icon: Icons.article_outlined,
                 iconColor: AppColors.textSecondary,
                 title: 'Terms of use',
-                trailingIcon: Icons.open_in_new,
-                onTap: () => _launchUrl(
-                  'https://hidavo.app/terms',
-                  'Terms of use',
-                ),
+                onTap: () => context.push(AppRoutes.terms),
               ),
               _Divider(),
               _ArrowTile(
                 icon: Icons.privacy_tip_outlined,
                 iconColor: AppColors.textSecondary,
                 title: 'Privacy policy',
-                trailingIcon: Icons.open_in_new,
-                onTap: () => _launchUrl(
-                  'https://hidavo.app/privacy',
-                  'Privacy policy',
-                ),
+                onTap: () => context.push(AppRoutes.privacy),
               ),
             ],
           ),
@@ -288,7 +255,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'This cannot be undone. All your data will be deleted after 30 days.',
+                  'This cannot be undone. All quiz data on this device will be deleted now.',
                   style: TextStyle(
                     fontSize: 13,
                     color: AppColors.textSecondary,
@@ -354,7 +321,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Are you sure?'),
         content: const Text(
-          'Your account will be marked for deletion and fully removed after 30 days. You can cancel this within 30 days by signing in.',
+          'Your login, names, and stars on this device will be erased now.',
         ),
         actions: [
           TextButton(
@@ -362,14 +329,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(ctx).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Account deletion request sent'),
-                  backgroundColor: AppColors.accentRed,
-                ),
-              );
+              await LocalGameService.instance.clearAll();
+              if (!mounted) return;
+              context.go(AppRoutes.namesEntry);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.accentRed,
@@ -393,7 +357,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Log out'),
         content: const Text(
-          'Are you sure you want to log out? You will need to verify again to sign in.',
+          'This clears the quiz on this device and returns you to the start.',
         ),
         actions: [
           TextButton(
@@ -420,23 +384,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  void _performLogout() {
-    // Clear auth state via provider and navigate to phone registration
+  Future<void> _performLogout() async {
     try {
       ref.read(authNotifierProvider.notifier).logout();
     } catch (_) {}
-    context.go(AppRoutes.phone);
-  }
-
-  Future<void> _launchUrl(String url, String label) async {
-    final uri = Uri.parse(url);
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not open $label')),
-        );
-      }
-    }
+    await LocalGameService.instance.clearAll();
+    if (!mounted) return;
+    context.go(AppRoutes.namesEntry);
   }
 }
 

@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme/app_colors.dart';
 
-/// Instagram-style tab bar. Always at the bottom of the logged-in app.
-/// 0 Home · 1 Activity · 2 Vote · 3 Likes · 4 Profile
+/// Three working tabs: Home · Vote · Profile.
 class AppBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -35,27 +34,15 @@ class AppBottomNavBar extends StatelessWidget {
                 selected: currentIndex == 0,
                 onTap: () => onTap(0),
               ),
-              _TabIcon(
-                icon: Icons.public_outlined,
-                activeIcon: Icons.public,
+              _VoteTab(
                 selected: currentIndex == 1,
                 onTap: () => onTap(1),
-              ),
-              _VoteTab(
-                selected: currentIndex == 2,
-                onTap: () => onTap(2),
-              ),
-              _TabIcon(
-                icon: Icons.favorite_border_rounded,
-                activeIcon: Icons.favorite_rounded,
-                selected: currentIndex == 3,
-                onTap: () => onTap(3),
               ),
               _TabIcon(
                 icon: Icons.person_outline_rounded,
                 activeIcon: Icons.person_rounded,
-                selected: currentIndex == 4,
-                onTap: () => onTap(4),
+                selected: currentIndex == 2,
+                onTap: () => onTap(2),
               ),
             ],
           ),

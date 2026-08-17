@@ -23,7 +23,7 @@ class _MainTabState extends ConsumerState<MainTab> {
   Timer? _ticker;
 
   int _starsCount = 0;
-  final int _votesReceivedToday = 0;
+  int _peopleCount = 0;
 
   @override
   void initState() {
@@ -40,9 +40,11 @@ class _MainTabState extends ConsumerState<MainTab> {
   Future<void> _loadState() async {
     final remaining = await LocalGameService.instance.secondsUntilNextRound();
     final stars = await LocalGameService.instance.getStars();
+    final people = (await LocalGameService.instance.getNames()).length;
     if (!mounted) return;
     setState(() {
       _starsCount = stars;
+      _peopleCount = people;
       _secondsRemaining = remaining;
       _tabState =
           remaining > 0 ? _HomeTabState.timerActive : _HomeTabState.voteAvailable;
@@ -82,25 +84,15 @@ class _MainTabState extends ConsumerState<MainTab> {
       context.push(AppRoutes.vote);
       return;
     }
-    final friends = await LocalGameService.instance.getNames();
-    final need = LocalGameService.minFriends - friends.length;
     if (!mounted) return;
-    final msg = friends.length < LocalGameService.minFriends
-        ? (need > 0
-            ? 'Минимум нужно ввести ${LocalGameService.minFriends} друзей. Ещё $need.'
-            : 'Минимум нужно ввести ${LocalGameService.minFriends} друзей.')
-        : 'Заполни логин и своё имя, затем минимум ${LocalGameService.minFriends} друзей.';
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        behavior: SnackBarBehavior.floating,
-        action: SnackBarAction(
-          label: 'Добавить',
-          onPressed: () => context.push(AppRoutes.namesEntry),
+      const SnackBar(
+        content: Text(
+          'Add your name and 3 people you know to start the quiz.',
         ),
+        behavior: SnackBarBehavior.floating,
       ),
     );
-    // Open names so they can add the missing friends
     context.push(AppRoutes.namesEntry);
   }
 
@@ -135,16 +127,16 @@ class _MainTabState extends ConsumerState<MainTab> {
             icon: Icons.star_rounded,
             iconColor: const Color(0xFFFFB800),
             value: '$_starsCount',
-            label: 'Звёзды',
+            label: 'Stars',
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: _StatCard(
-            icon: Icons.favorite,
-            iconColor: const Color(0xFFFF3B5C),
-            value: '$_votesReceivedToday',
-            label: 'Голосов сегодня',
+            icon: Icons.people_alt_outlined,
+            iconColor: const Color(0xFF4B6EF5),
+            value: '$_peopleCount',
+            label: 'People named',
           ),
         ),
       ],
@@ -254,7 +246,7 @@ class _MainTabState extends ConsumerState<MainTab> {
           const Icon(Icons.how_to_vote_outlined, color: Colors.white, size: 40),
           const SizedBox(height: 12),
           const Text(
-            'Опрос доступен!',
+            'Quiz is ready',
             style: TextStyle(
               color: Colors.white,
               fontSize: 22,
@@ -263,7 +255,7 @@ class _MainTabState extends ConsumerState<MainTab> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Проголосуй, чтобы получить звёзды',
+            '12 questions about people you named. Only you see the answers.',
             style: TextStyle(color: Colors.white70, fontSize: 14),
             textAlign: TextAlign.center,
           ),

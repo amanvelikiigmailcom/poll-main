@@ -25,17 +25,12 @@ class InviteShareService {
     final link = '$appStoreFallback/invite/$handle';
 
     final who = (name != null && name.isNotEmpty) ? name : handle;
-    final message = '''Hey! 🔥 It's $who
+    final message = '''Hey — it's $who.
 
-Join me on Hidavo — anonymous polls with your group (like Gas):
-who's the hottest, who's a crush, who'll be late to the wedding 😂
-Nobody sees who you voted for.
+I play Hidavo, a short quiz: name people you know and answer “who among these?”.
+Your answers stay on your phone. Nobody sees who you picked.
 
-Download and sign in:
-$link
-
-My login: @$handle
-Add me and we can start voting 👀''';
+Try it: $link''';
 
     return InvitePayload(
       username: handle,

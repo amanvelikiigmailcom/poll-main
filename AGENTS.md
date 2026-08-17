@@ -84,12 +84,12 @@ Working **local Gas-style loop**:
 10. New-user likes are empty. Activity campus tab uses years 1–4.
 11. UI default **English** (device `ru` still allowed). No “timer expired” notification toggle.
 
-**Still shell / mock (don’t treat as finished product):**
+**Review-ready local product:**
 
-- Friends list / premium / rooms — mostly demo UI
-- Friends tab ≠ onboarding name list (demo data)
-- No real server, matching, or live multi-user votes
-- The 3 onboarding names are **local vote-card labels only**. Friends join via shared **@login** invite (`InviteShareService` + optional `FriendInviteService`).
+- Personal quiz: login + name + ≥3 people you know → 12 questions → stars
+- Named people are **vote-card labels only**. They are not users and are not notified.
+- Hidden from nav: friends list, likes, activity, premium, rooms, contacts
+- Privacy Policy + Terms: in-app routes `/privacy` `/terms` and `app/web/privacy.html` `app/web/terms.html`
 
 ---
 
@@ -115,7 +115,7 @@ Package name for imports: `package:flyprox_app/...`
 - `LocalGameService.minFriends = 3`
 - Ready to play: username + playerName + ≥3 friends (`hasEnoughNames`)
 - Start poll: `MainTab` → `/vote` (not school-wait screen)
-- **Instagram tab bar:** 5 icons always at the bottom after login — Home, Activity, Vote, Likes, **More**. 5th tab opens a sheet with profile, settings, friends, invite, premium, leftovers. `AppShell` + `more_menu_sheet.dart`. No bar on splash / onboarding / names.
+- **Tab bar (review build):** 3 working tabs — Home, Vote, Profile. No Activity / Likes / Friends / Premium. Names you type are quiz cards, not in-app users.
 - Invite copy + deep links: `InviteShareService` (IG = copy + open app)
 - Profile identity: `localProfileProvider` / `LocalGameService` (not demo `User`)
 - University + year 1–4 live in prefs (`local_university`, `local_university_year`)

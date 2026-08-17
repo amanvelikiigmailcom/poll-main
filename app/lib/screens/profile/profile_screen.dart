@@ -40,7 +40,7 @@ class ProfileScreen extends ConsumerWidget {
                     children: [
                       _ProfileHeaderCard(user: user, local: local),
                       const SizedBox(height: 12),
-                      _FriendsPreviewSection(user: user),
+                      const _ProfileActions(),
                       const SizedBox(height: 32),
                     ],
                   ),
@@ -80,9 +80,17 @@ class _ProfileHeaderCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       color: AppColors.white,
-      padding: const EdgeInsets.fromLTRB(16, 28, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       child: Column(
         children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: IconButton(
+              tooltip: 'Settings',
+              onPressed: () => context.push(AppRoutes.settings),
+              icon: const Icon(Icons.settings_outlined),
+            ),
+          ),
           _AvatarWidget(user: user, letter: letter, radius: 52),
           const SizedBox(height: 14),
           // Name + verified badge
@@ -128,7 +136,7 @@ class _ProfileHeaderCard extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 22),
-          _StatsRow(user: user),
+          _StatsRow(local: local),
         ],
       ),
     );
@@ -286,9 +294,9 @@ class _AvatarWidget extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _StatsRow extends StatelessWidget {
-  const _StatsRow({this.user});
+  const _StatsRow({required this.local});
 
-  final User? user;
+  final LocalProfile local;
 
   @override
   Widget build(BuildContext context) {
@@ -297,20 +305,14 @@ class _StatsRow extends StatelessWidget {
       children: [
         _StatItem(
           emoji: '⭐',
-          value: _format(user?.starsCount ?? 0),
-          label: 'Звёздочки',
+          value: _format(local.stars),
+          label: 'Stars',
         ),
         _Divider(),
         _StatItem(
           emoji: '👥',
-          value: _format(user?.friendsCount ?? 0),
-          label: 'Друзья',
-        ),
-        _Divider(),
-        _StatItem(
-          emoji: '❤️',
-          value: _format(user?.votesReceived ?? 0),
-          label: 'Голоса',
+          value: _format(local.peopleCount),
+          label: 'Named',
         ),
       ],
     );
@@ -369,122 +371,35 @@ class _Divider extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Friends preview (horizontal scroll of 5 avatars)
-// ---------------------------------------------------------------------------
-
-// Lightweight friend preview data (real app would load from API)
-class _FriendPreview {
-  const _FriendPreview({
-    required this.id,
-    required this.initials,
-    required this.name,
-    this.avatarUrl,
-  });
-  final String id;
-  final String initials;
-  final String name;
-  final String? avatarUrl;
-}
-
-const _kDemoFriends = [
-  _FriendPreview(id: '1', initials: 'АИ', name: 'Айгерим'),
-  _FriendPreview(id: '2', initials: 'ДА', name: 'Дамир'),
-  _FriendPreview(id: '3', initials: 'СМ', name: 'Сабина'),
-  _FriendPreview(id: '4', initials: 'НК', name: 'Нурлан'),
-  _FriendPreview(id: '5', initials: 'АЖ', name: 'Азиза'),
-];
-
-class _FriendsPreviewSection extends StatelessWidget {
-  const _FriendsPreviewSection({this.user});
-
-  final User? user;
+class _ProfileActions extends StatelessWidget {
+  const _ProfileActions();
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       color: AppColors.white,
-      padding: const EdgeInsets.only(top: 16, bottom: 16),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Друзья',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => context.push(AppRoutes.friends),
-                  child: const Text(
-                    'Все →',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.primaryBlue,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          ListTile(
+            leading: const Icon(Icons.edit_outlined),
+            title: const Text('Edit profile'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => context.push(AppRoutes.editProfile),
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 88,
-            child: _kDemoFriends.isEmpty
-                ? const Center(
-                    child: Text(
-                      'Нет друзей',
-                      style: TextStyle(color: AppColors.textSecondary),
-                    ),
-                  )
-                : ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: _kDemoFriends.length,
-                    itemBuilder: (context, index) {
-                      final friend = _kDemoFriends[index];
-                      return GestureDetector(
-                        onTap: () => context.push('/profile/${friend.id}'),
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 16),
-                          child: Column(
-                            children: [
-                              CircleAvatar(
-                                radius: 28,
-                                backgroundColor:
-                                    AppColors.primaryBlue.withOpacity(0.15),
-                                child: Text(
-                                  friend.initials,
-                                  style: const TextStyle(
-                                    color: AppColors.primaryBlue,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                friend.name,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.ios_share_outlined),
+            title: const Text('Share Hidavo'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => context.push(AppRoutes.invite),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.help_outline),
+            title: const Text('How to use'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => context.push(AppRoutes.howToUse),
           ),
         ],
       ),

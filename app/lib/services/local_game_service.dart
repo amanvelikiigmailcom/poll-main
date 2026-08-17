@@ -217,6 +217,19 @@ class LocalGameService {
     return next;
   }
 
+  /// Wipe every local quiz field. There is no server account in this build.
+  Future<void> clearAll() async {
+    final prefs = await _prefs;
+    await prefs.remove(_usernameKey);
+    await prefs.remove(_playerNameKey);
+    await prefs.remove(_universityKey);
+    await prefs.remove(_universityYearKey);
+    await prefs.remove(_namesKey);
+    await prefs.remove(_starsKey);
+    await prefs.remove(_lastRoundKey);
+    await prefs.remove(_usedQuestionIdsKey);
+  }
+
   // ── 40-minute round timer ────────────────────────────────────────────────
 
   Future<int> secondsUntilNextRound() async {

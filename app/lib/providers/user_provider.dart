@@ -145,6 +145,8 @@ class LocalProfile {
     this.playerName = '',
     this.university = '',
     this.universityYear,
+    this.stars = 0,
+    this.peopleCount = 0,
     this.isLoaded = false,
   });
 
@@ -152,6 +154,8 @@ class LocalProfile {
   final String playerName;
   final String university;
   final int? universityYear;
+  final int stars;
+  final int peopleCount;
   final bool isLoaded;
 
   String get avatarLetter => LocalGameService.avatarLetter(
@@ -174,11 +178,15 @@ class LocalProfileNotifier extends StateNotifier<LocalProfile> {
     final playerName = await game.getPlayerName() ?? '';
     final university = await game.getUniversity() ?? '';
     final universityYear = await game.getUniversityYear();
+    final stars = await game.getStars();
+    final peopleCount = (await game.getNames()).length;
     state = LocalProfile(
       username: username,
       playerName: playerName,
       university: university,
       universityYear: universityYear,
+      stars: stars,
+      peopleCount: peopleCount,
       isLoaded: true,
     );
   }

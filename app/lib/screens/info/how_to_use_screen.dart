@@ -1,27 +1,44 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class HowToUseScreen extends ConsumerWidget {
+class HowToUseScreen extends StatelessWidget {
   const HowToUseScreen({super.key});
 
   static const _primaryBlue = Color(0xFF4B6EF5);
 
   static const _steps = [
-    (Icons.person_add_rounded, 'Регистрация', 'Введите номер телефона и получите код подтверждения. Заполните профиль: имя, возраст, школу и класс.'),
-    (Icons.contacts_rounded, 'Добавьте контакты', 'Разрешите доступ к контактам — это поможет найти одноклассников. Контакты хешируются и не загружаются на сервер.'),
-    (Icons.how_to_vote_rounded, 'Участвуйте в голосованиях', 'Каждый день доступно до 50 опросов по 12 вопросов. Голосуйте за одноклассников анонимно!'),
-    (Icons.favorite_rounded, 'Получайте лайки', 'Когда кто-то выбирает вас в голосовании — вы получаете лайк. Вкладка "Лайки" показывает кто голосовал за вас.'),
-    (Icons.star_rounded, 'Зарабатывайте звёзды', 'За каждый голос в вашу пользу вы получаете звёзды. Они отображаются в вашем профиле.'),
-    (Icons.group_add_rounded, 'Приглашайте друзей', 'Чем больше одноклассников в приложении — тем интереснее голосования! Пригласите друзей по реферальной ссылке.'),
-    (Icons.workspace_premium_rounded, 'Premium подписка', 'Хотите узнать кто именно за вас проголосовал? Оформите Premium и раскрывайте имена голосовавших.'),
+    (
+      Icons.person_rounded,
+      'Your login and name',
+      'Pick a login and type the name that will appear on quiz cards.',
+    ),
+    (
+      Icons.groups_rounded,
+      'Name 3 people you know',
+      'First names only. They do not need Hidavo. These names are answer cards for your quiz.',
+    ),
+    (
+      Icons.how_to_vote_rounded,
+      'Answer 12 questions',
+      'Each question asks “who among these?”. Pick one of the four names. Nobody else sees your pick.',
+    ),
+    (
+      Icons.star_rounded,
+      'Get stars',
+      'Finish a round to earn stars. A short break starts before the next round.',
+    ),
+    (
+      Icons.ios_share_rounded,
+      'Share if you want',
+      'Optional. Send a link so someone else can play their own quiz. They will not see your answers.',
+    ),
   ];
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F8F8),
       appBar: AppBar(
-        title: const Text('Как пользоваться'),
+        title: const Text('How to use'),
         backgroundColor: Colors.white,
       ),
       body: ListView.separated(
@@ -58,15 +75,41 @@ class HowToUseScreen extends ConsumerWidget {
                           Container(
                             width: 22,
                             height: 22,
-                            decoration: const BoxDecoration(color: _primaryBlue, shape: BoxShape.circle),
-                            child: Center(child: Text('${i + 1}', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold))),
+                            decoration: const BoxDecoration(
+                              color: _primaryBlue,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${i + 1}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
                           ),
                           const SizedBox(width: 8),
-                          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text(desc, style: const TextStyle(color: Colors.black54, height: 1.5)),
+                      Text(
+                        desc,
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          height: 1.5,
+                        ),
+                      ),
                     ],
                   ),
                 ),

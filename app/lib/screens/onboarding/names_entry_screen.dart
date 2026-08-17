@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../router/app_router.dart';
-import '../../services/friend_invite_service.dart';
-import '../../services/invite_share_service.dart';
 import '../../services/local_game_service.dart';
 
 const Color _primaryBlue = Color(0xFF4B6EF5);
@@ -27,11 +25,9 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _playerController = TextEditingController();
   final TextEditingController _friendController = TextEditingController();
-  final TextEditingController _friendLoginController = TextEditingController();
   final FocusNode _usernameFocus = FocusNode();
   final FocusNode _playerFocus = FocusNode();
   final FocusNode _friendFocus = FocusNode();
-  String? _savedFriendLoginHint;
 
   String? _username;
   String? _playerName;
@@ -95,7 +91,6 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
     _usernameController.dispose();
     _playerController.dispose();
     _friendController.dispose();
-    _friendLoginController.dispose();
     _usernameFocus.dispose();
     _playerFocus.dispose();
     _friendFocus.dispose();
@@ -140,7 +135,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
     if (name.toLowerCase() == player) {
       _friendController.clear();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("That's your name — add friends instead")),
+        const SnackBar(content: Text("That's your name — add someone else")),
       );
       _refocus(_friendFocus);
       return;
@@ -153,8 +148,6 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
     setState(() {
       _friends.add(name);
       _friendController.clear();
-      _friendLoginController.clear();
-      _savedFriendLoginHint = null;
     });
     _refocus(_friendFocus);
   }
@@ -162,28 +155,6 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
   void _removeFriend(String name) {
     setState(() {
       _friends.remove(name);
-      if (_friends.length < _minFriends) {
-        _savedFriendLoginHint = null;
-      }
-    });
-  }
-
-  Future<void> _inviteThem() async {
-    await InviteShareService.instance.shareEverywhere();
-  }
-
-  Future<void> _saveFriendLogin(String raw) async {
-    if (_friends.isEmpty) return;
-    final ok = await FriendInviteService.instance.saveLoginForFriend(
-      _friends.last,
-      raw,
-    );
-    if (!mounted || !ok) return;
-    final handle = FriendInviteService.normalizeLogin(raw);
-    setState(() {
-      _savedFriendLoginHint = handle == null
-          ? null
-          : 'Saved for ${_friends.last} as @$handle';
     });
   }
 
@@ -237,8 +208,8 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Обязательно. Латиница, цифры и _ · минимум 3 символа. '
-          'Так тебя будут видеть в профиле.',
+          'Required. Latin letters, digits and _ · at least 3 characters. '
+          'This is your nickname on your profile.',
           style: TextStyle(color: Colors.white70, fontSize: 15, height: 1.4),
         ),
         const SizedBox(height: 28),
@@ -421,7 +392,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
         ),
         const SizedBox(height: 8),
         const Text(
-          "Who's in your group?",
+          'Name 3 people you know',
           style: TextStyle(
             color: Colors.white,
             fontSize: 26,
@@ -430,7 +401,8 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'At least $_minFriends friends. Fewer than that, and the poll won\'t start.',
+          'First names only. They do not need the app. '
+          'You will answer “who among these” questions about this group.',
           style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.4),
         ),
         const SizedBox(height: 12),
@@ -444,9 +416,9 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
               border: Border.all(color: Colors.white38),
             ),
             child: Text(
-              'You need at least $_minFriends friends. '
+              'Add at least $_minFriends people. '
               'You have ${_friends.length}. '
-              'Add ${_minFriends - _friends.length} more.',
+              '${_minFriends - _friends.length} more to go.',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 14,
@@ -478,7 +450,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
                 ),
                 SizedBox(height: 4),
                 Text(
-                  'You can continue now, or add more classmates if you want.',
+                  'Continue, or add more names for the quiz cards.',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 14,
@@ -506,7 +478,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
                         onSubmitted: (_) => _addFriend(),
                         style: const TextStyle(fontSize: 16),
                         decoration: InputDecoration(
-                          hintText: "Friend's first name",
+                          hintText: 'First name',
                           filled: true,
                           fillColor: Colors.white,
                           contentPadding: const EdgeInsets.symmetric(
@@ -598,7 +570,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
                   const SizedBox(height: 24),
                   Center(
                     child: Text(
-                      'Add at least $_minFriends friends',
+                      'Add at least $_minFriends people',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.6),
                         fontSize: 15,
@@ -608,7 +580,10 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
                 ],
                 if (enough) ...[
                   const SizedBox(height: 20),
-                  _buildInviteBlock(),
+                  const Text(
+                    'They will not get a notification. These names are only on your quiz cards.',
+                    style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
+                  ),
                 ],
               ],
             ),
@@ -632,112 +607,13 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
             child: Text(
               enough
                   ? 'Continue'
-                  : 'At least $_minFriends friends '
+                  : 'At least $_minFriends people '
                       '(${_minFriends - _friends.length} more)',
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             ),
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildInviteBlock() {
-    final handle = (_username ?? '').trim();
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.14),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white38),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Text(
-            "They won't see the polls until they join Hidavo.",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              height: 1.35,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Share your login @$handle so they can add you.',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              height: 1.35,
-            ),
-          ),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton(
-              onPressed: _inviteThem,
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-              ),
-              child: const Text(
-                'Invite them',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  decoration: TextDecoration.underline,
-                  decorationColor: Colors.white,
-                ),
-              ),
-            ),
-          ),
-          TextField(
-            controller: _friendLoginController,
-            textInputAction: TextInputAction.done,
-            onChanged: (v) {
-              if (FriendInviteService.normalizeLogin(v) != null) {
-                _saveFriendLogin(v);
-              }
-            },
-            onSubmitted: _saveFriendLogin,
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9_]')),
-              LengthLimitingTextInputFormatter(24),
-            ],
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-            decoration: InputDecoration(
-              hintText: 'Their Hidavo login (optional)',
-              prefixText: '@',
-              prefixStyle: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: _primaryBlue,
-              ),
-              filled: true,
-              fillColor: Colors.white,
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          if (_savedFriendLoginHint != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              _savedFriendLoginHint!,
-              style: const TextStyle(
-                color: Color(0xFFB9F6CA),
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ],
-      ),
     );
   }
 }

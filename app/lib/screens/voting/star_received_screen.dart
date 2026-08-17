@@ -250,7 +250,7 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                               ),
                               const SizedBox(height: 12),
                               const Text(
-                                'Отличный раунд! 🎉\nТвои голоса помогут друзьям узнать себя.',
+                                'Nice round. These answers stay on your device.\nNobody else sees who you picked.',
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: Colors.white60,
@@ -291,7 +291,7 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                   child: OutlinedButton.icon(
                     onPressed: () => context.push(AppRoutes.invite),
                     icon: const Icon(Icons.person_add_alt_1_rounded),
-                    label: const Text('Пригласить друга'),
+                    label: const Text('Share Hidavo'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white,
                       side: const BorderSide(color: Colors.white70, width: 1.5),
@@ -304,26 +304,6 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () => context.go(AppRoutes.collection),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white70,
-                      side: const BorderSide(color: Colors.white38, width: 1.5),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      textStyle: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    child: const Text('Моя коллекция'),
                   ),
                 ),
                 const SizedBox(height: 12),

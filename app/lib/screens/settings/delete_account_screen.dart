@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../router/app_router.dart';
+import '../../services/local_game_service.dart';
+
 class DeleteAccountScreen extends ConsumerStatefulWidget {
   const DeleteAccountScreen({super.key});
 
@@ -48,9 +51,11 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
             child: const Text('Отмена'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              context.go('/onboarding');
+              await LocalGameService.instance.clearAll();
+              if (!mounted) return;
+              context.go(AppRoutes.namesEntry);
             },
             style: TextButton.styleFrom(foregroundColor: _accentRed),
             child: const Text('Удалить'),

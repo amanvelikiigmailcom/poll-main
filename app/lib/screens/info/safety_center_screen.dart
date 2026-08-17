@@ -1,23 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class SafetyCenterScreen extends ConsumerWidget {
+import '../../utils/constants.dart';
+
+class SafetyCenterScreen extends StatelessWidget {
   const SafetyCenterScreen({super.key});
 
   static const _primaryBlue = Color(0xFF4B6EF5);
 
-  Future<void> _openUrl(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication);
+  Future<void> _mail() async {
+    final uri = Uri(
+      scheme: 'mailto',
+      path: AppConstants.supportEmail,
+      query: 'subject=Hidavo safety',
+    );
+    await launchUrl(uri);
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F8F8),
       appBar: AppBar(
-        title: const Text('Центр безопасности'),
+        title: const Text('Safety'),
         backgroundColor: Colors.white,
       ),
       body: ListView(
@@ -29,71 +34,76 @@ class SafetyCenterScreen extends ConsumerWidget {
               color: _primaryBlue.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Row(
-              children: [
-                Icon(Icons.shield_rounded, color: _primaryBlue, size: 32),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Hidavo заботится о безопасности каждого пользователя',
-                    style: TextStyle(fontWeight: FontWeight.w600, color: _primaryBlue),
-                  ),
-                ),
-              ],
+            child: const Text(
+              'Hidavo is a private quiz on your device. '
+              'People you name are not contacted.',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: _primaryBlue,
+                height: 1.4,
+              ),
             ),
           ),
-          const SizedBox(height: 20),
-          _buildSection('Документы', [
-            _DocItem(Icons.privacy_tip_rounded, 'Политика конфиденциальности', () => _openUrl('https://hidavo.app/privacy')),
-            _DocItem(Icons.gavel_rounded, 'Условия использования', () => _openUrl('https://hidavo.app/terms')),
-            _DocItem(Icons.people_rounded, 'Правила сообщества', () => _openUrl('https://hidavo.app/rules')),
-          ]),
           const SizedBox(height: 16),
-          _buildSection('Безопасность', [
-            _DocItem(Icons.security_rounded, 'Рекомендации по безопасности', () => _showInfo(context, 'Рекомендации', '• Не делитесь личными данными\n• Не встречайтесь с незнакомцами\n• Сообщайте о подозрительных пользователях')),
-            _DocItem(Icons.report_rounded, 'Как пожаловаться на пользователя', () => _showInfo(context, 'Жалоба', 'Откройте профиль пользователя → нажмите "..." → выберите "Пожаловаться" → укажите причину. Мы рассмотрим жалобу в течение 24 часов.')),
-          ]),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSection(String title, List<_DocItem> items) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-          child: Column(
-            children: items.map((item) => ListTile(
-              leading: Icon(item.icon, color: _primaryBlue),
-              title: Text(item.title),
-              trailing: const Icon(Icons.chevron_right_rounded, color: Colors.grey),
-              onTap: item.onTap,
-            )).toList(),
+          const _Rule(
+            title: 'First names only',
+            body:
+                'Do not type phone numbers, addresses, or full legal names.',
           ),
-        ),
-      ],
-    );
-  }
-
-  void _showInfo(BuildContext context, String title, String content) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(title),
-        content: Text(content),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Закрыть'))],
+          const _Rule(
+            title: 'Your answers stay here',
+            body:
+                'This version does not send votes to other people or to a Hidavo server.',
+          ),
+          const _Rule(
+            title: 'Be kind',
+            body:
+                'Use the quiz for fun. Do not use it to harass or shame anyone.',
+          ),
+          const _Rule(
+            title: 'Age 14+',
+            body: 'Hidavo is not for children under 14.',
+          ),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: _mail,
+            child: const Text('Email ${AppConstants.supportEmail}'),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _DocItem {
-  final IconData icon;
+class _Rule extends StatelessWidget {
+  const _Rule({required this.title, required this.body});
+
   final String title;
-  final VoidCallback onTap;
-  const _DocItem(this.icon, this.title, this.onTap);
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+            ),
+            const SizedBox(height: 6),
+            Text(body, style: const TextStyle(color: Colors.black54, height: 1.4)),
+          ],
+        ),
+      ),
+    );
+  }
 }
