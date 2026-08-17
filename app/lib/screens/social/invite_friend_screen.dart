@@ -88,7 +88,7 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
         elevation: 0,
         centerTitle: true,
         title: const Text(
-          'Invite a friend',
+          'Share Hidavo',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -125,7 +125,7 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Share your login so they can add you. Pick an app — the message is ready.',
+                  'Optional. Send a link so someone can play their own quiz. They will not see your answers.',
                   style: TextStyle(
                     fontSize: 13,
                     color: AppColors.textSecondary,
@@ -218,7 +218,7 @@ class _BenefitBanner extends StatelessWidget {
           SizedBox(width: 12),
           Expanded(
             child: Text(
-              'They join Hidavo with your login — then you can vote together and skip the 40-minute wait.',
+              'Share the app if you want. The other person plays their own quiz. They do not see your answers.',
               style: TextStyle(
                 fontSize: 13,
                 color: AppColors.primaryBlue,
