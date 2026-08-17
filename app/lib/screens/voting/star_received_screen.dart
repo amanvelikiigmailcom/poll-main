@@ -133,141 +133,138 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
             padding: const EdgeInsets.symmetric(horizontal: 28),
             child: Column(
               children: [
-                const SizedBox(height: 40),
-                // Sparkle row at top
-                AnimatedBuilder(
-                  animation: _sparkleAnim,
-                  builder: (context, child) {
-                    return Opacity(
-                      opacity: _sparkleAnim.value,
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          Text('✨', style: TextStyle(fontSize: 18)),
-                          Text('⭐', style: TextStyle(fontSize: 14)),
-                          Text('✨', style: TextStyle(fontSize: 22)),
-                          Text('⭐', style: TextStyle(fontSize: 14)),
-                          Text('✨', style: TextStyle(fontSize: 18)),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 24),
-                // Main star
-                ScaleTransition(
-                  scale: _starScale,
-                  child: const Text(
-                    '⭐',
-                    style: TextStyle(fontSize: 100),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                // Star count
-                TweenAnimationBuilder<double>(
-                  tween: Tween<double>(begin: 0, end: 1),
-                  duration: const Duration(milliseconds: 400),
-                  builder: (context, val, child) => child!,
-                  child: Text(
-                    '+$_displayedCount',
-                    style: const TextStyle(
-                      fontSize: 72,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.amber,
-                      height: 1.0,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black38,
-                          blurRadius: 12,
-                          offset: Offset(0, 4),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(top: 24, bottom: 16),
+                    child: Column(
+                      children: [
+                        AnimatedBuilder(
+                          animation: _sparkleAnim,
+                          builder: (context, child) {
+                            return Opacity(
+                              opacity: _sparkleAnim.value,
+                              child: const Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  Text('✨', style: TextStyle(fontSize: 18)),
+                                  Text('⭐', style: TextStyle(fontSize: 14)),
+                                  Text('✨', style: TextStyle(fontSize: 22)),
+                                  Text('⭐', style: TextStyle(fontSize: 14)),
+                                  Text('✨', style: TextStyle(fontSize: 18)),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 20),
+                        ScaleTransition(
+                          scale: _starScale,
+                          child: const Text(
+                            '⭐',
+                            style: TextStyle(fontSize: 88),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '+$_displayedCount',
+                          style: const TextStyle(
+                            fontSize: 64,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.amber,
+                            height: 1.0,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black38,
+                                blurRadius: 12,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const Text(
+                          'звёздочек получено!',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.white70,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        AnimatedBuilder(
+                          animation: _contentFadeController,
+                          builder: (context, child) {
+                            return Opacity(
+                              opacity: _contentFade.value,
+                              child: Transform.translate(
+                                offset: Offset(0, _contentSlide.value),
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(20),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.2),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceAround,
+                                  children: [
+                                    const _SummaryItem(
+                                      emoji: '🗳️',
+                                      label: 'Вопросов',
+                                      value: '12',
+                                    ),
+                                    Container(
+                                      width: 1,
+                                      height: 40,
+                                      color: Colors.white24,
+                                    ),
+                                    const _SummaryItem(
+                                      emoji: '✅',
+                                      label: 'Ответов',
+                                      value: '10',
+                                    ),
+                                    Container(
+                                      width: 1,
+                                      height: 40,
+                                      color: Colors.white24,
+                                    ),
+                                    _SummaryItem(
+                                      emoji: '⭐',
+                                      label: 'Звёзд',
+                                      value: '+$_starsEarned',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              const Text(
+                                'Отличный раунд! 🎉\nТвои голоса помогут друзьям узнать себя.',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.white60,
+                                  height: 1.5,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
-                    textAlign: TextAlign.center,
                   ),
                 ),
-                const Text(
-                  'звёздочек получено!',
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-                // Content section
-                AnimatedBuilder(
-                  animation: _contentFadeController,
-                  builder: (context, child) {
-                    return Opacity(
-                      opacity: _contentFade.value,
-                      child: Transform.translate(
-                        offset: Offset(0, _contentSlide.value),
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: Column(
-                    children: [
-                      // Round summary card
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.2),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _SummaryItem(
-                              emoji: '🗳️',
-                              label: 'Вопросов',
-                              value: '12',
-                            ),
-                            Container(
-                              width: 1,
-                              height: 40,
-                              color: Colors.white24,
-                            ),
-                            _SummaryItem(
-                              emoji: '✅',
-                              label: 'Ответов',
-                              value: '10',
-                            ),
-                            Container(
-                              width: 1,
-                              height: 40,
-                              color: Colors.white24,
-                            ),
-                            _SummaryItem(
-                              emoji: '⭐',
-                              label: 'Звёзд',
-                              value: '+$_starsEarned',
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      // Motivational text
-                      const Text(
-                        'Отличный раунд! 🎉\nТвои голоса помогут друзьям узнать себя.',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.white60,
-                          height: 1.5,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-                const Spacer(),
-                // Continue to timer button
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -288,7 +285,7 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                     child: const Text('Продолжить'),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
@@ -309,8 +306,7 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
-                // View collection secondary button
+                const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(
@@ -330,7 +326,7 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                     child: const Text('Моя коллекция'),
                   ),
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 12),
               ],
             ),
           ),
