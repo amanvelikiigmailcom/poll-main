@@ -188,7 +188,7 @@ class _MainTabState extends ConsumerState<MainTab> {
           const Icon(Icons.timer_outlined, color: Colors.white, size: 40),
           const SizedBox(height: 12),
           const Text(
-            'Следующий опрос через',
+            'Next quiz in',
             style: TextStyle(color: Colors.white70, fontSize: 14),
           ),
           const SizedBox(height: 8),
@@ -215,7 +215,7 @@ class _MainTabState extends ConsumerState<MainTab> {
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              child: const Text('Подробнее'),
+              child: const Text('Details'),
             ),
           ),
         ],
@@ -273,7 +273,7 @@ class _MainTabState extends ConsumerState<MainTab> {
                 ),
               ),
               child: const Text(
-                'Перейти к опросу',
+                'Go to quiz',
                 style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
               ),
             ),
