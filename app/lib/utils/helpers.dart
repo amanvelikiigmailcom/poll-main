@@ -11,10 +11,10 @@ String formatTimer(int totalSeconds) {
 
 String formatTimeAgo(DateTime dateTime) {
   final diff = DateTime.now().difference(dateTime);
-  if (diff.inSeconds < 60) return 'только что';
-  if (diff.inMinutes < 60) return '${diff.inMinutes} мин назад';
-  if (diff.inHours < 24) return '${diff.inHours} ч назад';
-  if (diff.inDays < 7) return '${diff.inDays} дн назад';
+  if (diff.inSeconds < 60) return 'just now';
+  if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+  if (diff.inHours < 24) return '${diff.inHours}h ago';
+  if (diff.inDays < 7) return '${diff.inDays}d ago';
   return '${dateTime.day}.${dateTime.month.toString().padLeft(2, '0')}.${dateTime.year}';
 }
 
@@ -76,10 +76,10 @@ Color getCategoryTextColor(String category) {
 String getCategoryLabel(String category) {
   switch (category) {
     case 'humor':
-      return 'Юмор';
+      return 'Humor';
     case 'sympathy':
-      return 'Симпатия';
+      return 'Sympathy';
     default:
-      return 'Обычное';
+      return 'General';
   }
 }

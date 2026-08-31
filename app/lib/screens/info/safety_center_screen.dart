@@ -61,8 +61,8 @@ class SafetyCenterScreen extends StatelessWidget {
                 'Use the quiz for fun. Do not use it to harass or shame anyone.',
           ),
           const _Rule(
-            title: 'Age 14+',
-            body: 'Hidavo is not for children under 14.',
+            title: 'Age 18+',
+            body: 'Hidavo is for adults 18+ only. Not for children.',
           ),
           const SizedBox(height: 8),
           TextButton(

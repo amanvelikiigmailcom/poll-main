@@ -70,7 +70,7 @@ class User extends Equatable {
 
   String get fullName => '$firstName $lastName'.trim();
   String get displayGrade =>
-      gradeClass != null ? '$grade$gradeClass' : '$grade класс';
+      gradeClass != null ? '$grade$gradeClass' : 'grade $grade';
 
   // ---------------------------------------------------------------------------
   // Serialization

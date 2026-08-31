@@ -209,9 +209,9 @@ class _VoteScreenState extends State<VoteScreen>
 
   String _catLabel(String cat) {
     switch (cat) {
-      case 'humor': return '😂 Юмор';
-      case 'sympathy': return '❤️ Симпатия';
-      default: return '💬 Обычное';
+      case 'humor': return '😂 Humor';
+      case 'sympathy': return '❤️ Sympathy';
+      default: return '💬 General';
     }
   }
 

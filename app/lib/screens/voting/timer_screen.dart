@@ -10,11 +10,11 @@ const Color _accentRed = Color(0xFFFF3B5C);
 // Motivation quotes shown while waiting
 // ---------------------------------------------------------------------------
 const List<String> _motivationQuotes = [
-  '«Настоящие звёзды светят даже когда их никто не видит»',
-  '«Каждый голос — это маленький знак уважения. Собирай их!»',
-  '«Те, кто ждёт — получают вдвойне больше»',
-  '«Скоро новый раунд. Приготовься удивить одноклассников!»',
-  '«Лучшие моменты приходят к тем, кто умеет ждать»',
+  '"Real stars shine even when no one watches"',
+  '"Every vote is a small sign of respect. Collect them!"',
+  '"Those who wait get twice as much"',
+  '"New round soon. Get ready to surprise your friends!"',
+  '"Best moments come to those who wait"',
 ];
 
 // ---------------------------------------------------------------------------
@@ -216,7 +216,7 @@ class _TimerScreenState extends State<TimerScreen>
               ),
               const SizedBox(width: 6),
               const Text(
-                'Перерыв между раундами',
+                'Break between rounds',
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -228,7 +228,7 @@ class _TimerScreenState extends State<TimerScreen>
         ),
         const SizedBox(height: 12),
         const Text(
-          'Следующий раунд через...',
+          'Next round in...',
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.bold,
@@ -296,7 +296,7 @@ class _TimerScreenState extends State<TimerScreen>
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'мин : сек',
+                    'min : sec',
                     style: TextStyle(
                       fontSize: 11,
                       color: Colors.grey,
@@ -356,7 +356,7 @@ class _TimerScreenState extends State<TimerScreen>
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Text(
-          'Пропусти таймер мгновенно!',
+          'Skip timer instantly!',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
@@ -366,7 +366,7 @@ class _TimerScreenState extends State<TimerScreen>
         ),
         const SizedBox(height: 6),
         const Text(
-          'Пригласи друга и сразу начинай следующий раунд',
+          'Invite a friend and start next round instantly',
           style: TextStyle(
             fontSize: 13,
             color: Colors.grey,
@@ -377,7 +377,7 @@ class _TimerScreenState extends State<TimerScreen>
         ElevatedButton.icon(
           onPressed: () => context.push('/invite'),
           icon: const Icon(Icons.person_add_alt_1_rounded),
-          label: const Text('Пригласить друга'),
+          label: const Text('Invite a friend'),
           style: ElevatedButton.styleFrom(
             backgroundColor: _accentRed,
             foregroundColor: Colors.white,
@@ -407,7 +407,7 @@ class _TimerScreenState extends State<TimerScreen>
               fontWeight: FontWeight.w600,
             ),
           ),
-          child: const Text('На главную'),
+          child: const Text('Go home'),
         ),
       ],
     );

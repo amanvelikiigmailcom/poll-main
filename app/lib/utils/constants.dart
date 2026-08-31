@@ -16,9 +16,9 @@ class AppConstants {
   static const int proWeeklyFullNameReveals = 2;
   static const int proWeeklyFirstLetterReveals = 2;
 
-  // Registration
-  static const int minAge = 14;
-  static const int maxAge = 19;
+  // Registration — 18+ only
+  static const int minAge = 18;
+  static const int maxAge = 99;
   static const int minGrade = 8;
   static const int maxGrade = 12;
 
