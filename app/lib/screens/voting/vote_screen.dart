@@ -269,7 +269,7 @@ class _VoteScreenState extends State<VoteScreen>
           Row(
             children: [
               Text(
-                'Вопрос ${_currentIndex + 1} из $_totalQuestions',
+                'Question ${_currentIndex + 1} of $_totalQuestions',
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -374,7 +374,7 @@ class _VoteScreenState extends State<VoteScreen>
         TextButton.icon(
           onPressed: _selectedOptionId == null ? _shuffleOptions : null,
           icon: const Icon(Icons.shuffle_rounded, size: 18),
-          label: const Text('Перемешать'),
+          label: const Text('Shuffle'),
           style: TextButton.styleFrom(
             foregroundColor: AppColors.textSecondary,
             textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
@@ -393,7 +393,7 @@ class _VoteScreenState extends State<VoteScreen>
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             visualDensity: VisualDensity.compact,
           ),
-          child: const Text('Пропустить'),
+          child: const Text('Skip'),
         ),
       ],
     );
