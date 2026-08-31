@@ -199,7 +199,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Text(
-          'Придумай логин',
+          'Create username',
           style: TextStyle(
             color: Colors.white,
             fontSize: 30,
@@ -231,7 +231,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
           ],
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           decoration: InputDecoration(
-            hintText: 'например: aman_07',
+            hintText: 'e.g.: aman_07',
             prefixText: '@',
             prefixStyle: const TextStyle(
               fontSize: 18,
@@ -266,7 +266,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
               elevation: 0,
             ),
             child: const Text(
-              'Дальше',
+              'Continue',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             ),
           ),
@@ -304,7 +304,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Как тебя зовут?',
+          'What is your name?',
           style: TextStyle(
             color: Colors.white,
             fontSize: 30,
@@ -313,7 +313,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Имя на карточках в опросах — ты + трое одноклассников',
+          'Your name on quiz cards — you + three friends',
           style: TextStyle(color: Colors.white70, fontSize: 15, height: 1.4),
         ),
         const SizedBox(height: 28),
@@ -326,7 +326,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
           onSubmitted: (_) => _goToFriendsStep(),
           style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           decoration: InputDecoration(
-            hintText: 'Твоё имя',
+            hintText: 'Your name',
             filled: true,
             fillColor: Colors.white,
             contentPadding:
@@ -353,7 +353,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
               elevation: 0,
             ),
             child: const Text(
-              'Дальше',
+              'Continue',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             ),
           ),

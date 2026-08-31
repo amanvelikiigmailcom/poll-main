@@ -38,17 +38,9 @@ class HidavoApp extends ConsumerWidget {
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
 
-      // Device English → English, device Russian → Russian.
-      // Any other language (or missing device locale) → English.
-      localeResolutionCallback: (deviceLocale, supportedLocales) {
-        if (deviceLocale != null) {
-          final code = deviceLocale.languageCode;
-          if (code == 'en' || code == 'ru') {
-            return Locale(code);
-          }
-        }
-        return const Locale('en');
-      },
+      // Force English as default for all users (review against en).
+      // Russian locale still exists but is not auto-selected.
+      locale: const Locale('en'),
 
       // ── Scroll behaviour ──────────────────────────────────────────────────
       // Use the Material "stretch" overscroll on all platforms for a modern

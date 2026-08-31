@@ -72,12 +72,12 @@ class LocalGameService {
   /// Local rules only (no backend): latin letters, digits, `_`, min length.
   static String? validateUsername(String raw) {
     final v = raw.trim();
-    if (v.isEmpty) return 'Придумай логин';
+    if (v.isEmpty) return 'Create username';
     if (v.length < minUsernameLength) {
-      return 'Минимум $minUsernameLength символа';
+      return 'At least $minUsernameLength characters';
     }
     if (!usernamePattern.hasMatch(v)) {
-      return 'Только латиница, цифры и _';
+      return 'Only letters, numbers and _';
     }
     return null;
   }
