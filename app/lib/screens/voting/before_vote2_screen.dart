@@ -19,30 +19,30 @@ class _BeforeVote2ScreenState extends State<BeforeVote2Screen>
     _StepData(
       emoji: '👁️',
       color: Color(0xFF4B6EF5),
-      title: 'Полная анонимность',
+      title: 'Full anonymity',
       description:
-          'Никто не узнает, за кого ты голосовал. Все ответы скрыты от участников.',
+          'No one will know who you voted for. All answers are hidden.',
     ),
     _StepData(
       emoji: '🗳️',
       color: Color(0xFFFF9500),
-      title: 'Как работает голосование',
+      title: 'How voting works',
       description:
-          'На вопрос — 4 карточки: ты и трое одноклассников (хватит 3 друзей). Выбери, кто подходит лучше всего.',
+          'One question — 4 cards: you + three friends (3 friends enough). Pick who fits best.',
     ),
     _StepData(
       emoji: '⭐',
       color: Color(0xFFFFD700),
-      title: 'Зарабатывай звёзды',
+      title: 'Earn stars',
       description:
-          'За каждое голосование за тебя ты получаешь звёзды. Собирай их и открывай новые предметы.',
+          'You get stars each time someone votes for you. Collect them and unlock items.',
     ),
     _StepData(
       emoji: '🔓',
       color: Color(0xFF9B59B6),
-      title: 'Узнай кто голосовал',
+      title: 'See who voted',
       description:
-          'С подпиской Premium ты можешь видеть, кто именно за тебя проголосовал в каждом вопросе.',
+          'With Premium you can see who voted for you in each question.',
     ),
   ];
 
@@ -76,7 +76,7 @@ class _BeforeVote2ScreenState extends State<BeforeVote2Screen>
         ),
         centerTitle: true,
         title: const Text(
-          'Как это работает',
+          'How it works',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
@@ -117,7 +117,7 @@ class _BeforeVote2ScreenState extends State<BeforeVote2Screen>
                             ),
                           ),
                           Text(
-                            'голосуй анонимно',
+                            'vote anonymously',
                             style: TextStyle(
                               color: Colors.white70,
                               fontSize: 13,
@@ -159,7 +159,7 @@ class _BeforeVote2ScreenState extends State<BeforeVote2Screen>
                       fontWeight: FontWeight.w700,
                     ),
                   ),
-                  child: const Text('Продолжить'),
+                  child: const Text('Continue'),
                 ),
                 const SizedBox(height: 24),
               ],

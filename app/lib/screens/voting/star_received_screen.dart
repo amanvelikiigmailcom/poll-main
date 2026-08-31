@@ -185,7 +185,7 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                           textAlign: TextAlign.center,
                         ),
                         const Text(
-                          'звёздочек получено!',
+                          'stars received!',
                           style: TextStyle(
                             fontSize: 18,
                             color: Colors.white70,
@@ -222,7 +222,7 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                                   children: [
                                     const _SummaryItem(
                                       emoji: '🗳️',
-                                      label: 'Вопросов',
+                                      label: 'Questions',
                                       value: '12',
                                     ),
                                     Container(
@@ -232,7 +232,7 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                                     ),
                                     const _SummaryItem(
                                       emoji: '✅',
-                                      label: 'Ответов',
+                                      label: 'Answers',
                                       value: '10',
                                     ),
                                     Container(
@@ -242,7 +242,7 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                                     ),
                                     _SummaryItem(
                                       emoji: '⭐',
-                                      label: 'Звёзд',
+                                      label: 'Stars',
                                       value: '+$_starsEarned',
                                     ),
                                   ],
@@ -282,7 +282,7 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    child: const Text('Продолжить'),
+                    child: const Text('Continue'),
                   ),
                 ),
                 const SizedBox(height: 10),

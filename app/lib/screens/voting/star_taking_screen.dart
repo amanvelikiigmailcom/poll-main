@@ -200,7 +200,7 @@ class _StarTakingScreenState extends State<StarTakingScreen>
                 child: Column(
                   children: [
                     const Text(
-                      'За тебя проголосовали! ⭐',
+                      'You got voted! ⭐',
                       style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
@@ -211,7 +211,7 @@ class _StarTakingScreenState extends State<StarTakingScreen>
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Кто-то считает тебя особенным!\nПосмотри активность, чтобы узнать подробности.',
+                      'Someone thinks you are special!\nCheck activity for details.',
                       style: TextStyle(
                         fontSize: 16,
                         color: AppColors.textSecondary,
@@ -239,7 +239,7 @@ class _StarTakingScreenState extends State<StarTakingScreen>
                           Text('⭐', style: TextStyle(fontSize: 22)),
                           SizedBox(width: 8),
                           Text(
-                            '+5 звёздочек добавлено',
+                            '+5 stars added',
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
@@ -272,7 +272,7 @@ class _StarTakingScreenState extends State<StarTakingScreen>
                     ),
                     shadowColor: Colors.amber.withOpacity(0.4),
                   ),
-                  child: const Text('Посмотреть активность'),
+                  child: const Text('View activity'),
                 ),
               ),
               const SizedBox(height: 12),
@@ -289,7 +289,7 @@ class _StarTakingScreenState extends State<StarTakingScreen>
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  child: const Text('Позже'),
+                  child: const Text('Later'),
                 ),
               ),
               const SizedBox(height: 24),

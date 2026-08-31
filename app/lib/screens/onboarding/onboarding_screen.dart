@@ -40,36 +40,36 @@ const List<_OnboardingSlide> _slides = [
   _OnboardingSlide(
     emoji: '🏃‍♂️🏃‍♀️',
     emojiSize: 90,
-    title: 'Голосуй анонимно',
+    title: 'Vote anonymously',
     description:
-        'Отвечай на веселые вопросы о своих одноклассниках — никто не узнает, что это ты. Полная анонимность гарантирована.',
+        'Answer fun questions about classmates — no one will know it is you. Full anonymity guaranteed.',
     gradientColors: [Color(0xFF4B6EF5), Color(0xFF7B9BFF)],
     accentColor: Color(0xFF4B6EF5),
   ),
   _OnboardingSlide(
     emoji: '🤝',
     emojiSize: 100,
-    title: 'Без негатива',
+    title: 'No negativity',
     description:
-        'Только позитивные вопросы, которые сближают ваш класс. Безопасная и дружелюбная среда для всех.',
+        'Only positive questions that bring your class together. Safe and friendly for everyone.',
     gradientColors: [Color(0xFF43B89C), Color(0xFF7FD9C4)],
     accentColor: Color(0xFF43B89C),
   ),
   _OnboardingSlide(
     emoji: '💃',
     emojiSize: 100,
-    title: 'Анонимная лента',
+    title: 'Anonymous feed',
     description:
-        'Смотри, за кого проголосовали в ленте класса — и собирай звёзды, поднимаясь на вершину.',
+        'See who got voted in class feed — collect stars and rise to the top.',
     gradientColors: [Color(0xFFAB47BC), Color(0xFFCE93D8)],
     accentColor: Color(0xFFAB47BC),
   ),
   _OnboardingSlide(
     emoji: '🎉',
     emojiSize: 100,
-    title: 'Приглашай своих друзей',
+    title: 'Invite your friends',
     description:
-        'Больше друзей — больше веселья! Приглашай одноклассников и открой полный опыт Hidavo.',
+        'More friends — more fun! Invite classmates and unlock full Hidavo experience.',
     gradientColors: [Color(0xFFFF3B5C), Color(0xFFFF8A80)],
     accentColor: Color(0xFFFF3B5C),
   ),
@@ -148,7 +148,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   ),
                   child: const Text(
-                    'Пропустить',
+                    'Skip',
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
@@ -451,7 +451,7 @@ class _BottomControls extends StatelessWidget {
                       AnimatedSwitcher(
                         duration: const Duration(milliseconds: 250),
                         child: Text(
-                          isLast ? 'Начать' : 'Далее',
+                          isLast ? 'Start' : 'Next',
                           key: ValueKey<bool>(isLast),
                           style: const TextStyle(
                             color: Colors.white,
