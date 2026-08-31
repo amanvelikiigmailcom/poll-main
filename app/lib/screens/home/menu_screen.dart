@@ -16,7 +16,7 @@ class MenuScreen extends ConsumerWidget {
         elevation: 0,
         centerTitle: true,
         title: const Text(
-          'Ещё',
+          'More',
           style: TextStyle(
             color: Color(0xFF1A1A2E),
             fontSize: 17,
@@ -27,75 +27,75 @@ class MenuScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _SectionHeader(label: 'Аккаунт'),
+          _SectionHeader(label: 'Account'),
           _MenuItem(
             icon: Icons.person_outline,
-            label: 'Профиль',
+            label: 'Profile',
             onTap: () => context.push(AppRoutes.profile),
           ),
           _MenuItem(
             icon: Icons.edit_outlined,
-            label: 'Редактировать профиль',
+            label: 'Edit profile',
             onTap: () => context.push(AppRoutes.editProfile),
           ),
           _MenuItem(
             icon: Icons.collections_bookmark_outlined,
-            label: 'Коллекция',
+            label: 'Collection',
             onTap: () => context.push(AppRoutes.collection),
           ),
           const SizedBox(height: 16),
-          _SectionHeader(label: 'Социальное'),
+          _SectionHeader(label: 'Social'),
           _MenuItem(
             icon: Icons.people_outline,
-            label: 'Мои друзья',
+            label: 'My friends',
             onTap: () => context.push(AppRoutes.friends),
           ),
           _MenuItem(
             icon: Icons.person_add_alt_outlined,
-            label: 'Запросы в друзья',
+            label: 'Friend requests',
             onTap: () => context.push(AppRoutes.friendRequests),
           ),
           _MenuItem(
             icon: Icons.share_outlined,
-            label: 'Пригласить друга',
+            label: 'Invite friend',
             onTap: () => context.push(AppRoutes.invite),
           ),
           const SizedBox(height: 16),
-          _SectionHeader(label: 'Приложение'),
+          _SectionHeader(label: 'App'),
           _MenuItem(
             icon: Icons.workspace_premium_outlined,
-            label: 'Премиум',
+            label: 'Premium',
             badge: 'PRO',
             badgeColor: const Color(0xFFFFB800),
             onTap: () => context.push(AppRoutes.premium),
           ),
           _MenuItem(
             icon: Icons.settings_outlined,
-            label: 'Настройки',
+            label: 'Settings',
             onTap: () => context.push(AppRoutes.settings),
           ),
           const SizedBox(height: 16),
-          _SectionHeader(label: 'Прочее'),
+          _SectionHeader(label: 'Other'),
           _MenuItem(
             icon: Icons.logout,
-            label: 'Выйти',
+            label: 'Log out',
             labelColor: const Color(0xFFFF3B5C),
             iconColor: const Color(0xFFFF3B5C),
             onTap: () async {
               final confirm = await showDialog<bool>(
                 context: context,
                 builder: (ctx) => AlertDialog(
-                  title: const Text('Выйти из аккаунта?'),
-                  content: const Text('Вы уверены, что хотите выйти?'),
+                  title: const Text('Log out?'),
+                  content: const Text('Are you sure you want to log out?'),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(ctx).pop(false),
-                      child: const Text('Отмена'),
+                      child: const Text('Cancel'),
                     ),
                     TextButton(
                       onPressed: () => Navigator.of(ctx).pop(true),
                       child: const Text(
-                        'Выйти',
+                        'Log out',
                         style: TextStyle(color: Color(0xFFFF3B5C)),
                       ),
                     ),

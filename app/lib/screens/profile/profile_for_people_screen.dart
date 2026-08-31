@@ -42,7 +42,7 @@ class _OtherUser {
   final bool isPremium;
 
   String get fullName => '$firstName $lastName'.trim();
-  String get displayGrade => '$grade класс';
+  String get displayGrade => 'grade $grade';
 }
 
 // ---------------------------------------------------------------------------
@@ -116,7 +116,7 @@ class ProfileForPeopleScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
         title: const Text(
-          'Профиль',
+          'Profile',
           style: TextStyle(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.bold,
@@ -365,14 +365,14 @@ class _OtherStatsRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _Stat(emoji: '⭐', value: _fmt(user.starsCount), label: 'Звёздочки'),
+        _Stat(emoji: '⭐', value: _fmt(user.starsCount), label: 'Stars'),
         Container(height: 44, width: 1, color: AppColors.border),
-        _Stat(emoji: '👥', value: _fmt(user.friendsCount), label: 'Друзья'),
+        _Stat(emoji: '👥', value: _fmt(user.friendsCount), label: 'Friends'),
         Container(height: 44, width: 1, color: AppColors.border),
         _Stat(
             emoji: '❤️',
             value: _fmt(user.votesReceived),
-            label: 'Голоса'),
+            label: 'Votes'),
       ],
     );
   }
@@ -439,7 +439,7 @@ class _FriendActionCard extends StatelessWidget {
             onPressed: onTap,
             icon: const Icon(Icons.person_add_outlined, size: 18),
             label: const Text(
-              'Добавить в друзья',
+              'Add friend',
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
             style: ElevatedButton.styleFrom(
@@ -461,7 +461,7 @@ class _FriendActionCard extends StatelessWidget {
             onPressed: onTap,
             icon: const Icon(Icons.hourglass_empty, size: 18),
             label: const Text(
-              'Запрос отправлен',
+              'Request sent',
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
             style: OutlinedButton.styleFrom(
@@ -483,7 +483,7 @@ class _FriendActionCard extends StatelessWidget {
             onPressed: onTap,
             icon: const Icon(Icons.check, size: 18),
             label: const Text(
-              'Вы друзья',
+              'Friends',
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
             style: ElevatedButton.styleFrom(
@@ -534,7 +534,7 @@ class _OtherFriendsPreview extends StatelessWidget {
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: Text(
-              'Друзья',
+              'Friends',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,

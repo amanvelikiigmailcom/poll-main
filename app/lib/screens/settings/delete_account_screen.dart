@@ -20,11 +20,11 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
   final _otherController = TextEditingController();
 
   final List<String> _reasons = [
-    'Я создал дубликат аккаунта',
-    'Опасения по поводу безопасности',
-    'Слишком много уведомлений',
-    'Не нахожу применения приложению',
-    'Другая причина',
+    'I created a duplicate account',
+    'Security concerns',
+    'Too many notifications',
+    'I do not find the app useful',
+    'Other reason',
   ];
 
   bool get _canDelete {
@@ -43,12 +43,12 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Удалить аккаунт?'),
-        content: const Text('Все ваши данные будут удалены безвозвратно. Это действие нельзя отменить.'),
+        title: const Text('Delete account?'),
+        content: const Text('All your data will be deleted permanently. This cannot be undone.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Отмена'),
+            child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
@@ -58,7 +58,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
               context.go(AppRoutes.namesEntry);
             },
             style: TextButton.styleFrom(foregroundColor: _accentRed),
-            child: const Text('Удалить'),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -70,7 +70,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F8F8),
       appBar: AppBar(
-        title: const Text('Удалить аккаунт'),
+        title: const Text('Delete account'),
         foregroundColor: _accentRed,
       ),
       body: SingleChildScrollView(
@@ -92,7 +92,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      '⚠️ Это действие необратимо. Все ваши данные будут удалены.',
+                      '⚠️ This action is irreversible. All your data will be deleted.',
                       style: TextStyle(color: Color(0xFFFF3B5C), fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -101,7 +101,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
             ),
             const SizedBox(height: 24),
             const Text(
-              'Почему вы хотите удалить аккаунт?',
+              'Why do you want to delete your account?',
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
@@ -123,7 +123,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                       maxLines: 3,
                       onChanged: (_) => setState(() {}),
                       decoration: InputDecoration(
-                        hintText: 'Опишите причину (мин. 10 символов)',
+                        hintText: 'Describe reason (min. 10 chars)',
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
@@ -146,7 +146,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: const Text(
-                  'Удалить безвозвратно',
+                  'Delete permanently',
                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                 ),
               ),

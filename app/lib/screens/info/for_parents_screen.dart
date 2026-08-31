@@ -21,7 +21,7 @@ class ForParentsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F8F8),
       appBar: AppBar(
-        title: const Text('Для родителей'),
+        title: const Text('For parents'),
         backgroundColor: Colors.white,
       ),
       body: SingleChildScrollView(

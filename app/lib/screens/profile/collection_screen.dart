@@ -97,7 +97,7 @@ class _CollectionNotifier extends StateNotifier<_CollectionState> {
     // Frames
     _CollectionItem(
       id: 'frame_gold',
-      label: 'Золотая рамка',
+      label: 'Gold frame',
       icon: Icons.circle_outlined,
       category: _CollectionCategory.frames,
       isUnlocked: true,
@@ -105,7 +105,7 @@ class _CollectionNotifier extends StateNotifier<_CollectionState> {
     ),
     _CollectionItem(
       id: 'frame_blue',
-      label: 'Синяя рамка',
+      label: 'Blue frame',
       icon: Icons.radio_button_unchecked,
       category: _CollectionCategory.frames,
       isUnlocked: true,
@@ -113,7 +113,7 @@ class _CollectionNotifier extends StateNotifier<_CollectionState> {
     ),
     _CollectionItem(
       id: 'frame_rainbow',
-      label: 'Радужная рамка',
+      label: 'Rainbow frame',
       icon: Icons.panorama_fish_eye,
       category: _CollectionCategory.frames,
       isUnlocked: false,
@@ -121,7 +121,7 @@ class _CollectionNotifier extends StateNotifier<_CollectionState> {
     ),
     _CollectionItem(
       id: 'frame_flame',
-      label: 'Огненная рамка',
+      label: 'Fire frame',
       icon: Icons.local_fire_department_outlined,
       category: _CollectionCategory.frames,
       isUnlocked: false,
@@ -130,7 +130,7 @@ class _CollectionNotifier extends StateNotifier<_CollectionState> {
     // Badges
     _CollectionItem(
       id: 'badge_vote',
-      label: 'Первый голос',
+      label: 'First vote',
       icon: Icons.how_to_vote_outlined,
       category: _CollectionCategory.badges,
       isUnlocked: true,
@@ -138,7 +138,7 @@ class _CollectionNotifier extends StateNotifier<_CollectionState> {
     ),
     _CollectionItem(
       id: 'badge_popular',
-      label: 'Популярный',
+      label: 'Popular',
       icon: Icons.local_fire_department_outlined,
       category: _CollectionCategory.badges,
       isUnlocked: true,
@@ -146,7 +146,7 @@ class _CollectionNotifier extends StateNotifier<_CollectionState> {
     ),
     _CollectionItem(
       id: 'badge_school',
-      label: 'Друг школы',
+      label: 'School friend',
       icon: Icons.school_outlined,
       category: _CollectionCategory.badges,
       isUnlocked: false,
@@ -154,7 +154,7 @@ class _CollectionNotifier extends StateNotifier<_CollectionState> {
     ),
     _CollectionItem(
       id: 'badge_star',
-      label: 'Звезда',
+      label: 'Star',
       icon: Icons.star_outline,
       category: _CollectionCategory.badges,
       isUnlocked: false,
@@ -162,7 +162,7 @@ class _CollectionNotifier extends StateNotifier<_CollectionState> {
     ),
     _CollectionItem(
       id: 'badge_mystery',
-      label: 'Загадочный',
+      label: 'Mysterious',
       icon: Icons.person_outline,
       category: _CollectionCategory.badges,
       isUnlocked: false,
@@ -170,7 +170,7 @@ class _CollectionNotifier extends StateNotifier<_CollectionState> {
     ),
     _CollectionItem(
       id: 'badge_activist',
-      label: 'Активист',
+      label: 'Activist',
       icon: Icons.campaign_outlined,
       category: _CollectionCategory.badges,
       isUnlocked: false,
@@ -179,7 +179,7 @@ class _CollectionNotifier extends StateNotifier<_CollectionState> {
     // Effects
     _CollectionItem(
       id: 'effect_sparkle',
-      label: 'Блёстки',
+      label: 'Glitter',
       icon: Icons.auto_awesome,
       category: _CollectionCategory.effects,
       isUnlocked: false,
@@ -187,7 +187,7 @@ class _CollectionNotifier extends StateNotifier<_CollectionState> {
     ),
     _CollectionItem(
       id: 'effect_glow',
-      label: 'Свечение',
+      label: 'Glow',
       icon: Icons.light_mode_outlined,
       category: _CollectionCategory.effects,
       isUnlocked: false,
@@ -196,7 +196,7 @@ class _CollectionNotifier extends StateNotifier<_CollectionState> {
     // Titles
     _CollectionItem(
       id: 'title_king',
-      label: 'Король класса',
+      label: 'Class king',
       icon: Icons.emoji_events_outlined,
       category: _CollectionCategory.titles,
       isUnlocked: false,
@@ -204,7 +204,7 @@ class _CollectionNotifier extends StateNotifier<_CollectionState> {
     ),
     _CollectionItem(
       id: 'title_genius',
-      label: 'Гений',
+      label: 'Genius',
       icon: Icons.lightbulb_outline,
       category: _CollectionCategory.titles,
       isUnlocked: false,
@@ -242,7 +242,7 @@ class CollectionScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
         title: const Text(
-          'Коллекция',
+          'Collection',
           style: TextStyle(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.bold,
@@ -308,7 +308,7 @@ class _BalanceCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'ВАШ БАЛАНС',
+                'YOUR BALANCE',
                 style: TextStyle(
                   color: Colors.white70,
                   fontSize: 11,
@@ -333,7 +333,7 @@ class _BalanceCard extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               const Text(
-                'Используй звёздочки для открытия предметов',
+                'Use stars to unlock items',
                 style: TextStyle(
                   color: Colors.white60,
                   fontSize: 12,
@@ -361,8 +361,8 @@ class _CategoryChips extends StatelessWidget {
   final ValueChanged<_CollectionCategory?> onSelect;
 
   static const _labels = {
-    _CollectionCategory.frames: 'Рамки',
-    _CollectionCategory.badges: 'Значки',
+    _CollectionCategory.frames: 'Frames',
+    _CollectionCategory.badges: 'Badges',
     _CollectionCategory.effects: 'Эффекты',
     _CollectionCategory.titles: 'Титулы',
   };
