@@ -91,7 +91,7 @@ class _VoteScreenState extends State<VoteScreen>
     if (_roundLoadStarted) return;
     _roundLoadStarted = true;
     final languageCode =
-        Localizations.maybeLocaleOf(context)?.languageCode ?? 'ru';
+        Localizations.maybeLocaleOf(context)?.languageCode ?? 'en';
     _loadRound(languageCode);
   }
 
@@ -185,7 +185,6 @@ class _VoteScreenState extends State<VoteScreen>
   }
 
   void _shuffleOptions() {
-    if (_selectedOptionId != null) return;
     HapticFeedback.selectionClick();
     setState(() => _shuffledOptions.shuffle());
   }
@@ -311,18 +310,53 @@ class _VoteScreenState extends State<VoteScreen>
 
   Widget _buildCategoryBadge() {
     final cat = _currentQuestion.category;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        color: _catBg(cat),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        _catLabel(cat),
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: _catFg(cat),
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () {
+        final info = {
+          'humor': 'Light and funny questions to make your friends laugh.',
+          'sympathy': 'Positive questions about charm and vibe — only good vibes.',
+          'normal': 'Casual everyday questions about school life.',
+        }[cat] ?? '';
+        showModalBottomSheet<void>(
+          context: context,
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+          builder: (_) => Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_catLabel(cat), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                const SizedBox(height: 8),
+                Text(info, style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4)),
+                const SizedBox(height: 16),
+                SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => Navigator.pop(context), style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('Got it'))),
+              ],
+            ),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: _catBg(cat),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _catLabel(cat),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: _catFg(cat),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(Icons.info_outline_rounded, size: 14, color: _catFg(cat)),
+          ],
         ),
       ),
     );
@@ -341,24 +375,25 @@ class _VoteScreenState extends State<VoteScreen>
   }
 
   Widget _buildOptionsGrid() {
-    return GridView.count(
-      crossAxisCount: 2,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
-      childAspectRatio: 0.82,
-      children: _shuffledOptions
-          .map(
-            (opt) => _OptionCard(
-              option: opt,
-              isSelected: _selectedOptionId == opt.id,
-              isDisabled:
-                  _selectedOptionId != null && _selectedOptionId != opt.id,
-              onTap: () => _selectOption(opt.id),
-            ),
-          )
-          .toList(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = (constraints.maxWidth - 12) / 2;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: _shuffledOptions.map((opt) {
+            return SizedBox(
+              width: cardWidth,
+              child: _OptionCard(
+                option: opt,
+                isSelected: _selectedOptionId == opt.id,
+                isDisabled: _selectedOptionId != null && _selectedOptionId != opt.id,
+                onTap: () => _selectOption(opt.id),
+              ),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 
@@ -372,7 +407,7 @@ class _VoteScreenState extends State<VoteScreen>
       runSpacing: 8,
       children: [
         TextButton.icon(
-          onPressed: _selectedOptionId == null ? _shuffleOptions : null,
+          onPressed: _shuffleOptions,
           icon: const Icon(Icons.shuffle_rounded, size: 18),
           label: const Text('Shuffle'),
           style: TextButton.styleFrom(
