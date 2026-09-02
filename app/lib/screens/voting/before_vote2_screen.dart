@@ -196,9 +196,9 @@ class _StepCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: step.color.withOpacity(0.06),
+        color: step.color.withValues(alpha: 0.06),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: step.color.withOpacity(0.15)),
+        border: Border.all(color: step.color.withValues(alpha: 0.15)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -207,7 +207,7 @@ class _StepCard extends StatelessWidget {
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: step.color.withOpacity(0.12),
+              color: step.color.withValues(alpha: 0.12),
               shape: BoxShape.circle,
             ),
             child: Center(

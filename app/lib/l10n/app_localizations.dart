@@ -281,7 +281,7 @@ abstract class AppLocalizations {
   /// No description provided for @reg_ageModalMessage.
   ///
   /// In en, this message translates to:
-  /// **'Unfortunately, the app is only available for users aged 14 to 19.'**
+  /// **'This app is for adults 18+ only.'**
   String get reg_ageModalMessage;
 
   /// No description provided for @location_header.

@@ -296,7 +296,7 @@ class _BalanceCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primaryBlue.withOpacity(0.3),
+            color: AppColors.primaryBlue.withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -504,7 +504,7 @@ class _CollectionCard extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -523,7 +523,7 @@ class _CollectionCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: item.isUnlocked
-                      ? AppColors.primaryBlue.withOpacity(0.12)
+                      ? AppColors.primaryBlue.withValues(alpha: 0.12)
                       : AppColors.surface,
                 ),
                 child: Icon(
@@ -540,7 +540,7 @@ class _CollectionCard extends StatelessWidget {
                   height: 54,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.black.withOpacity(0.25),
+                    color: Colors.black.withValues(alpha: 0.25),
                   ),
                   child: const Icon(
                     Icons.lock,

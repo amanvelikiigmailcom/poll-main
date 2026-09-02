@@ -195,7 +195,7 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryBlue.withOpacity(0.08),
+                            color: AppColors.primaryBlue.withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
@@ -253,7 +253,7 @@ class _CreateRoomScreenState extends ConsumerState<CreateRoomScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryBlue,
                       disabledBackgroundColor:
-                          AppColors.primaryBlue.withOpacity(0.4),
+                          AppColors.primaryBlue.withValues(alpha: 0.4),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -350,7 +350,7 @@ class _RadioTile<T> extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.primaryBlue.withOpacity(0.07)
+              ? AppColors.primaryBlue.withValues(alpha: 0.07)
               : const Color(0xFFF5F6FA),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(

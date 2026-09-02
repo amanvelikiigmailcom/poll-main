@@ -152,7 +152,7 @@ class _PhoneRegistrationScreenState
                             style: ElevatedButton.styleFrom(
                               backgroundColor: _ctaColor,
                               disabledBackgroundColor:
-                                  _ctaColor.withOpacity(0.45),
+                                  _ctaColor.withValues(alpha: 0.45),
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),

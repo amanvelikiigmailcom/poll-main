@@ -12,11 +12,10 @@
 ///   • [connectivityProvider]   — basic online/offline flag
 // ignore_for_file: depend_on_referenced_packages
 
-library app_providers;
+library;
 
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';

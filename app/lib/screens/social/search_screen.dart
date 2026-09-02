@@ -5,9 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shimmer/shimmer.dart';
 
-import '../../router/app_router.dart';
 import '../../theme/app_colors.dart';
-import '../../models/user.dart';
 import '../../widgets/common/user_avatar.dart';
 
 // ── Search provider (local mock — replace with real API call) ─────────────────
@@ -543,7 +541,7 @@ class _UserCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -645,7 +643,7 @@ class _AddFriendButton extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: AppColors.success.withOpacity(0.12),
+          color: AppColors.success.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(8),
         ),
         child: const Text(

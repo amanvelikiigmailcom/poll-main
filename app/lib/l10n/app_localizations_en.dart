@@ -103,8 +103,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reg_ageModalTitle => 'Age Restriction';
 
   @override
-  String get reg_ageModalMessage =>
-      'Unfortunately, the app is only available for users aged 14 to 19.';
+  String get reg_ageModalMessage => 'This app is for adults 18+ only.';
 
   @override
   String get location_header => 'Choose your city';

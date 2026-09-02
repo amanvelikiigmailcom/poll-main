@@ -105,7 +105,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get reg_ageModalMessage =>
-      'К сожалению, приложение доступно только пользователям от 14 до 19 лет.';
+      'К сожалению, приложение доступно только для пользователей 18+.';
 
   @override
   String get location_header => 'Выберите ваш город';

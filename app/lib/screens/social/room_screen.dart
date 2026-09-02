@@ -248,7 +248,7 @@ class _RoomScreenState extends ConsumerState<RoomScreen> {
                           : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primaryBlue,
-                        disabledBackgroundColor: AppColors.primaryBlue.withOpacity(0.4),
+                        disabledBackgroundColor: AppColors.primaryBlue.withValues(alpha: 0.4),
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),

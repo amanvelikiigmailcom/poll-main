@@ -126,11 +126,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   String? _deleteReason;
 
   static const _deleteReasons = [
-    'Больше не хочу пользоваться',
-    'Приложение неудобное',
-    'Проблемы с конфиденциальностью',
-    'Создам новый аккаунт',
-    'Другая причина',
+    'No longer want to use the app',
+    'The app is not convenient',
+    'Privacy concerns',
+    'Will create a new account',
+    'Other reason',
   ];
 
   @override
@@ -288,7 +288,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               TextButton(
                 onPressed: () => _showDeleteDialog(context),
                 child: const Text(
-                  'Удалить аккаунт',
+                  'Delete account',
                   style: TextStyle(
                     color: AppColors.accentRed,
                     fontSize: 14,
@@ -313,7 +313,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16)),
           title: const Text(
-            'Удалить аккаунт?',
+            'Delete account?',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
           content: SingleChildScrollView(
@@ -322,7 +322,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Укажите причину удаления:',
+                  'Please select a reason:',
                   style: TextStyle(
                       fontSize: 14, color: AppColors.textSecondary),
                 ),
@@ -345,7 +345,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Отмена'),
+              child: const Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: localReason == null
@@ -363,7 +363,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('Удалить безвозвратно'),
+              child: const Text('Delete permanently'),
             ),
           ],
         ),
@@ -666,7 +666,7 @@ class _PremiumRow extends StatelessWidget {
       color: AppColors.white,
       child: ListTile(
         title: const Text(
-          'Premium статус',
+          'Premium status',
           style:
               TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
         ),
@@ -704,7 +704,7 @@ class _PremiumRow extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Text(
-                  'Бесплатный',
+                  'Free',
                   style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 12,

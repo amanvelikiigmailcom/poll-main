@@ -7,7 +7,6 @@ import '../../theme/app_colors.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/user_provider.dart';
 import '../../models/user.dart';
-import '../settings/settings_screen.dart';
 import '../../widgets/common/user_avatar.dart';
 
 /// Full-screen menu / "More" tab shown as one of the bottom-nav tabs.
@@ -412,7 +411,7 @@ class _PremiumBanner extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.15),
+                color: Colors.white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(
@@ -441,7 +440,7 @@ class _PremiumBanner extends StatelessWidget {
                         : 'Раскройте, кто голосовал за вас',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.white.withOpacity(0.75),
+                      color: Colors.white.withValues(alpha: 0.75),
                     ),
                   ),
                 ],
@@ -473,7 +472,7 @@ class _MenuCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -513,7 +512,7 @@ class _MenuItem extends StatelessWidget {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: iconColor.withOpacity(0.12),
+          color: iconColor.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, color: iconColor, size: 20),

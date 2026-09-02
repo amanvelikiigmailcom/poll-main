@@ -50,7 +50,7 @@ class _ArcPainter extends CustomPainter {
     // Foreground arc
     final arcPaint = Paint()
       ..shader = LinearGradient(
-        colors: [arcColor, arcColor.withOpacity(0.6)],
+        colors: [arcColor, arcColor.withValues(alpha: 0.6)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
@@ -200,7 +200,7 @@ class _TimerScreenState extends State<TimerScreen>
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration: BoxDecoration(
-            color: _primaryBlue.withOpacity(0.1),
+            color: _primaryBlue.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
@@ -252,7 +252,7 @@ class _TimerScreenState extends State<TimerScreen>
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: _primaryBlue.withOpacity(0.25 * _pulseAnim.value),
+                  color: _primaryBlue.withValues(alpha: 0.25 * _pulseAnim.value),
                   blurRadius: 40,
                   spreadRadius: 8,
                 ),
@@ -322,7 +322,7 @@ class _TimerScreenState extends State<TimerScreen>
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
+              color: Colors.black.withValues(alpha: 0.06),
               blurRadius: 16,
               offset: const Offset(0, 4),
             ),

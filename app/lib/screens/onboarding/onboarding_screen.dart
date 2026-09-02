@@ -218,7 +218,7 @@ class _OnboardingPage extends StatelessWidget {
                   height: 180,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.08),
+                    color: Colors.white.withValues(alpha: 0.08),
                   ),
                 ),
               ),
@@ -230,7 +230,7 @@ class _OnboardingPage extends StatelessWidget {
                   height: 120,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.06),
+                    color: Colors.white.withValues(alpha: 0.06),
                   ),
                 ),
               ),
@@ -242,7 +242,7 @@ class _OnboardingPage extends StatelessWidget {
                   height: 60,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                   ),
                 ),
               ),
@@ -273,10 +273,10 @@ class _OnboardingPage extends StatelessWidget {
                       width: 180,
                       height: 180,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.18),
+                        color: Colors.white.withValues(alpha: 0.18),
                         borderRadius: BorderRadius.circular(40),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.3),
+                          color: Colors.white.withValues(alpha: 0.3),
                           width: 1.5,
                         ),
                       ),
@@ -420,7 +420,7 @@ class _BottomControls extends StatelessWidget {
               gradient: LinearGradient(
                 colors: isLast
                     ? [AppColors.accentRed, const Color(0xFFFF6B87)]
-                    : [accentColor, accentColor.withOpacity(0.85)],
+                    : [accentColor, accentColor.withValues(alpha: 0.85)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -428,7 +428,7 @@ class _BottomControls extends StatelessWidget {
               boxShadow: [
                 BoxShadow(
                   color: (isLast ? AppColors.accentRed : accentColor)
-                      .withOpacity(0.4),
+                      .withValues(alpha: 0.4),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),

@@ -25,7 +25,7 @@ class LikesEmptyScreen extends ConsumerWidget {
                   width: 120,
                   height: 120,
                   decoration: BoxDecoration(
-                    color: _primaryBlue.withOpacity(0.08),
+                    color: _primaryBlue.withValues(alpha: 0.08),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(

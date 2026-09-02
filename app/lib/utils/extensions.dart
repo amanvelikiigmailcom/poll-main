@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
 
 extension ContextExt on BuildContext {
   ThemeData get theme => Theme.of(this);
@@ -36,7 +35,7 @@ extension DateTimeExt on DateTime {
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return '${day}.${month.toString().padLeft(2, '0')}.${year}';
+    return '$day.${month.toString().padLeft(2, '0')}.$year';
   }
 }
 

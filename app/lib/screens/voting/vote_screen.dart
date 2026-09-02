@@ -459,7 +459,7 @@ class _OptionCard extends StatelessWidget {
       curve: Curves.easeOut,
       decoration: BoxDecoration(
         color: isSelected
-            ? AppColors.primaryBlue.withOpacity(0.09)
+            ? AppColors.primaryBlue.withValues(alpha: 0.09)
             : isDisabled
                 ? AppColors.surface
                 : AppColors.white,
@@ -471,14 +471,14 @@ class _OptionCard extends StatelessWidget {
         boxShadow: isSelected
             ? [
                 BoxShadow(
-                  color: AppColors.primaryBlue.withOpacity(0.22),
+                  color: AppColors.primaryBlue.withValues(alpha: 0.22),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
               ]
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.04),
+                  color: Colors.black.withValues(alpha: 0.04),
                   blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),
@@ -490,7 +490,7 @@ class _OptionCard extends StatelessWidget {
         child: InkWell(
           onTap: isDisabled ? null : onTap,
           borderRadius: BorderRadius.circular(18),
-          splashColor: AppColors.primaryBlue.withOpacity(0.08),
+          splashColor: AppColors.primaryBlue.withValues(alpha: 0.08),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -513,14 +513,14 @@ class _OptionCard extends StatelessWidget {
                       child: CircleAvatar(
                         radius: 36,
                         backgroundColor:
-                            generateAvatarColor(option.name).withOpacity(
-                          isDisabled ? 0.45 : 1.0,
+                            generateAvatarColor(option.name).withValues(
+                          alpha: isDisabled ? 0.45 : 1.0,
                         ),
                         child: Text(
                           getInitials(option.name),
                           style: TextStyle(
                             color: Colors.white
-                                .withOpacity(isDisabled ? 0.6 : 1.0),
+                                .withValues(alpha: isDisabled ? 0.6 : 1.0),
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
                           ),

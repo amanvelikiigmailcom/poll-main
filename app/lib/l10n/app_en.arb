@@ -69,7 +69,7 @@
   "@reg_ageHint": {},
   "reg_ageModalTitle": "Age Restriction",
   "@reg_ageModalTitle": {},
-  "reg_ageModalMessage": "Unfortunately, the app is only available for users aged 14 to 19.",
+  "reg_ageModalMessage": "This app is for adults 18+ only.",
   "@reg_ageModalMessage": {},
 
   "location_header": "Choose your city",

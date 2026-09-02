@@ -35,7 +35,7 @@ class ClassScreen extends ConsumerWidget {
       if (!canSave) return;
       final ok = await ref
           .read(userNotifierProvider.notifier)
-          .saveClass(selectedGrade!, gradeClass: selectedLetter);
+          .saveClass(selectedGrade, gradeClass: selectedLetter);
       if (ok && context.mounted) {
         context.go(AppRoutes.username);
       } else if (context.mounted) {

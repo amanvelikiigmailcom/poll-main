@@ -258,7 +258,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: _primaryBlue,
-              disabledBackgroundColor: Colors.white.withOpacity(0.4),
+              disabledBackgroundColor: Colors.white.withValues(alpha: 0.4),
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
@@ -345,7 +345,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: _primaryBlue,
-              disabledBackgroundColor: Colors.white.withOpacity(0.4),
+              disabledBackgroundColor: Colors.white.withValues(alpha: 0.4),
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),
@@ -411,7 +411,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.white38),
             ),
@@ -432,7 +432,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
-              color: const Color(0xFFB9F6CA).withOpacity(0.28),
+              color: const Color(0xFFB9F6CA).withValues(alpha: 0.28),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: const Color(0xFF69F0AE)),
             ),
@@ -572,7 +572,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
                     child: Text(
                       'Add at least $_minFriends people',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
+                        color: Colors.white.withValues(alpha: 0.6),
                         fontSize: 15,
                       ),
                     ),
@@ -597,7 +597,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: _primaryBlue,
-              disabledBackgroundColor: Colors.white.withOpacity(0.4),
+              disabledBackgroundColor: Colors.white.withValues(alpha: 0.4),
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(14),

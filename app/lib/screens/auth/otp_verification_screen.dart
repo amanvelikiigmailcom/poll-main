@@ -188,10 +188,10 @@ class _OTPVerificationScreenState
 
     if (hasError) {
       border = _errorColor;
-      background = _errorColor.withOpacity(0.06);
+      background = _errorColor.withValues(alpha: 0.06);
     } else if (isActive) {
       border = _primaryColor;
-      background = _primaryColor.withOpacity(0.06);
+      background = _primaryColor.withValues(alpha: 0.06);
     } else {
       border = const Color(0xFFE5E7EB);
       background = const Color(0xFFF9FAFB);

@@ -113,7 +113,7 @@ class _ShimmerCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -216,7 +216,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 12,
             offset: const Offset(0, 3),
           ),
@@ -231,7 +231,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: _primaryBlue.withOpacity(0.12),
+                color: _primaryBlue.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -309,7 +309,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: _primaryBlue.withOpacity(0.1),
+                color: _primaryBlue.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(

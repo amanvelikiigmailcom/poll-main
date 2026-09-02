@@ -22,12 +22,11 @@ class _OtherUser {
     required this.username,
     required this.grade,
     required this.schoolName,
-    this.avatarUrl,
     this.starsCount = 0,
     this.friendsCount = 0,
     this.votesReceived = 0,
     this.isPremium = false,
-  });
+  }) : avatarUrl = null;
 
   final String id;
   final String firstName;
@@ -560,7 +559,7 @@ class _OtherFriendsPreview extends StatelessWidget {
                         CircleAvatar(
                           radius: 28,
                           backgroundColor:
-                              AppColors.primaryBlue.withOpacity(0.15),
+                              AppColors.primaryBlue.withValues(alpha: 0.15),
                           child: Text(
                             f.initials,
                             style: const TextStyle(

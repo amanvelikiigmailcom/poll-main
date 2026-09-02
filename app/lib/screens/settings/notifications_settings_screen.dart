@@ -131,7 +131,7 @@ class _NotificationsSettingsScreenState
                       ),
                       Switch(
                         value: item.enabled,
-                        activeColor: _primaryBlue,
+                        activeThumbColor: _primaryBlue,
                         onChanged: (value) {
                           setState(() {
                             _items[index].enabled = value;

@@ -300,7 +300,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accentRed,
                 foregroundColor: Colors.white,
-                disabledBackgroundColor: AppColors.accentRed.withOpacity(0.4),
+                disabledBackgroundColor: AppColors.accentRed.withValues(alpha: 0.4),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -430,7 +430,7 @@ class _SettingsCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -469,10 +469,9 @@ class _SwitchTile extends StatelessWidget {
     required this.icon,
     required this.iconColor,
     required this.title,
-    this.subtitle,
     required this.value,
     required this.onChanged,
-  });
+  }) : subtitle = null;
 
   @override
   Widget build(BuildContext context) {
@@ -482,7 +481,7 @@ class _SwitchTile extends StatelessWidget {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: iconColor.withOpacity(0.12),
+          color: iconColor.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, color: iconColor, size: 20),
@@ -507,7 +506,7 @@ class _SwitchTile extends StatelessWidget {
             )
           : null,
       value: value,
-      activeColor: AppColors.primaryBlue,
+      activeThumbColor: AppColors.primaryBlue,
       onChanged: onChanged,
     );
   }
@@ -528,9 +527,8 @@ class _ArrowTile extends StatelessWidget {
     required this.title,
     this.titleColor,
     this.trailing,
-    this.trailingIcon = Icons.chevron_right,
     this.onTap,
-  });
+  }) : trailingIcon = Icons.chevron_right;
 
   @override
   Widget build(BuildContext context) {
@@ -540,7 +538,7 @@ class _ArrowTile extends StatelessWidget {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: iconColor.withOpacity(0.12),
+          color: iconColor.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, color: iconColor, size: 20),
@@ -598,7 +596,7 @@ class _LanguageOption extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.primaryBlue.withOpacity(0.1)
+              ? AppColors.primaryBlue.withValues(alpha: 0.1)
               : AppColors.surface,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(

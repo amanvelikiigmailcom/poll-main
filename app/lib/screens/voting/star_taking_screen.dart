@@ -151,7 +151,7 @@ class _StarTakingScreenState extends State<StarTakingScreen>
                               decoration: BoxDecoration(
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: Colors.amber.withOpacity(0.5),
+                                  color: Colors.amber.withValues(alpha: 0.5),
                                   width: 2,
                                 ),
                               ),
@@ -169,7 +169,7 @@ class _StarTakingScreenState extends State<StarTakingScreen>
                           width: 120,
                           height: 120,
                           decoration: BoxDecoration(
-                            color: Colors.amber.withOpacity(0.15),
+                            color: Colors.amber.withValues(alpha: 0.15),
                             shape: BoxShape.circle,
                           ),
                           child: const Center(
@@ -227,10 +227,10 @@ class _StarTakingScreenState extends State<StarTakingScreen>
                         vertical: 12,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.amber.withOpacity(0.15),
+                        color: Colors.amber.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
-                          color: Colors.amber.withOpacity(0.4),
+                          color: Colors.amber.withValues(alpha: 0.4),
                         ),
                       ),
                       child: const Row(
@@ -270,7 +270,7 @@ class _StarTakingScreenState extends State<StarTakingScreen>
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
                     ),
-                    shadowColor: Colors.amber.withOpacity(0.4),
+                    shadowColor: Colors.amber.withValues(alpha: 0.4),
                   ),
                   child: const Text('View activity'),
                 ),

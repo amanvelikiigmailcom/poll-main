@@ -163,7 +163,7 @@ class _PrimaryButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primaryBlue,
           foregroundColor: Colors.white,
-          disabledBackgroundColor: AppColors.primaryBlue.withOpacity(0.45),
+          disabledBackgroundColor: AppColors.primaryBlue.withValues(alpha: 0.45),
           disabledForegroundColor: Colors.white70,
           padding: padding ??
               const EdgeInsets.symmetric(vertical: 15, horizontal: 24),
@@ -209,11 +209,11 @@ class _SecondaryButton extends StatelessWidget {
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
           foregroundColor: disabled
-              ? AppColors.primaryBlue.withOpacity(0.45)
+              ? AppColors.primaryBlue.withValues(alpha: 0.45)
               : AppColors.primaryBlue,
           side: BorderSide(
             color: disabled
-                ? AppColors.primaryBlue.withOpacity(0.35)
+                ? AppColors.primaryBlue.withValues(alpha: 0.35)
                 : AppColors.primaryBlue,
             width: 1.5,
           ),
@@ -259,7 +259,7 @@ class _DangerButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.accentRed,
           foregroundColor: Colors.white,
-          disabledBackgroundColor: AppColors.accentRed.withOpacity(0.45),
+          disabledBackgroundColor: AppColors.accentRed.withValues(alpha: 0.45),
           disabledForegroundColor: Colors.white70,
           padding: padding ??
               const EdgeInsets.symmetric(vertical: 15, horizontal: 24),
@@ -301,7 +301,7 @@ class _TextButtonWidget extends StatelessWidget {
         onPressed: onPressed,
         style: TextButton.styleFrom(
           foregroundColor: onPressed == null
-              ? AppColors.primaryBlue.withOpacity(0.45)
+              ? AppColors.primaryBlue.withValues(alpha: 0.45)
               : AppColors.primaryBlue,
           padding: padding ??
               const EdgeInsets.symmetric(vertical: 15, horizontal: 24),
