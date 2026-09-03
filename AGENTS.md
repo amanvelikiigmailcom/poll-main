@@ -93,6 +93,16 @@ Working **local Gas-style loop**:
 
 ---
 
+## 🔴 Последние изменения — смотри Саморимд
+
+**2026-09-03 — Playwright-аудит кнопок/переходов** зафиксирован в [`Саморимд.md`](./Саморимд.md) — обязательно прочитай его перед правкой `app_router.dart`:
+- 15 активных маршрутов (`/`, `/names`, `/home`, `/vote`, `/star-received`, `/timer`, `/invite`, `/home/profile`, `/edit-profile`, `/settings`, `/delete-account`, `/how-to-use`, `/safety-center`, `/privacy`, `/terms`) — PASS, без `Page not found`.
+- 22 битых маршрута (`/premium`, `/collection`, `/friends`, `/friend-requests`, `/likes*`, `/room`, `/create-room`, `/activity`, `/search`, `/notifications-settings` и т.д.) — сейчас тихо редиректят на `/#/names` вместо 404. Варианты A/B/C в Саморимд — ждём решения, не править без указания.
+- BottomNav `Vote` при <3 имён уводит на `/names` — ожидаемо.
+- `CLAUDE.md` теперь всегда смотрит на этот файл (AGENTS.md — главный).
+
+---
+
 ## How to run (always Chrome — no Xcode)
 
 **Always publish / preview this app on localhost via Google Chrome.**  
