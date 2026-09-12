@@ -18,6 +18,26 @@ import '../screens/home/home_screen.dart';
 import '../services/local_game_service.dart';
 import '../widgets/common/app_shell.dart';
 
+import '../screens/info/faq_screen.dart';
+import '../screens/info/for_parents_screen.dart';
+import '../screens/social/search_screen.dart';
+import '../screens/social/activity_screen.dart';
+import '../screens/profile/collection_screen.dart';
+import '../screens/social/friends_list_screen.dart';
+import '../screens/social/friend_requests_screen.dart';
+import '../screens/premium/premium_screen.dart';
+import '../screens/settings/notifications_settings_screen.dart';
+import '../screens/settings/language_settings_screen.dart';
+import '../screens/settings/blocked_users_screen.dart';
+import '../screens/settings/hidden_users_screen.dart';
+import '../screens/settings/settings_poll_screen.dart';
+import '../screens/social/likes_filled_screen.dart';
+import '../screens/social/likes_empty_screen.dart';
+import '../screens/social/likes_result_screen.dart';
+import '../screens/social/room_screen.dart';
+import '../screens/social/create_room_screen.dart';
+
+
 abstract final class AppRoutes {
   static const splash = '/';
   static const namesEntry = '/names';
@@ -177,6 +197,26 @@ final GoRouter appRouter = GoRouter(
           path: AppRoutes.terms,
           builder: (_, __) => const TermsScreen(),
         ),
+
+        GoRoute(path: AppRoutes.faq, builder: (_, __) => const FaqScreen()),
+        GoRoute(path: AppRoutes.forParents, builder: (_, __) => const ForParentsScreen()),
+        GoRoute(path: AppRoutes.search, builder: (_, __) => const SearchScreen()),
+        GoRoute(path: AppRoutes.activity, builder: (_, __) => const ActivityScreen()),
+        GoRoute(path: AppRoutes.collection, builder: (_, __) => const CollectionScreen()),
+        GoRoute(path: AppRoutes.friends, builder: (_, __) => const FriendsListScreen()),
+        GoRoute(path: AppRoutes.friendRequests, builder: (_, __) => const FriendRequestsScreen()),
+        GoRoute(path: AppRoutes.premium, builder: (_, __) => const PremiumScreen()),
+        GoRoute(path: AppRoutes.notificationsSettings, builder: (_, __) => const NotificationsSettingsScreen()),
+        GoRoute(path: AppRoutes.languageSettings, builder: (_, __) => const LanguageSettingsScreen()),
+        GoRoute(path: AppRoutes.blockedUsers, builder: (_, __) => const BlockedUsersScreen()),
+        GoRoute(path: AppRoutes.hiddenUsers, builder: (_, __) => const HiddenUsersScreen()),
+        GoRoute(path: AppRoutes.settingsPoll, builder: (_, __) => const SettingsPollScreen()),
+        GoRoute(path: AppRoutes.likesFilled, builder: (_, __) => const LikesFilledScreen()),
+        GoRoute(path: AppRoutes.likesEmpty, builder: (_, __) => const LikesEmptyScreen()),
+        GoRoute(path: AppRoutes.likesResult, builder: (_, __) => const LikesResultScreen()),
+        GoRoute(path: AppRoutes.room, builder: (_, __) => const RoomScreen()),
+        GoRoute(path: AppRoutes.createRoom, builder: (_, __) => const CreateRoomScreen()),
+
       ],
     ),
   ],

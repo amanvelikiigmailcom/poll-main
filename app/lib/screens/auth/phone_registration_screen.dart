@@ -22,13 +22,13 @@ class _PhoneRegistrationScreenState
   static const _ctaColor = Color(0xFFFF3B5C);
 
   final _formKey = GlobalKey<FormState>();
-  PhoneNumber? _phoneNumber;
+
   bool _isPhoneValid = false;
   String _completePhone = '';
 
   void _onPhoneChanged(PhoneNumber phone) {
     setState(() {
-      _phoneNumber = phone;
+
       _completePhone = phone.completeNumber;
       // intl_phone_field considers the number valid only when it matches the
       // country pattern; we gate the button on that flag.
