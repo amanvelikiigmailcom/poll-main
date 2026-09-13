@@ -154,3 +154,21 @@ Package name for imports: `package:flyprox_app/...`
 2. Ask or infer the task; then open **only** the files above that match.
 3. Do not re-read all of `screens/` “to understand the app.”
 4. Summarize plan in 3–5 bullets before large edits.
+
+---
+
+## App Store Review & Offline Ideas (Summary)
+**Review Blockers:**
+1. **Broken Routes (Fixed):** Silent redirects fixed by adding Group A routes.
+2. **Premium Flow (9/10):** Ensure `/premium` either uses true StoreKit or is mocked safely for reviewers to avoid rejection.
+3. **Privacy/Terms (10/10):** Must be accessible.
+4. **UGC Reporting (9/10):** Handled via Safety Center.
+
+**Top Offline Ideas (No Backend):**
+- Local Achievements/Badges
+- Daily Streaks
+- Custom Poll Categories
+- Simulated "Bots" / Activity Feed
+- Unlockable Themes & Avatars
+- Export "My Top Traits" for IG Stories
+*(See APP_STORE_REVIEW_AND_IDEAS.md for full list of 30 ideas).*

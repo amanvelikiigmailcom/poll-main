@@ -28,7 +28,7 @@ class OTPVerificationScreen extends ConsumerStatefulWidget {
 class _OTPVerificationScreenState
     extends ConsumerState<OTPVerificationScreen> {
   static const _primaryColor = Color(0xFF4B6EF5);
-  static const _ctaColor = Color(0xFFFF3B5C);
+
   static const _errorColor = Color(0xFFFF3B5C);
   static const _timerDuration = 30;
 
