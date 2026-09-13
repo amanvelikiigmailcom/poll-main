@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 
 import '../../models/user.dart';
@@ -178,40 +179,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   Future<void> _pickImage() async {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        final emojis = ['😀', '😎', '🤓', '👽', '👻', '🤖', '👑', '🔥', '🌟', '🦄', '🐶', '🐱'];
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('Choose an Avatar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 16,
-                  runSpacing: 16,
-                  children: emojis.map((emoji) => GestureDetector(
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      // In a real app we'd save emoji string to a dedicated avatar string.
-                      // For now, since localAvatarPath exists, we prefix it so the UI knows it's an emoji
-                      ref.read(_editFormProvider.notifier).setLocalAvatar('EMOJI:$emoji');
-                    },
-                    child: Text(emoji, style: const TextStyle(fontSize: 40)),
-                  )).toList(),
-                )
-              ],
-            ),
-          ),
-        );
-      },
-    );
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
+    if (picked != null) {
+      ref.read(_editFormProvider.notifier).setLocalAvatar(picked.path);
+    }
   }
 
   Future<void> _save() async {
