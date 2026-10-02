@@ -1,174 +1,56 @@
-# Hidavo (poll-main) — agent instructions
+# Правила работы с проектом Hidavo
 
-**Product name:** Hidavo (was OISTER / flyprox_app package name — keep `flyprox_app` in pubspec/imports).  
-**Repo:** `https://github.com/amanvelikiigmailcom/poll-main`  
-**Goal:** Gas-like anonymous school polls. Local prototype first; full backend later.
+## Назначение и структура
 
----
+Hidavo — локальный прототип приложения с анонимными опросами. Основное приложение Flutter находится в `app/`. Серверной части в репозитории нет: игровое состояние хранится локально через `SharedPreferences` и `LocalGameService`.
 
-## Token-saving rules (read this first)
+- Точка входа: `app/lib/main.dart`, `app/lib/app.dart`.
+- Маршруты: `app/lib/router/app_router.dart`.
+- Логика локальной игры: `app/lib/services/local_game_service.dart`.
+- Приглашения и отправка ссылок: `app/lib/services/invite_share_service.dart`.
+- Основные экраны: `app/lib/screens/`.
+- Flutter-пакет: `app/`. Имя пакета `flyprox_app` сохранять в `pubspec.yaml` и импортах.
 
-1. **Do NOT** dump the whole repo, PDFs, or all of `lib/screens/**` on session start.
-2. **Do NOT** read by default:
-   - `Technical_Specification.pdf`, `design.pdf`, `api.pdf` (only if user asks design/API)
-   - `screenshots/` (local QA dumps)
-   - `app/build/`, `.dart_tool/`, generated l10n dumps unless debugging gen
-   - All 500+ poll seeds in full — open `app/lib/data/poll_questions.dart` only when changing questions
-3. **Do** start from this file + the 3–6 paths under “Open first”.
-4. Prefer `grep` / targeted `read` over recursive list of every screen.
-5. After code changes: **commit and push** (see Rules). No secrets in git.
+Сначала открывай только файлы, относящиеся к задаче. Не сканируй весь проект для общего знакомства.
 
----
+## Ограничения при изучении проекта
 
-## Open first (minimal map)
+- Не открывай PDF, снимки экрана, `app/build/`, `.dart_tool/` и сгенерированные файлы локализации, если задача прямо этого не требует.
+- Файл `app/lib/data/poll_questions.dart` читай только при работе с вопросами.
+- Не читай все экраны подряд; используй поиск и точечное чтение.
+- Не просматривай файлы секретов и не копируй секреты в исходники или документы.
 
-| What | Path |
-|------|------|
-| **App entry** | `app/lib/main.dart` → `app/lib/app.dart` (`HidavoApp`) |
-| **Routes** | `app/lib/router/app_router.dart` |
-| **Local game brain** | `app/lib/services/local_game_service.dart` |
-| **Invite / share** | `app/lib/services/invite_share_service.dart` |
-| **Onboarding (login → name → friends)** | `app/lib/screens/onboarding/names_entry_screen.dart` |
-| **Vote UI** | `app/lib/screens/voting/vote_screen.dart` |
-| **Home / start poll** | `app/lib/screens/home/main_tab.dart` |
-| **Bottom nav (only menu)** | `app/lib/widgets/common/bottom_nav_bar.dart` — Polls / Activity / Likes / Profile |
-| **Question seeds** | `app/lib/data/poll_questions.dart` |
-| **Constants / brand URLs** | `app/lib/utils/constants.dart` |
-| **Flutter package root** | `app/` (`pubspec.yaml`) |
+## Подтверждённое поведение локального прототипа
 
-There is **no separate backend package in this repo**. Network stubs live under:
+- Для начала игры нужны логин, отображаемое имя и не менее трёх введённых имён (`LocalGameService.minFriends`).
+- Имена используются как подписи карточек викторины. Это не аккаунты пользователей; уведомления им не отправляются.
+- Игровой раунд состоит из 12 вопросов, после него начисляются звёзды и запускается таймер.
+- Профиль берёт данные из `LocalGameService`; университет и курс хранятся локально.
+- Основная локальная навигация: главная, голосование и профиль.
+- Политика конфиденциальности и условия доступны в приложении и в `app/web/privacy.html`, `app/web/terms.html`.
 
-- `app/lib/services/api_service.dart`, `auth_service.dart`, `poll_service.dart`, `user_service.dart`
+Эти сведения описывают локальный прототип и могут устареть. Перед изменением поведения сверяй их с кодом; при обнаружении расхождения сначала исправь документацию.
 
-“Backend” today = **local** `SharedPreferences` via `LocalGameService`, not a server in-tree.
+## Запуск и проверка интерфейса
 
----
-
-## Project layout (high level)
-
-```
-poll-main/                 # git root
-  AGENTS.md                # YOU ARE HERE — agent map
-  CLAUDE.md                # short repo rules (also loaded)
-  app/                     # Flutter app (frontend + local logic)
-    lib/
-      main.dart, app.dart
-      data/                # poll question seeds
-      services/            # local game, invite share, API stubs
-      screens/             # UI (many screens are shell/mock)
-      router/
-      providers/, models/, theme/, widgets/
-    android|ios|web|macos/ # platform shells (label: Hidavo)
-  screenshots/             # ignore unless user asks
-  *.pdf                    # specs/design — ignore unless asked
-```
-
-**Frontend:** entire Flutter UI under `app/lib/screens/`, `widgets/`, `theme/`.  
-**“Backend” (real API):** not implemented in-repo; only stubs + local storage.
-
----
-
-## What we already built (session history)
-
-Working **local Gas-style loop**:
-
-1. Onboarding: **username (login)** → **display name** → **≥3 friends**
-2. After 3 friends: banner **“Three is enough”** — continue or add more + invite-by-login
-3. Round: **12 questions** (4 sympathy + 4 normal + 4 humor)
-4. Each question: **4 cards = player + 3 friends** (shuffled)
-5. No “school wait / 3 of 5 participants” gate — min **3 friends** is enough
-6. After round: stars (+1000), timer 40 min, **invite** (WhatsApp / Telegram / Instagram + system share)
-7. Brand rename **OISTER → Hidavo** (UI, l10n, domains `hidavo.app`; package name still `flyprox_app`)
-8. Profile / Edit profile read **LocalGameService** (login + name + university + year). Avatar = first letter of name.
-9. University + 1st–4th year (user types university). No school/class, surname, or phone on profile.
-10. New-user likes are empty. Activity campus tab uses years 1–4.
-11. UI default **English** (device `ru` still allowed). No “timer expired” notification toggle.
-
-**Review-ready local product:**
-
-- Personal quiz: login + name + ≥3 people you know → 12 questions → stars
-- Named people are **vote-card labels only**. They are not users and are not notified.
-- Hidden from nav: friends list, likes, activity, premium, rooms, contacts
-- Privacy Policy + Terms: in-app routes `/privacy` `/terms` and `app/web/privacy.html` `app/web/terms.html`
-
----
-
-## 🔴 Последние изменения — смотри Саморимд
-
-**2026-09-03 — Playwright-аудит кнопок/переходов** зафиксирован в [`Саморимд.md`](./Саморимд.md) — обязательно прочитай его перед правкой `app_router.dart`:
-- 15 активных маршрутов (`/`, `/names`, `/home`, `/vote`, `/star-received`, `/timer`, `/invite`, `/home/profile`, `/edit-profile`, `/settings`, `/delete-account`, `/how-to-use`, `/safety-center`, `/privacy`, `/terms`) — PASS, без `Page not found`.
-- 22 битых маршрута (`/premium`, `/collection`, `/friends`, `/friend-requests`, `/likes*`, `/room`, `/create-room`, `/activity`, `/search`, `/notifications-settings` и т.д.) — сейчас тихо редиректят на `/#/names` вместо 404. Варианты A/B/C в Саморимд — ждём решения, не править без указания.
-- BottomNav `Vote` при <3 имён уводит на `/names` — ожидаемо.
-- `CLAUDE.md` теперь всегда смотрит на этот файл (AGENTS.md — главный).
-
----
-
-## How to run (always Chrome — no Xcode)
-
-**Always publish / preview this app on localhost via Google Chrome.**  
-Do **not** use Xcode, iOS Simulator, `flutter run -d macos`, or any Apple device unless the user explicitly asks.
+Для локального запуска используй Google Chrome:
 
 ```bash
 cd app
 flutter pub get
-flutter run -d chrome    # localhost in Google Chrome — this is the default
+flutter run -d chrome
 ```
 
-Typical URL: `http://localhost:xxxxx` (Flutter prints the port). Chrome device id: `chrome`.
+Не используй Xcode, iOS Simulator или `flutter run -d macos`, если пользователь прямо этого не попросил. Запускай проверки только когда это нужно для задачи или пользователь попросил проверить изменения.
 
-Package name for imports: `package:flyprox_app/...`
+## Правила изменений и Git
 
----
+- Перед правками проверь `git status` и не перезаписывай чужие изменения.
+- Делай узкие, связанные с задачей изменения. Не добавляй зависимости и документацию «на всякий случай».
+- Не добавляй токены, `.env`, PAT, учётные данные или секреты MCP в Git.
+- Значимые изменения по правилам репозитория нужно фиксировать отдельным коммитом и отправлять в `main` репозитория `amanvelikiigmailcom/poll-main`.
+- Не делай force-push. Перед отправкой изменений во внешний репозиторий получи явное подтверждение пользователя.
 
-## Product rules (local mode)
+## Документация
 
-- `LocalGameService.minFriends = 3`
-- Ready to play: username + playerName + ≥3 friends (`hasEnoughNames`)
-- Start poll: `MainTab` → `/vote` (not school-wait screen)
-- **Tab bar (review build):** 3 working tabs — Home, Vote, Profile. No Activity / Likes / Friends / Premium. Names you type are quiz cards, not in-app users.
-- Invite copy + deep links: `InviteShareService` (IG = copy + open app)
-- Profile identity: `localProfileProvider` / `LocalGameService` (not demo `User`)
-- University + year 1–4 live in prefs (`local_university`, `local_university_year`)
-
----
-
-## Secrets
-
-- Never commit tokens, PAT, `.env`, or `mcp.json` with secrets
-- GitHub PAT if needed: `~/.config/github.env` (outside repo) or env — not in chat
-- Project MCP secrets may live in `../mcp.json` (parent `NEW/`) — do not commit
-
----
-
-## Git rules
-
-- After meaningful changes: **commit + push** to `main` on `amanvelikiigmailcom/poll-main`
-- No force-push unless user asks
-- Keep commits focused; no secrets
-
----
-
-## When user opens a new chat
-
-1. Read **this file only** for orientation.
-2. Ask or infer the task; then open **only** the files above that match.
-3. Do not re-read all of `screens/` “to understand the app.”
-4. Summarize plan in 3–5 bullets before large edits.
-
----
-
-## App Store Review & Offline Ideas (Summary)
-**Review Blockers:**
-1. **Broken Routes (Fixed):** Silent redirects fixed by adding Group A routes.
-2. **Premium Flow (9/10):** Ensure `/premium` either uses true StoreKit or is mocked safely for reviewers to avoid rejection.
-3. **Privacy/Terms (10/10):** Must be accessible.
-4. **UGC Reporting (9/10):** Handled via Safety Center.
-
-**Top Offline Ideas (No Backend):**
-- Local Achievements/Badges
-- Daily Streaks
-- Custom Poll Categories
-- Simulated "Bots" / Activity Feed
-- Unlockable Themes & Avatars
-- Export "My Top Traits" for IG Stories
-*(See APP_STORE_REVIEW_AND_IDEAS.md for full list of 30 ideas).*
+`AGENTS.md` — единственный источник актуальных инструкций проекта. `CLAUDE.md` содержит только ссылку на него. Исторические аудиты с датой не считать описанием текущего состояния; подтверждай актуальность по коду.
