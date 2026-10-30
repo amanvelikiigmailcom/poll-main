@@ -1,11 +1,11 @@
 {
-    "name": "Hidavo",
-    "short_name": "Hidavo",
+    "name": "Flyprox",
+    "short_name": "Flyprox",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#4B6EF5",
     "theme_color": "#4B6EF5",
-    "description": "Hidavo — anonymous school polls",
+    "description": "Flyprox — anonymous school polls",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

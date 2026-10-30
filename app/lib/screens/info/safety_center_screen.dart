@@ -12,7 +12,7 @@ class SafetyCenterScreen extends StatelessWidget {
     final uri = Uri(
       scheme: 'mailto',
       path: AppConstants.supportEmail,
-      query: 'subject=Hidavo safety',
+      query: 'subject=Flyprox safety',
     );
     await launchUrl(uri);
   }
@@ -35,7 +35,7 @@ class SafetyCenterScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Text(
-              'Hidavo is a private quiz on your device. '
+              'Flyprox is a private quiz on your device. '
               'People you name are not contacted.',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
@@ -53,7 +53,7 @@ class SafetyCenterScreen extends StatelessWidget {
           const _Rule(
             title: 'Your answers stay here',
             body:
-                'This version does not send votes to other people or to a Hidavo server.',
+                'This version does not send votes to other people or to a Flyprox server.',
           ),
           const _Rule(
             title: 'Be kind',
@@ -61,8 +61,9 @@ class SafetyCenterScreen extends StatelessWidget {
                 'Use the quiz for fun. Do not use it to harass or shame anyone.',
           ),
           const _Rule(
-            title: 'Age 18+',
-            body: 'Hidavo is for adults 18+ only. Not for children.',
+            title: 'Age 14+',
+            body:
+                'Flyprox is for people 14 and older. Do not use the app if you are under 14.',
           ),
           const SizedBox(height: 8),
           TextButton(

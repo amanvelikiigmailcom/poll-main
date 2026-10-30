@@ -69,7 +69,7 @@ const List<_OnboardingSlide> _slides = [
     emojiSize: 100,
     title: 'Invite your friends',
     description:
-        'More friends — more fun! Invite classmates and unlock full Hidavo experience.',
+        'More friends — more fun! Invite classmates and unlock full Flyprox experience.',
     gradientColors: [Color(0xFFFF3B5C), Color(0xFFFF8A80)],
     accentColor: Color(0xFFFF3B5C),
   ),
@@ -252,7 +252,7 @@ class _OnboardingPage extends StatelessWidget {
                 top: topPadding + 16,
                 left: 24,
                 child: const Text(
-                  'Hidavo',
+                  'Flyprox',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 18,

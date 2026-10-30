@@ -108,7 +108,7 @@ class _BeforeVote2ScreenState extends State<BeforeVote2Screen>
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'Hidavo',
+                            'Flyprox',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 22,

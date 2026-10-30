@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+
+import '../../router/app_router.dart';
 
 const String _kProWeeklyId = 'premium_pro_weekly';
 const String _kMaxMonthlyId = 'premium_max_monthly';
@@ -282,7 +285,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () {},
+                  onPressed:
+                      _purchasePending ? null : () => _buyProduct(_kProWeeklyId),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: primaryBlue),
                     shape: RoundedRectangleBorder(
@@ -395,7 +399,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () {},
+                  onPressed: _purchasePending
+                      ? null
+                      : () => _buyProduct(_kMaxMonthlyId),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: primaryBlue),
                     shape: RoundedRectangleBorder(
@@ -505,7 +511,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             TextButton(
-              onPressed: () {},
+              onPressed: () => context.push(AppRoutes.terms),
               child: const Text(
                 'Условия использования',
                 style: TextStyle(color: Colors.white38, fontSize: 11),
@@ -516,7 +522,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
               style: TextStyle(color: Colors.white24, fontSize: 11),
             ),
             TextButton(
-              onPressed: () {},
+              onPressed: () => context.push(AppRoutes.privacy),
               child: const Text(
                 'Политика конфиденциальности',
                 style: TextStyle(color: Colors.white38, fontSize: 11),

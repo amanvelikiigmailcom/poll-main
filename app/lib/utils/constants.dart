@@ -1,6 +1,6 @@
 class AppConstants {
   static const String apiBaseUrl = 'https://api.hidavo.app';
-  static const String appName = 'Hidavo';
+  static const String appName = 'Flyprox';
 
   // Timer
   static const int timerDurationSeconds = 40 * 60; // 40 minutes

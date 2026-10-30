@@ -33,7 +33,7 @@ class TermsScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
         children: const [
           Text(
-            'Hidavo Terms of Use',
+            'Flyprox Terms of Use',
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w800,
@@ -47,7 +47,7 @@ class TermsScreen extends StatelessWidget {
           ),
           SizedBox(height: 20),
           _P(
-            'Hidavo is a personal quiz. You name people you know and answer '
+            'Flyprox is a personal quiz. You name people you know and answer '
             '“who among these” questions. It is not a live social network '
             'and does not require those people to join.',
           ),
@@ -64,7 +64,7 @@ class TermsScreen extends StatelessWidget {
           ),
           _H('No account on our servers'),
           _P(
-            'This version does not create a Hidavo server account. '
+            'This version does not create a Flyprox server account. '
             'Deleting the app data or using Delete account removes the '
             'local quiz from this device.',
           ),

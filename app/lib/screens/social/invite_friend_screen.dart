@@ -88,7 +88,7 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
         elevation: 0,
         centerTitle: true,
         title: const Text(
-          'Share Hidavo',
+          'Share Flyprox',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,

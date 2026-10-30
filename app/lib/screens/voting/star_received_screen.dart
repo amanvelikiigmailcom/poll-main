@@ -291,7 +291,7 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                   child: OutlinedButton.icon(
                     onPressed: () => context.push(AppRoutes.invite),
                     icon: const Icon(Icons.person_add_alt_1_rounded),
-                    label: const Text('Share Hidavo'),
+                    label: const Text('Share Flyprox'),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white,
                       side: const BorderSide(color: Colors.white70, width: 1.5),

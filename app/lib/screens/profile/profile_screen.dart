@@ -390,7 +390,7 @@ class _ProfileActions extends StatelessWidget {
           const Divider(height: 1),
           ListTile(
             leading: const Icon(Icons.ios_share_outlined),
-            title: const Text('Share Hidavo'),
+            title: const Text('Share Flyprox'),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => context.push(AppRoutes.invite),
           ),

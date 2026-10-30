@@ -34,7 +34,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
         children: const [
           Text(
-            'Hidavo Privacy Policy',
+            'Flyprox Privacy Policy',
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.w800,
@@ -48,7 +48,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
           ),
           SizedBox(height: 20),
           _P(
-            'Hidavo is a personal “who among these people” quiz. '
+            'Flyprox is a personal “who among these people” quiz. '
             'You type a login, your display name, and first names of people '
             'you know. You then answer questions about that group. '
             'Those people do not need an account, and the app does not '
@@ -59,7 +59,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             'This version keeps data only on your device: your login, '
             'display name, optional university and year, the first names '
             'you typed, your star balance, and quiz progress. '
-            'There is no Hidavo server account in this build.',
+            'There is no Flyprox server account in this build.',
           ),
           _H('What we do not collect'),
           _P(
@@ -75,7 +75,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
           _H('Sharing'),
           _P(
             'If you tap Share, the system share sheet can send a link to '
-            'Hidavo. We do not upload your quiz answers when you share.',
+            'Flyprox. We do not upload your quiz answers when you share.',
           ),
           _H('Delete your data'),
           _P(
@@ -84,7 +84,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
           ),
           _H('Age'),
           _P(
-            'Hidavo is for people 14 and older. Do not use the app if you '
+            'Flyprox is for people 14 and older. Do not use the app if you '
             'are under 14.',
           ),
           _H('Contact'),
@@ -136,7 +136,7 @@ Future<void> openSupportEmail() async {
   final uri = Uri(
     scheme: 'mailto',
     path: AppConstants.supportEmail,
-    query: 'subject=Hidavo privacy',
+    query: 'subject=Flyprox privacy',
   );
   await launchUrl(uri);
 }

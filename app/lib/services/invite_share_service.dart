@@ -27,7 +27,7 @@ class InviteShareService {
     final who = (name != null && name.isNotEmpty) ? name : handle;
     final message = '''Hey — it's $who.
 
-I play Hidavo, a short quiz: name people you know and answer “who among these?”.
+I play Flyprox, a short quiz: name people you know and answer “who among these?”.
 Your answers stay on your phone. Nobody sees who you picked.
 
 Try it: $link''';
@@ -82,7 +82,7 @@ Try it: $link''';
     await SharePlus.instance.share(
       ShareParams(
         text: p.message,
-        subject: 'Invite to Hidavo',
+        subject: 'Invite to Flyprox',
       ),
     );
   }

@@ -11,7 +11,7 @@ class ForParentsScreen extends ConsumerWidget {
     final uri = Uri(
       scheme: 'mailto',
       path: 'parents@hidavo.app',
-      query: 'subject=Вопрос от родителя&body=Здравствуйте,\n\nУ меня есть вопрос об использовании Hidavo моим ребёнком:\n\n',
+      query: 'subject=Вопрос от родителя&body=Здравствуйте,\n\nУ меня есть вопрос об использовании Flyprox моим ребёнком:\n\n',
     );
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
@@ -32,7 +32,7 @@ class ForParentsScreen extends ConsumerWidget {
             _section(
               Icons.info_rounded,
               'Как работает приложение',
-              'Hidavo — это анонимное приложение для школьников, где ученики голосуют друг за друга в шуточных опросах. Голосование полностью анонимно — невозможно узнать кто за кого голосовал.',
+              'Flyprox — это анонимное приложение для школьников, где ученики голосуют друг за друга в шуточных опросах. Голосование полностью анонимно — невозможно узнать кто за кого голосовал.',
             ),
             _section(
               Icons.lock_rounded,

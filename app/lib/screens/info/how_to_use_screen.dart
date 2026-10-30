@@ -14,7 +14,7 @@ class HowToUseScreen extends StatelessWidget {
     (
       Icons.groups_rounded,
       'Name 3 people you know',
-      'First names only. They do not need Hidavo. These names are answer cards for your quiz.',
+      'First names only. They do not need Flyprox. These names are answer cards for your quiz.',
     ),
     (
       Icons.how_to_vote_rounded,
