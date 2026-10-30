@@ -61,7 +61,7 @@ Future<void> main() async {
       overrides: [
         storageServiceProvider.overrideWithValue(storageService),
       ],
-      child: const HidavoApp(),
+      child: const FlyproxApp(),
     ),
   );
 }

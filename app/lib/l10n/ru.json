@@ -1,5 +1,5 @@
 {
-  "appName": "Hidavo",
+  "appName": "Flyprox",
   "onboarding": {
     "screen1": {
       "title": "Голосуй анонимно",
@@ -24,7 +24,7 @@
     }
   },
   "auth": {
-    "phoneTitle": "Вход в Hidavo",
+    "phoneTitle": "Вход в Flyprox",
     "phoneSubtitle": "Введите номер телефона",
     "phonePlaceholder": "+7 (___) ___-__-__",
     "phoneContinue": "Продолжить",
@@ -161,7 +161,7 @@
       "continueWithout": "Продолжить без друзей"
     },
     "beforeVote2": {
-      "title": "Как работает Hidavo",
+      "title": "Как работает Flyprox",
       "howItWorks": "Как это работает?",
       "starsTitle": "Собирай звёздочки",
       "starsDesc": "За каждый голос в твою пользу ты получаешь звёздочку",
@@ -212,7 +212,7 @@
     "moreParticipants": "Возможные знакомства"
   },
   "home": {
-    "title": "Hidavo",
+    "title": "Flyprox",
     "feed": "Лента",
     "vote": "Голосовать",
     "profile": "Профиль",
