@@ -3,40 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'local_game_service.dart';
-
-/// Builds a ready invite text + opens WhatsApp / Telegram / Instagram / system share.
-///
-/// Deep-link patterns (community + official docs):
-/// - WhatsApp: https://wa.me/?text=ENCODED  (also whatsapp://send?text=)
-/// - Telegram: https://t.me/share/url?url=…&text=…
-/// - Instagram: no reliable prefill for DMs → copy text + open app
-/// - System: share_plus (native sheet / Web Share API on web)
+/// Shares a short, text-only invite. No website or referral link is required.
+/// Instagram and Telegram use copy-and-open so no URL is added to the message.
 class InviteShareService {
   InviteShareService._();
   static final InviteShareService instance = InviteShareService._();
 
-  static const String appStoreFallback = 'https://hidavo.app';
-
   Future<InvitePayload> buildPayload() async {
-    final username = await LocalGameService.instance.getUsername();
-    final name = await LocalGameService.instance.getPlayerName();
-    final handle = (username != null && username.isNotEmpty) ? username : 'friend';
-    final link = '$appStoreFallback/invite/$handle';
-
-    final who = (name != null && name.isNotEmpty) ? name : handle;
-    final message = '''Hey — it's $who.
-
-I play Flyprox, a short quiz: name people you know and answer “who among these?”.
-Your answers stay on your phone. Nobody sees who you picked.
-
-Try it: $link''';
-
-    return InvitePayload(
-      username: handle,
-      displayName: who,
-      link: link,
-      message: message,
+    return const InvitePayload(
+      message: 'Try Flyprox — fun quizzes about people you know!',
     );
   }
 
@@ -52,20 +27,16 @@ Try it: $link''';
     }
   }
 
-  Future<void> shareTelegram() async {
-    final p = await buildPayload();
-    // Official share endpoint: prefilled text + url
-    final uri = Uri.parse(
-      'https://t.me/share/url'
-      '?url=${Uri.encodeComponent(p.link)}'
-      '&text=${Uri.encodeComponent(p.message)}',
-    );
-    await _launch(uri);
+  Future<ClipboardShareResult> shareTelegram() async {
+    await copyMessage();
+    final opened = await _launch(Uri.parse('tg://')) ||
+        await _launch(Uri.parse('https://web.telegram.org/'));
+    return ClipboardShareResult(copied: true, openedApp: opened);
   }
 
   /// Instagram has no public API to prefill a DM. Standard approach used by
   /// apps: copy ready message → open Instagram so user pastes into Direct/Story.
-  Future<InstagramShareResult> shareInstagram() async {
+  Future<ClipboardShareResult> shareInstagram() async {
     final p = await buildPayload();
     await Clipboard.setData(ClipboardData(text: p.message));
 
@@ -73,7 +44,7 @@ Try it: $link''';
     final appUri = Uri.parse('instagram://app');
     final webUri = Uri.parse('https://www.instagram.com/');
     final opened = await _launch(appUri) || await _launch(webUri);
-    return InstagramShareResult(copied: true, openedApp: opened);
+    return ClipboardShareResult(copied: true, openedApp: opened);
   }
 
   /// System share sheet — picks any app (WA, TG, Messages, Mail, …).
@@ -90,11 +61,6 @@ Try it: $link''';
   Future<void> copyMessage() async {
     final p = await buildPayload();
     await Clipboard.setData(ClipboardData(text: p.message));
-  }
-
-  Future<void> copyLink() async {
-    final p = await buildPayload();
-    await Clipboard.setData(ClipboardData(text: p.link));
   }
 
   Future<bool> _launch(Uri uri) async {
@@ -121,24 +87,16 @@ Try it: $link''';
 }
 
 class InvitePayload {
-  final String username;
-  final String displayName;
-  final String link;
   final String message;
 
-  const InvitePayload({
-    required this.username,
-    required this.displayName,
-    required this.link,
-    required this.message,
-  });
+  const InvitePayload({required this.message});
 }
 
-class InstagramShareResult {
+class ClipboardShareResult {
   final bool copied;
   final bool openedApp;
 
-  const InstagramShareResult({
+  const ClipboardShareResult({
     required this.copied,
     required this.openedApp,
   });

@@ -29,7 +29,7 @@ class HowToUseScreen extends StatelessWidget {
     (
       Icons.ios_share_rounded,
       'Share if you want',
-      'Optional. Send a link so someone else can play their own quiz. They will not see your answers.',
+      'Optional. Tell a friend about Flyprox. They will not see your answers.',
     ),
   ];
 

@@ -4,7 +4,7 @@ import '../../services/invite_share_service.dart';
 import '../../theme/app_colors.dart';
 
 /// After voting / timer: invite friends via WhatsApp, Telegram, Instagram
-/// with a ready-made message (deep links where supported).
+/// with a short, text-only message.
 class InviteFriendScreen extends StatefulWidget {
   const InviteFriendScreen({super.key});
 
@@ -49,8 +49,12 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
   }
 
   Future<void> _telegram() async {
-    await InviteShareService.instance.shareTelegram();
-    _toast('Opening Telegram…');
+    final result = await InviteShareService.instance.shareTelegram();
+    if (result.copied) {
+      _toast(result.openedApp
+          ? 'Copied — paste it in Telegram'
+          : 'Copied. Open Telegram and paste the invite');
+    }
   }
 
   Future<void> _instagram() async {
@@ -71,11 +75,6 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
   Future<void> _copyMessage() async {
     await InviteShareService.instance.copyMessage();
     _toast('Message copied');
-  }
-
-  Future<void> _copyLink() async {
-    await InviteShareService.instance.copyLink();
-    _toast('Link copied');
   }
 
   @override
@@ -113,8 +112,6 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
               children: [
                 _BenefitBanner(),
                 const SizedBox(height: 16),
-                if (p != null) _PromoCodeCard(code: p.username, onCopy: _copyLink),
-                const SizedBox(height: 20),
                 const Text(
                   'Send a ready-made invite',
                   style: TextStyle(
@@ -125,7 +122,7 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Optional. Send a link so someone can play their own quiz. They will not see your answers.',
+                  'Send a short message to a friend. Your quiz answers stay private.',
                   style: TextStyle(
                     fontSize: 13,
                     color: AppColors.textSecondary,
@@ -143,7 +140,7 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
                 const SizedBox(height: 10),
                 _SocialButton(
                   label: 'Telegram',
-                  subtitle: 'Share the link + message',
+                  subtitle: 'Message copied → paste in Telegram',
                   color: const Color(0xFF2AABEE),
                   icon: Icons.send_rounded,
                   onTap: _telegram,
@@ -173,21 +170,8 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
                   label: const Text('Copy message'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.primaryBlue,
-                    side: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: _copyLink,
-                  icon: const Icon(Icons.link_rounded),
-                  label: const Text('Copy link only'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.textSecondary,
-                    side: const BorderSide(color: AppColors.border, width: 1.5),
+                    side: const BorderSide(
+                        color: AppColors.primaryBlue, width: 1.5),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -226,75 +210,6 @@ class _BenefitBanner extends StatelessWidget {
                 fontWeight: FontWeight.w500,
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PromoCodeCard extends StatelessWidget {
-  final String code;
-  final VoidCallback onCopy;
-
-  const _PromoCodeCard({required this.code, required this.onCopy});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-      decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primaryBlue.withValues(alpha: 0.3),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          const Text(
-            'YOUR LOGIN',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 11,
-              letterSpacing: 2.5,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                '@$code',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1,
-                ),
-              ),
-              const SizedBox(width: 10),
-              GestureDetector(
-                onTap: onCopy,
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.copy_rounded,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                ),
-              ),
-            ],
           ),
         ],
       ),
