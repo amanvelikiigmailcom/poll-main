@@ -99,6 +99,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           _SectionHeader(title: 'APP'),
           _SettingsCard(
             children: [
+              _ArrowTile(
+                icon: Icons.auto_awesome_outlined,
+                iconColor: AppColors.primaryBlue,
+                title: 'Replay intro',
+                onTap: () => context.push(AppRoutes.onboarding),
+              ),
+              _Divider(),
               ListTile(
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 16,

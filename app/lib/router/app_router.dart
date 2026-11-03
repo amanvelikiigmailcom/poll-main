@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../screens/onboarding/names_entry_screen.dart';
+import '../screens/onboarding/onboarding_screen.dart';
+import '../providers/service_providers.dart';
 import '../screens/voting/vote_screen.dart';
 import '../screens/voting/star_received_screen.dart';
 import '../screens/voting/timer_screen.dart';
@@ -40,6 +43,7 @@ import '../screens/social/create_room_screen.dart';
 
 abstract final class AppRoutes {
   static const splash = '/';
+  static const onboarding = '/onboarding';
   static const namesEntry = '/names';
   static const vote = '/vote';
   static const starReceived = '/star-received';
@@ -56,7 +60,6 @@ abstract final class AppRoutes {
   static const terms = '/terms';
 
   // Kept so leftover screens still compile. Not registered on the router.
-  static const onboarding = '/onboarding';
   static const phone = '/phone';
   static const otp = '/otp';
   static const register = '/register';
@@ -90,14 +93,14 @@ abstract final class AppRoutes {
   static const forParents = '/for-parents';
 }
 
-class _SplashRedirect extends StatefulWidget {
+class _SplashRedirect extends ConsumerStatefulWidget {
   const _SplashRedirect();
 
   @override
-  State<_SplashRedirect> createState() => _SplashRedirectState();
+  ConsumerState<_SplashRedirect> createState() => _SplashRedirectState();
 }
 
-class _SplashRedirectState extends State<_SplashRedirect> {
+class _SplashRedirectState extends ConsumerState<_SplashRedirect> {
   @override
   void initState() {
     super.initState();
@@ -108,7 +111,12 @@ class _SplashRedirectState extends State<_SplashRedirect> {
     await Future<void>.delayed(const Duration(milliseconds: 600));
     final hasNames = await LocalGameService.instance.hasEnoughNames();
     if (!mounted) return;
-    context.go(hasNames ? AppRoutes.home : AppRoutes.namesEntry);
+    final introDone = ref.read(storageServiceProvider).isOnboardingDone();
+    context.go(hasNames
+        ? AppRoutes.home
+        : introDone
+            ? AppRoutes.namesEntry
+            : AppRoutes.onboarding);
   }
 
   @override
@@ -137,6 +145,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.splash,
       builder: (_, __) => const _SplashRedirect(),
+    ),
+    GoRoute(
+      path: AppRoutes.onboarding,
+      builder: (_, __) => const OnboardingScreen(),
     ),
     GoRoute(
       path: AppRoutes.namesEntry,
