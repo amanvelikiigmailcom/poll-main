@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/invite_share_service.dart';
+import '../../services/local_game_service.dart';
 import '../../theme/app_colors.dart';
 
-/// After voting / timer: invite friends via WhatsApp, Telegram, Instagram
-/// with a short, text-only message.
+/// Optional text sharing. A social-button tap skips the current round timer.
 class InviteFriendScreen extends StatefulWidget {
   const InviteFriendScreen({super.key});
 
@@ -14,7 +14,9 @@ class InviteFriendScreen extends StatefulWidget {
 
 class _InviteFriendScreenState extends State<InviteFriendScreen> {
   InvitePayload? _payload;
-  bool _loading = true;
+  bool _sharing = false;
+  bool _timerSkipped = false;
+  bool _hasTimer = false;
 
   @override
   void initState() {
@@ -23,54 +25,55 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
   }
 
   Future<void> _load() async {
-    final p = await InviteShareService.instance.buildPayload();
+    final payload = await InviteShareService.instance.buildPayload();
+    final seconds = await LocalGameService.instance.secondsUntilNextRound();
     if (!mounted) return;
     setState(() {
-      _payload = p;
-      _loading = false;
+      _payload = payload;
+      _hasTimer = seconds > 0;
     });
   }
 
-  void _toast(String msg) {
+  void _toast(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-      ),
+      SnackBar(content: Text(message)),
     );
   }
 
-  Future<void> _whatsapp() async {
-    await InviteShareService.instance.shareWhatsApp();
-    _toast('Opening WhatsApp…');
-  }
-
-  Future<void> _telegram() async {
-    final result = await InviteShareService.instance.shareTelegram();
-    if (result.copied) {
-      _toast(result.openedApp
-          ? 'Copied — paste it in Telegram'
-          : 'Copied. Open Telegram and paste the invite');
+  Future<void> _share(Future<void> Function() openApp) async {
+    if (_sharing) return;
+    setState(() => _sharing = true);
+    try {
+      // Unlock on tap, even if the user cancels or the external app is absent.
+      final seconds = await LocalGameService.instance.secondsUntilNextRound();
+      await LocalGameService.instance.bypassTimer();
+      if (!mounted) return;
+      setState(() {
+        _timerSkipped = _timerSkipped || seconds > 0;
+        _hasTimer = false;
+      });
+      await openApp();
+    } catch (_) {
+      _toast('Couldn’t open the app. You can copy the message instead.');
+    } finally {
+      if (mounted) setState(() => _sharing = false);
     }
   }
 
-  Future<void> _instagram() async {
-    final r = await InviteShareService.instance.shareInstagram();
-    if (r.copied) {
-      _toast(
-        r.openedApp
-            ? 'Copied — paste it in Direct / Stories'
-            : 'Copied. Open Instagram and paste the invite',
-      );
-    }
-  }
+  Future<void> _whatsapp() => _share(() async {
+        final opened = await InviteShareService.instance.shareWhatsApp();
+        _toast(opened
+            ? 'WhatsApp opened. Choose a chat to send the message.'
+            : 'Couldn’t open WhatsApp. You can copy the message instead.');
+      });
 
-  Future<void> _everywhere() async {
-    await InviteShareService.instance.shareEverywhere();
-  }
+  Future<void> _instagram() => _share(() async {
+        final result = await InviteShareService.instance.shareInstagram();
+        _toast(result.openedApp
+            ? 'Copied. Paste it in Instagram.'
+            : 'Copied. Open Instagram and paste the message.');
+      });
 
   Future<void> _copyMessage() async {
     await InviteShareService.instance.copyMessage();
@@ -79,23 +82,14 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final p = _payload;
+    final payload = _payload;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.white,
-        elevation: 0,
+        title: const Text('Share Flyprox'),
         centerTitle: true,
-        title: const Text(
-          'Share Flyprox',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
         leading: IconButton(
-          icon: const Icon(Icons.close_rounded, color: AppColors.textPrimary),
+          icon: const Icon(Icons.close_rounded),
           onPressed: () {
             if (context.canPop()) {
               context.pop();
@@ -105,222 +99,88 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
           },
         ),
       ),
-      body: _loading
+      body: payload == null
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
               children: [
-                _BenefitBanner(),
-                const SizedBox(height: 16),
                 const Text(
                   'Send a ready-made invite',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 8),
                 const Text(
-                  'Send a short message to a friend. Your quiz answers stay private.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                    height: 1.35,
+                  'Sharing is optional. Your quiz answers stay private, and the other person plays their own quiz.',
+                  style: TextStyle(color: AppColors.textSecondary, height: 1.4),
+                ),
+                if (_hasTimer || _timerSkipped) ...[
+                  const SizedBox(height: 20),
+                  Text(
+                    _timerSkipped
+                        ? 'Timer skipped. Your next round is ready.'
+                        : 'Tap WhatsApp or Instagram to skip the timer. Sending a message is optional.',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, height: 1.4),
                   ),
-                ),
-                const SizedBox(height: 14),
-                _SocialButton(
-                  label: 'WhatsApp',
-                  subtitle: 'Chat with a ready-made message',
-                  color: const Color(0xFF25D366),
-                  icon: Icons.chat_rounded,
-                  onTap: _whatsapp,
-                ),
-                const SizedBox(height: 10),
-                _SocialButton(
-                  label: 'Telegram',
-                  subtitle: 'Message copied → paste in Telegram',
-                  color: const Color(0xFF2AABEE),
-                  icon: Icons.send_rounded,
-                  onTap: _telegram,
-                ),
-                const SizedBox(height: 10),
-                _SocialButton(
-                  label: 'Instagram',
-                  subtitle: 'Message copied → paste in Direct',
-                  color: const Color(0xFFE1306C),
-                  icon: Icons.camera_alt_rounded,
-                  onTap: _instagram,
-                ),
-                const SizedBox(height: 10),
-                _SocialButton(
-                  label: 'All apps',
-                  subtitle: 'System share menu',
-                  color: AppColors.primaryBlue,
-                  icon: Icons.ios_share_rounded,
-                  onTap: _everywhere,
-                ),
+                ],
+                if (_timerSkipped) ...[
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () => context.go('/vote'),
+                    child: const Text('Start next round'),
+                  ),
+                ],
                 const SizedBox(height: 20),
-                if (p != null) _MessagePreview(message: p.message),
+                _socialButton(
+                    'WhatsApp', 'Open a ready-made message', _whatsapp),
+                const SizedBox(height: 12),
+                _socialButton('Instagram',
+                    'Copy the message and open Instagram', _instagram),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Text(payload.message,
+                      style: const TextStyle(height: 1.5)),
+                ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
                   onPressed: _copyMessage,
                   icon: const Icon(Icons.copy_rounded),
                   label: const Text('Copy message'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primaryBlue,
-                    side: const BorderSide(
-                        color: AppColors.primaryBlue, width: 1.5),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
                 ),
               ],
             ),
     );
   }
-}
 
-// ---------------------------------------------------------------------------
-
-class _BenefitBanner extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.primaryBlue.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.2)),
+  Widget _socialButton(String name, String subtitle, VoidCallback onTap) {
+    return OutlinedButton(
+      onPressed: _sharing ? null : onTap,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.primaryBlue,
+        padding: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Text('🎉', style: TextStyle(fontSize: 32)),
-          SizedBox(width: 12),
           Expanded(
-            child: Text(
-              'Share the app if you want. The other person plays their own quiz. They do not see your answers.',
-              style: TextStyle(
-                fontSize: 13,
-                color: AppColors.primaryBlue,
-                height: 1.5,
-                fontWeight: FontWeight.w500,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text(subtitle, style: const TextStyle(fontSize: 13)),
+              ],
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SocialButton extends StatelessWidget {
-  final String label;
-  final String subtitle;
-  final Color color;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _SocialButton({
-    required this.label,
-    required this.subtitle,
-    required this.color,
-    required this.icon,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: color,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: Colors.white, size: 24),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      subtitle,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.85),
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.arrow_forward_ios_rounded,
-                  color: Colors.white.withValues(alpha: 0.9), size: 16),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MessagePreview extends StatelessWidget {
-  final String message;
-
-  const _MessagePreview({required this.message});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Invite message',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          SelectableText(
-            message,
-            style: const TextStyle(
-              fontSize: 13,
-              height: 1.45,
-              color: AppColors.textPrimary,
-            ),
-          ),
+          const SizedBox(width: 12),
+          const Icon(Icons.open_in_new_rounded, size: 20),
         ],
       ),
     );

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../services/local_game_service.dart';
 
 const Color _primaryBlue = Color(0xFF4B6EF5);
 const Color _accentRed = Color(0xFFFF3B5C);
@@ -78,10 +79,12 @@ class TimerScreen extends StatefulWidget {
 }
 
 class _TimerScreenState extends State<TimerScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   static const int _totalSeconds = 2400; // 40 minutes
   int _secondsLeft = _totalSeconds;
   Timer? _timer;
+  Timer? _quoteTimer;
+  bool _inviteOpen = false;
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
@@ -94,6 +97,7 @@ class _TimerScreenState extends State<TimerScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     // Pulse animation for the timer ring glow
     _pulseController = AnimationController(
@@ -114,7 +118,7 @@ class _TimerScreenState extends State<TimerScreen>
     _fadeAnim = CurvedAnimation(parent: _fadeController, curve: Curves.easeIn);
 
     // Rotate quotes every 8 seconds
-    Timer.periodic(const Duration(seconds: 8), (t) {
+    _quoteTimer = Timer.periodic(const Duration(seconds: 8), (t) {
       if (!mounted) {
         t.cancel();
         return;
@@ -128,22 +132,37 @@ class _TimerScreenState extends State<TimerScreen>
       });
     });
 
-    // Main countdown timer
-    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (_secondsLeft <= 1) {
-        t.cancel();
-        if (mounted) context.go('/vote');
-      } else {
-        setState(() {
-          _secondsLeft--;
-        });
-      }
-    });
+    _syncTimer();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _syncTimer());
+  }
+
+  Future<void> _syncTimer() async {
+    final remaining = await LocalGameService.instance.secondsUntilNextRound();
+    if (!mounted) return;
+    setState(() => _secondsLeft = remaining);
+    if (remaining == 0 && !_inviteOpen) context.go('/vote');
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _syncTimer();
+  }
+
+  Future<void> _openInvite() async {
+    _inviteOpen = true;
+    try {
+      await context.push('/invite');
+    } finally {
+      _inviteOpen = false;
+      if (mounted) await _syncTimer();
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
+    _quoteTimer?.cancel();
     _pulseController.dispose();
     _fadeController.dispose();
     super.dispose();
@@ -172,7 +191,7 @@ class _TimerScreenState extends State<TimerScreen>
           ),
         ),
         child: SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 28),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -252,7 +271,8 @@ class _TimerScreenState extends State<TimerScreen>
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: _primaryBlue.withValues(alpha: 0.25 * _pulseAnim.value),
+                  color:
+                      _primaryBlue.withValues(alpha: 0.25 * _pulseAnim.value),
                   blurRadius: 40,
                   spreadRadius: 8,
                 ),
@@ -366,7 +386,7 @@ class _TimerScreenState extends State<TimerScreen>
         ),
         const SizedBox(height: 6),
         const Text(
-          'Invite a friend and start next round instantly',
+          'Tap WhatsApp or Instagram on the next screen to skip the wait. Sending is optional.',
           style: TextStyle(
             fontSize: 13,
             color: Colors.grey,
@@ -375,9 +395,9 @@ class _TimerScreenState extends State<TimerScreen>
         ),
         const SizedBox(height: 16),
         ElevatedButton.icon(
-          onPressed: () => context.push('/invite'),
+          onPressed: _openInvite,
           icon: const Icon(Icons.person_add_alt_1_rounded),
-          label: const Text('Invite a friend'),
+          label: const Text('Open sharing options'),
           style: ElevatedButton.styleFrom(
             backgroundColor: _accentRed,
             foregroundColor: Colors.white,
