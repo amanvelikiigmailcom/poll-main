@@ -73,6 +73,7 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/animations/
+    - assets/data/
     - assets/l10n/
 
   generate: true

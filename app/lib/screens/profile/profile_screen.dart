@@ -376,8 +376,7 @@ class _ProfileActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
+    return Material(
       color: AppColors.white,
       child: Column(
         children: [

@@ -10,6 +10,7 @@ import '../../providers/user_provider.dart';
 import '../../router/app_router.dart';
 import '../../services/local_game_service.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/common/university_picker_field.dart';
 
 // ---------------------------------------------------------------------------
 // Local form state
@@ -525,7 +526,6 @@ class _InputField extends StatelessWidget {
     required this.controller,
     required this.onChanged,
     this.prefixText,
-    this.hintText,
     this.validator,
   });
 
@@ -533,7 +533,6 @@ class _InputField extends StatelessWidget {
   final TextEditingController controller;
   final ValueChanged<String> onChanged;
   final String? prefixText;
-  final String? hintText;
   final FormFieldValidator<String>? validator;
 
   @override
@@ -544,7 +543,6 @@ class _InputField extends StatelessWidget {
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
-        hintText: hintText,
         prefixText: prefixText,
         filled: true,
         fillColor: AppColors.background,
@@ -604,11 +602,9 @@ class _UniversitySection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _InputField(
-            label: 'University',
+          UniversityPickerField(
             controller: universityCtrl,
             onChanged: onUniversityChanged,
-            hintText: 'Your university',
           ),
           const SizedBox(height: 14),
           DropdownButtonFormField<int>(
