@@ -47,7 +47,7 @@ class TermsScreen extends StatelessWidget {
           ),
           SizedBox(height: 20),
           _P(
-            'Flyprox is a personal quiz. You name people you know and answer '
+            'Flyprox is a personal quiz. You choose participant names and answer '
             '“who among these” questions. It is not a live social network '
             'and does not require those people to join.',
           ),
@@ -60,7 +60,7 @@ class TermsScreen extends StatelessWidget {
           _H('Content'),
           _P(
             'Answers stay on your device in this version. You are '
-            'responsible for the names you type.',
+            'responsible for the names you type. Nicknames and fictional names are welcome.',
           ),
           _H('No account on our servers'),
           _P(

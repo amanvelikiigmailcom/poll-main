@@ -49,16 +49,16 @@ class PrivacyPolicyScreen extends StatelessWidget {
           SizedBox(height: 20),
           _P(
             'Flyprox is a personal “who among these people” quiz. '
-            'You type a login, your display name, and first names of people '
-            'you know. You then answer questions about that group. '
+            'You choose a nickname and participant names, or use example names. '
+            'You then answer questions about that group. '
             'Those people do not need an account, and the app does not '
             'message them.',
           ),
           _H('What we store on your device'),
           _P(
-            'This version keeps data only on your device: your login, '
-            'display name, optional university and year, the first names '
-            'you typed, your star balance, and quiz progress. '
+            'This version keeps data only on your device: your display name, '
+            'optional profile handle, university and year, participant names, '
+            'your star balance, and quiz progress. '
             'There is no Flyprox server account in this build.',
           ),
           _H('What we do not collect'),
@@ -68,14 +68,14 @@ class PrivacyPolicyScreen extends StatelessWidget {
           ),
           _H('Names you type'),
           _P(
-            'First names you enter are answer labels for your quiz. '
-            'Enter only names of people you know. Do not enter phone numbers, '
+            'Participant names are answer labels for your quiz. '
+            'Nicknames and fictional names are welcome. Do not enter phone numbers, '
             'full legal names, or other private data.',
           ),
           _H('Sharing'),
           _P(
-            'If you tap Share, the system share sheet can send a link to '
-            'Flyprox. We do not upload your quiz answers when you share.',
+            'If you tap Share, you can send a short text invitation to Flyprox. '
+            'We do not upload your quiz answers when you share.',
           ),
           _H('Delete your data'),
           _P(

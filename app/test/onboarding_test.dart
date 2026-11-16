@@ -85,6 +85,64 @@ void main() {
         await LocalGameService.instance.getNames(), ['Sam', 'Jamie', 'Taylor']);
   });
 
+  testWidgets('examples start a normal quiz without login and survive restart',
+      (tester) async {
+    await mountApp(tester);
+    await tester.tap(find.text('Skip'));
+    await tester.pumpAndSettle();
+    expect(find.text('What should we call you?'), findsOneWidget);
+    expect(find.text('Create username'), findsNothing);
+    await tester.tap(find.text('Try with example names'));
+    await tester.pumpAndSettle();
+    final game = LocalGameService.instance;
+    expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
+    expect(await game.getUsername(), isNull);
+    expect(await game.getPlayerName(), 'Player');
+    expect(await game.getNames(), ['Alex', 'Sam', 'Jordan']);
+    expect((await game.generateRound(languageCode: 'en')).length, 12);
+    await tester.pumpWidget(const SizedBox());
+    await mountApp(tester);
+    expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
+  });
+
+  testWidgets('manual nicknames start the game without a login',
+      (tester) async {
+    await mountApp(tester);
+    await tester.tap(find.text('Skip'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Captain');
+    await tester.pump();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(find.text('Add 3 participants'), findsOneWidget);
+    for (final name in ['Moon', 'Sun', 'Star']) {
+      await tester.enterText(find.byType(TextField), name);
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
+    expect(await LocalGameService.instance.getUsername(), isNull);
+    expect(await LocalGameService.instance.getPlayerName(), 'Captain');
+    expect(await LocalGameService.instance.getNames(), ['Moon', 'Sun', 'Star']);
+  });
+
+  testWidgets('examples do not duplicate the chosen nickname', (tester) async {
+    await mountApp(tester);
+    await tester.tap(find.text('Skip'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Alex');
+    await tester.pump();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Try with example names'));
+    await tester.pumpAndSettle();
+    expect(await LocalGameService.instance.getPlayerName(), 'Alex');
+    expect(await LocalGameService.instance.getNames(),
+        ['Sam', 'Jordan', 'Taylor']);
+  });
+
   for (final scale in [1.0, 2.0]) {
     testWidgets('all pages fit a small screen at text scale $scale',
         (tester) async {

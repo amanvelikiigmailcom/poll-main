@@ -503,13 +503,13 @@ class _TextFieldsSection extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           _InputField(
-            label: 'Login',
+            label: 'Profile handle (optional)',
             controller: usernameCtrl,
             onChanged: onUsernameChanged,
             prefixText: '@',
             validator: (v) {
-              if (v == null || v.trim().isEmpty) return 'Enter a login';
-              if (v.contains(' ')) return 'Login cannot contain spaces';
+              if (v == null || v.trim().isEmpty) return null;
+              if (v.contains(' ')) return 'Handle cannot contain spaces';
               return null;
             },
           ),

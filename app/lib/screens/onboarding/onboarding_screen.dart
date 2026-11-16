@@ -21,7 +21,7 @@ const _slides = [
     eyebrow: 'BETTER WITH YOUR PEOPLE',
     title: 'Make it\nyour circle.',
     description:
-        'Add your name and three people you know.\nThey don’t need the app to be in your quiz.',
+        'Choose a nickname and three participants.\nUse your own names or try our examples.',
   ),
   (
     eyebrow: 'A LITTLE PLAY. A LITTLE JOY.',

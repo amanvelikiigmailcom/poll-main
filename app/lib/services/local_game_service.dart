@@ -44,6 +44,7 @@ class LocalGameService {
   static const int questionsPerCategory = 4;
   static const int starsPerRound = 1000;
   static const int roundBreakSeconds = 40 * 60;
+
   /// Always 4 cards: self + 3 others (Gas-style).
   static const int optionsPerQuestion = 4;
   static const int minFriends = 3;
@@ -55,7 +56,7 @@ class LocalGameService {
 
   Future<SharedPreferences> get _prefs => SharedPreferences.getInstance();
 
-  // ── Username / login (required first) ────────────────────────────────────
+  // ── Optional local profile handle ────────────────────────────────────
 
   Future<String?> getUsername() async {
     final prefs = await _prefs;
@@ -151,8 +152,9 @@ class LocalGameService {
   /// Header line: "University name · 2nd year", or empty if neither is set.
   static String universitySubtitle(String? university, int? year) {
     final uni = university?.trim() ?? '';
-    final yearText =
-        (year != null && year >= 1 && year <= 4) ? universityYearLabel(year) : '';
+    final yearText = (year != null && year >= 1 && year <= 4)
+        ? universityYearLabel(year)
+        : '';
     if (uni.isNotEmpty && yearText.isNotEmpty) return '$uni · $yearText';
     if (uni.isNotEmpty) return uni;
     return yearText;
@@ -179,16 +181,11 @@ class LocalGameService {
     await prefs.setStringList(_namesKey, names);
   }
 
-  /// Ready to play: login + own name + at least [minFriends] classmates.
+  /// Ready to play: a display name and at least [minFriends] participants.
   Future<bool> hasEnoughNames() async {
-    final username = await getUsername();
     final player = await getPlayerName();
     final friends = await getNames();
-    return username != null &&
-        username.isNotEmpty &&
-        player != null &&
-        player.isNotEmpty &&
-        friends.length >= minFriends;
+    return player != null && player.isNotEmpty && friends.length >= minFriends;
   }
 
   Future<void> savePlayerAndFriends({
