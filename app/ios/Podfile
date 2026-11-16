@@ -1,5 +1,5 @@
 # Global platform — CocoaPods falls back to iOS 12.0 when commented out,
-# and the Flutter pod of Flutter 3.44 requires 13.0+ (Firebase pods need 15.0+)
+# and the Flutter pod of Flutter 3.44 requires 13.0+
 platform :ios, '15.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
