@@ -1,0 +1,12 @@
+# Секреты и подписи — никогда в git
+.env
+*.p8
+*.p12
+*.mobileprovision
+*.cer
+GoogleService-Info.plist
+google-services.json
+*firebase*cicd*.json
+
+# Мусор
+.DS_Store
