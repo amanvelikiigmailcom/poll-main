@@ -63,13 +63,6 @@ class MenuScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           _SectionHeader(label: 'App'),
           _MenuItem(
-            icon: Icons.workspace_premium_outlined,
-            label: 'Premium',
-            badge: 'PRO',
-            badgeColor: const Color(0xFFFFB800),
-            onTap: () => context.push(AppRoutes.premium),
-          ),
-          _MenuItem(
             icon: Icons.settings_outlined,
             label: 'Settings',
             onTap: () => context.push(AppRoutes.settings),
@@ -142,8 +135,6 @@ class _SectionHeader extends StatelessWidget {
 class _MenuItem extends StatelessWidget {
   final IconData icon;
   final String label;
-  final String? badge;
-  final Color? badgeColor;
   final Color? labelColor;
   final Color? iconColor;
   final VoidCallback? onTap;
@@ -151,8 +142,6 @@ class _MenuItem extends StatelessWidget {
   const _MenuItem({
     required this.icon,
     required this.label,
-    this.badge,
-    this.badgeColor,
     this.labelColor,
     this.iconColor,
     this.onTap,
@@ -197,23 +186,6 @@ class _MenuItem extends StatelessWidget {
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (badge != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: badgeColor ?? const Color(0xFF4B6EF5),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  badge!,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            if (badge != null) const SizedBox(width: 8),
             const Icon(Icons.chevron_right, color: Color(0xFF9CA3AF), size: 20),
           ],
         ),

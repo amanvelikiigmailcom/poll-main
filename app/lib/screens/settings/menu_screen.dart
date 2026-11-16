@@ -193,15 +193,6 @@ class _MenuContent extends ConsumerWidget {
 
         const SizedBox(height: 12),
 
-        // ── Premium banner ──────────────────────────────────────────────────
-        _PremiumBanner(
-          isPremium: user?.isPremium ?? false,
-          onTap: () {
-            if (isSheet) Navigator.of(context).pop();
-            context.push(AppRoutes.premium);
-          },
-        ),
-
         const SizedBox(height: 24),
 
         // ── Logout button ────────────────────────────────────────────────────
@@ -374,81 +365,6 @@ class _ProfileHeader extends StatelessWidget {
             const Icon(
               Icons.chevron_right,
               color: AppColors.textHint,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Premium banner ───────────────────────────────────────────────────────────
-
-class _PremiumBanner extends StatelessWidget {
-  final bool isPremium;
-  final VoidCallback onTap;
-
-  const _PremiumBanner({required this.isPremium, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [AppColors.gradientStart, AppColors.gradientEnd],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Icon(
-                Icons.workspace_premium,
-                color: AppColors.premiumGold,
-                size: 26,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    isPremium ? 'Premium активен' : 'Получить Premium',
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    isPremium
-                        ? 'Узнайте, кто за вас голосовал'
-                        : 'Раскройте, кто голосовал за вас',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.75),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(
-              Icons.chevron_right,
-              color: Colors.white70,
             ),
           ],
         ),

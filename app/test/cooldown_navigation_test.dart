@@ -68,6 +68,19 @@ void main() {
     });
   }
 
+  for (final retired in [AppRoutes.premium, AppRoutes.premiumResult]) {
+    testWidgets('$retired returns to the free game without a purchase screen',
+        (tester) async {
+      await mount(tester, retired);
+      expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
+      await tester.tap(find.byIcon(Icons.how_to_vote_rounded));
+      await pumpRoute(tester);
+      expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.vote);
+      expect(find.text('Question 1 of 12'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
+
   testWidgets('expired cooldown allows the center tab to open a round',
       (tester) async {
     final prefs = await SharedPreferences.getInstance();

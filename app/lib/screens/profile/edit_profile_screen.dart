@@ -7,7 +7,6 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../models/user.dart';
 import '../../providers/user_provider.dart';
-import '../../router/app_router.dart';
 import '../../services/local_game_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/common/university_picker_field.dart';
@@ -640,79 +639,6 @@ class _UniversitySection extends StatelessWidget {
             onChanged: onYearChanged,
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Premium row
-// ---------------------------------------------------------------------------
-
-class _PremiumRow extends StatelessWidget {
-  const _PremiumRow({this.user});
-
-  final User? user;
-
-  @override
-  Widget build(BuildContext context) {
-    final isPremium = user?.isPremium ?? false;
-
-    return Container(
-      color: AppColors.white,
-      child: ListTile(
-        title: const Text(
-          'Premium status',
-          style:
-              TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-        ),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (isPremium)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [
-                      AppColors.premiumGold,
-                      Color(0xFFFFA500)
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  'Premium',
-                  style: TextStyle(
-                    color: AppColors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              )
-            else
-              Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  'Free',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            const SizedBox(width: 4),
-            const Icon(Icons.chevron_right,
-                color: AppColors.textSecondary, size: 20),
-          ],
-        ),
-        onTap: () => context.push(AppRoutes.premium),
       ),
     );
   }

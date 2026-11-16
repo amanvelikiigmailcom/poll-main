@@ -193,19 +193,7 @@ class _OtherProfileHeader extends StatelessWidget {
                   ),
                 ),
               ),
-              if (user.isPremium) ...[
-                const SizedBox(width: 6),
-                Container(
-                  width: 22,
-                  height: 22,
-                  decoration: const BoxDecoration(
-                    color: AppColors.primaryBlue,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.check,
-                      color: AppColors.white, size: 14),
-                ),
-              ],
+
             ],
           ),
           const SizedBox(height: 4),
@@ -268,22 +256,7 @@ class _OtherAvatarWidget extends StatelessWidget {
       child: Stack(
         children: [
           avatar,
-          if (user.isPremium)
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: Container(
-                width: 25,
-                height: 25,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryBlue,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.white, width: 2),
-                ),
-                child:
-                    const Icon(Icons.check, color: AppColors.white, size: 13),
-              ),
-            ),
+
         ],
       ),
     );

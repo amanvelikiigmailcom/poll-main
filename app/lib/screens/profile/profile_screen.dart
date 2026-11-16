@@ -71,7 +71,6 @@ class _ProfileHeaderCard extends StatelessWidget {
         : (user?.username ?? '');
     final username = login.isNotEmpty ? '@$login' : '';
     final universityInfo = local.universityLine;
-    final isPremium = user?.isPremium ?? false;
     final letter = LocalGameService.avatarLetter(
       displayName: displayName,
       username: login,
@@ -108,10 +107,6 @@ class _ProfileHeaderCard extends StatelessWidget {
                   ),
                 ),
               ),
-              if (isPremium) ...[
-                const SizedBox(width: 6),
-                _VerifiedBadge(),
-              ],
             ],
           ),
           if (username.isNotEmpty) ...[
@@ -142,21 +137,6 @@ class _ProfileHeaderCard extends StatelessWidget {
     );
   }
 
-}
-
-class _VerifiedBadge extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 22,
-      height: 22,
-      decoration: const BoxDecoration(
-        color: AppColors.primaryBlue,
-        shape: BoxShape.circle,
-      ),
-      child: const Icon(Icons.check, color: AppColors.white, size: 14),
-    );
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -205,25 +185,7 @@ class _AvatarWidget extends StatelessWidget {
       child: Stack(
         children: [
           avatar,
-          if (user?.isPremium ?? false)
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: Container(
-                width: radius * 0.48,
-                height: radius * 0.48,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryBlue,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.white, width: 2),
-                ),
-                child: Icon(
-                  Icons.check,
-                  color: AppColors.white,
-                  size: radius * 0.26,
-                ),
-              ),
-            ),
+
         ],
       ),
     );

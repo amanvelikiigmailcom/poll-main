@@ -28,7 +28,6 @@ import '../screens/social/activity_screen.dart';
 import '../screens/profile/collection_screen.dart';
 import '../screens/social/friends_list_screen.dart';
 import '../screens/social/friend_requests_screen.dart';
-import '../screens/premium/premium_screen.dart';
 import '../screens/settings/notifications_settings_screen.dart';
 import '../screens/settings/language_settings_screen.dart';
 import '../screens/settings/blocked_users_screen.dart';
@@ -217,7 +216,9 @@ final GoRouter appRouter = GoRouter(
         GoRoute(path: AppRoutes.collection, builder: (_, __) => const CollectionScreen()),
         GoRoute(path: AppRoutes.friends, builder: (_, __) => const FriendsListScreen()),
         GoRoute(path: AppRoutes.friendRequests, builder: (_, __) => const FriendRequestsScreen()),
-        GoRoute(path: AppRoutes.premium, builder: (_, __) => const PremiumScreen()),
+        // Retired purchase URLs lead back to the free game.
+        GoRoute(path: AppRoutes.premium, redirect: (_, __) => AppRoutes.home),
+        GoRoute(path: AppRoutes.premiumResult, redirect: (_, __) => AppRoutes.home),
         GoRoute(path: AppRoutes.notificationsSettings, builder: (_, __) => const NotificationsSettingsScreen()),
         GoRoute(path: AppRoutes.languageSettings, builder: (_, __) => const LanguageSettingsScreen()),
         GoRoute(path: AppRoutes.blockedUsers, builder: (_, __) => const BlockedUsersScreen()),

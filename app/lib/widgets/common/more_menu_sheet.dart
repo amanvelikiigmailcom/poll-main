@@ -108,11 +108,6 @@ class MoreMenuSheet extends ConsumerWidget {
                 onTap: () => _open(context, AppRoutes.invite),
               ),
               _Row(
-                icon: Icons.workspace_premium_outlined,
-                label: 'Premium',
-                onTap: () => _open(context, AppRoutes.premium),
-              ),
-              _Row(
                 icon: Icons.collections_bookmark_outlined,
                 label: 'Collection',
                 onTap: () => _open(context, AppRoutes.collection),
