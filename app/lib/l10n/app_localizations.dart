@@ -161,13 +161,13 @@ abstract class AppLocalizations {
   /// Onboarding slide 4 description
   ///
   /// In en, this message translates to:
-  /// **'More friends means more fun! Invite your classmates and unlock the full Hidavo experience.'**
+  /// **'More friends means more fun! Invite your classmates and unlock the full Flyprox experience.'**
   String get onboarding4_desc;
 
   /// Phone registration screen title
   ///
   /// In en, this message translates to:
-  /// **'Sign in to Hidavo'**
+  /// **'Sign in to Flyprox'**
   String get auth_phoneTitle;
 
   /// No description provided for @auth_phoneSubtitle.

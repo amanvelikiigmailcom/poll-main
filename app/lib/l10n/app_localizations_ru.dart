@@ -43,10 +43,10 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get onboarding4_desc =>
-      'Больше друзей — больше веселья! Приглашай одноклассников и открой полный опыт Hidavo.';
+      'Больше друзей — больше веселья! Приглашай одноклассников и открой полный опыт Flyprox.';
 
   @override
-  String get auth_phoneTitle => 'Вход в Hidavo';
+  String get auth_phoneTitle => 'Вход в Flyprox';
 
   @override
   String get auth_phoneSubtitle => 'Введите номер телефона';

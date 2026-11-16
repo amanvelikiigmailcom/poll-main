@@ -43,10 +43,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get onboarding4_desc =>
-      'More friends means more fun! Invite your classmates and unlock the full Hidavo experience.';
+      'More friends means more fun! Invite your classmates and unlock the full Flyprox experience.';
 
   @override
-  String get auth_phoneTitle => 'Sign in to Hidavo';
+  String get auth_phoneTitle => 'Sign in to Flyprox';
 
   @override
   String get auth_phoneSubtitle => 'Enter your phone number';
