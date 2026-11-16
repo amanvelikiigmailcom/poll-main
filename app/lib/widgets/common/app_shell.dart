@@ -38,8 +38,14 @@ class AppShell extends StatelessWidget {
         context.go(AppRoutes.home);
       case 1:
         final ready = await LocalGameService.instance.hasEnoughNames();
+        final remaining =
+            await LocalGameService.instance.secondsUntilNextRound();
         if (!context.mounted) return;
-        context.go(ready ? AppRoutes.vote : AppRoutes.namesEntry);
+        context.go(!ready
+            ? AppRoutes.namesEntry
+            : remaining > 0
+                ? AppRoutes.timer
+                : AppRoutes.vote);
       case 2:
         context.go(AppRoutes.profile);
     }

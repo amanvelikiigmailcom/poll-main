@@ -104,6 +104,13 @@ class _VoteScreenState extends State<VoteScreen>
       return;
     }
 
+    final remaining = await LocalGameService.instance.secondsUntilNextRound();
+    if (!mounted) return;
+    if (remaining > 0) {
+      context.go(AppRoutes.timer);
+      return;
+    }
+
     final generated = await LocalGameService.instance
         .generateRound(languageCode: languageCode);
     if (!mounted) return;
