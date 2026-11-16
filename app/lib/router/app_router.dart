@@ -39,7 +39,6 @@ import '../screens/social/likes_result_screen.dart';
 import '../screens/social/room_screen.dart';
 import '../screens/social/create_room_screen.dart';
 
-
 abstract final class AppRoutes {
   static const splash = '/';
   static const onboarding = '/onboarding';
@@ -120,17 +119,22 @@ class _SplashRedirectState extends ConsumerState<_SplashRedirect> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFF4B6EF5),
+    return Scaffold(
+      backgroundColor: const Color(0xFF4B6EF5),
       body: Center(
-        child: Text(
-          'Flyprox',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 36,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 4,
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset('assets/images/flyprox-logo.png',
+                width: 112, height: 112, semanticLabel: 'Flyprox logo'),
+            const SizedBox(height: 16),
+            const Text('Flyprox',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 4)),
+          ],
         ),
       ),
     );
@@ -210,26 +214,55 @@ final GoRouter appRouter = GoRouter(
         ),
 
         GoRoute(path: AppRoutes.faq, builder: (_, __) => const FaqScreen()),
-        GoRoute(path: AppRoutes.forParents, builder: (_, __) => const ForParentsScreen()),
-        GoRoute(path: AppRoutes.search, builder: (_, __) => const SearchScreen()),
-        GoRoute(path: AppRoutes.activity, builder: (_, __) => const ActivityScreen()),
-        GoRoute(path: AppRoutes.collection, builder: (_, __) => const CollectionScreen()),
-        GoRoute(path: AppRoutes.friends, builder: (_, __) => const FriendsListScreen()),
-        GoRoute(path: AppRoutes.friendRequests, builder: (_, __) => const FriendRequestsScreen()),
+        GoRoute(
+            path: AppRoutes.forParents,
+            builder: (_, __) => const ForParentsScreen()),
+        GoRoute(
+            path: AppRoutes.search, builder: (_, __) => const SearchScreen()),
+        GoRoute(
+            path: AppRoutes.activity,
+            builder: (_, __) => const ActivityScreen()),
+        GoRoute(
+            path: AppRoutes.collection,
+            builder: (_, __) => const CollectionScreen()),
+        GoRoute(
+            path: AppRoutes.friends,
+            builder: (_, __) => const FriendsListScreen()),
+        GoRoute(
+            path: AppRoutes.friendRequests,
+            builder: (_, __) => const FriendRequestsScreen()),
         // Retired purchase URLs lead back to the free game.
         GoRoute(path: AppRoutes.premium, redirect: (_, __) => AppRoutes.home),
-        GoRoute(path: AppRoutes.premiumResult, redirect: (_, __) => AppRoutes.home),
-        GoRoute(path: AppRoutes.notificationsSettings, builder: (_, __) => const NotificationsSettingsScreen()),
-        GoRoute(path: AppRoutes.languageSettings, builder: (_, __) => const LanguageSettingsScreen()),
-        GoRoute(path: AppRoutes.blockedUsers, builder: (_, __) => const BlockedUsersScreen()),
-        GoRoute(path: AppRoutes.hiddenUsers, builder: (_, __) => const HiddenUsersScreen()),
-        GoRoute(path: AppRoutes.settingsPoll, builder: (_, __) => const SettingsPollScreen()),
-        GoRoute(path: AppRoutes.likesFilled, builder: (_, __) => const LikesFilledScreen()),
-        GoRoute(path: AppRoutes.likesEmpty, builder: (_, __) => const LikesEmptyScreen()),
-        GoRoute(path: AppRoutes.likesResult, builder: (_, __) => const LikesResultScreen()),
+        GoRoute(
+            path: AppRoutes.premiumResult, redirect: (_, __) => AppRoutes.home),
+        GoRoute(
+            path: AppRoutes.notificationsSettings,
+            builder: (_, __) => const NotificationsSettingsScreen()),
+        GoRoute(
+            path: AppRoutes.languageSettings,
+            builder: (_, __) => const LanguageSettingsScreen()),
+        GoRoute(
+            path: AppRoutes.blockedUsers,
+            builder: (_, __) => const BlockedUsersScreen()),
+        GoRoute(
+            path: AppRoutes.hiddenUsers,
+            builder: (_, __) => const HiddenUsersScreen()),
+        GoRoute(
+            path: AppRoutes.settingsPoll,
+            builder: (_, __) => const SettingsPollScreen()),
+        GoRoute(
+            path: AppRoutes.likesFilled,
+            builder: (_, __) => const LikesFilledScreen()),
+        GoRoute(
+            path: AppRoutes.likesEmpty,
+            builder: (_, __) => const LikesEmptyScreen()),
+        GoRoute(
+            path: AppRoutes.likesResult,
+            builder: (_, __) => const LikesResultScreen()),
         GoRoute(path: AppRoutes.room, builder: (_, __) => const RoomScreen()),
-        GoRoute(path: AppRoutes.createRoom, builder: (_, __) => const CreateRoomScreen()),
-
+        GoRoute(
+            path: AppRoutes.createRoom,
+            builder: (_, __) => const CreateRoomScreen()),
       ],
     ),
   ],

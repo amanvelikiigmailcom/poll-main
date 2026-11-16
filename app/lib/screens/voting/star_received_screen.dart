@@ -221,7 +221,7 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                                       MainAxisAlignment.spaceAround,
                                   children: [
                                     const _SummaryItem(
-                                      emoji: '🗳️',
+                                      emoji: '🎮',
                                       label: 'Questions',
                                       value: '12',
                                     ),
@@ -232,8 +232,8 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                                     ),
                                     const _SummaryItem(
                                       emoji: '✅',
-                                      label: 'Answers',
-                                      value: '10',
+                                      label: 'Round',
+                                      value: 'Done',
                                     ),
                                     Container(
                                       width: 1,

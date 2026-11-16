@@ -119,13 +119,13 @@ abstract class AppLocalizations {
   /// Onboarding slide 1 title
   ///
   /// In en, this message translates to:
-  /// **'Vote Anonymously'**
+  /// **'Play and Vote'**
   String get onboarding1_title;
 
   /// Onboarding slide 1 description
   ///
   /// In en, this message translates to:
-  /// **'Answer fun questions about your classmates — nobody knows it\'s you. Complete anonymity guaranteed.'**
+  /// **'Answer fun questions about your classmates and collect stars. A friendly quiz game for your class.'**
   String get onboarding1_desc;
 
   /// Onboarding slide 2 title
@@ -143,7 +143,7 @@ abstract class AppLocalizations {
   /// Onboarding slide 3 title
   ///
   /// In en, this message translates to:
-  /// **'Anonymous Feed'**
+  /// **'Class Feed'**
   String get onboarding3_title;
 
   /// Onboarding slide 3 description

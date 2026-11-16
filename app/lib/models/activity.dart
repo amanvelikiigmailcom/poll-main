@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-/// An activity feed entry representing an anonymous vote event visible
+/// An activity feed entry representing a vote event visible
 /// to classmates.
 ///
 /// The [voterId] is intentionally hidden from non-premium users; only the
@@ -20,7 +20,7 @@ class Activity extends Equatable {
   /// Null unless the current user has premium access to voter reveals.
   final String? voterId;
 
-  /// Grade of the anonymous voter (8–12).
+  /// Grade of the voter (8–12).
   final int voterGrade;
 
   /// Display name of the poll winner for this activity entry.

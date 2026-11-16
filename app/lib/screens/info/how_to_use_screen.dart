@@ -8,28 +8,28 @@ class HowToUseScreen extends StatelessWidget {
   static const _steps = [
     (
       Icons.person_rounded,
-      'Your login and name',
-      'Pick a login and type the name that will appear on quiz cards.',
+      'Choose a nickname',
+      'Choose a game name, or tap Try with example names to start immediately. No account is required.',
     ),
     (
       Icons.groups_rounded,
-      'Name 3 people you know',
-      'First names only. They do not need Flyprox. These names are answer cards for your quiz.',
+      'Add 3 participants',
+      'Use nicknames or fictional names. These are labels on the game cards, and the people named are not contacted.',
     ),
     (
       Icons.how_to_vote_rounded,
       'Answer 12 questions',
-      'Each question asks “who among these?”. Pick one of the four names. Nobody else sees your pick.',
+      'Pick one of four name cards for each question. Shuffle changes their order, and Skip moves to the next question.',
     ),
     (
       Icons.star_rounded,
-      'Get stars',
-      'Finish a round to earn stars. A short break starts before the next round.',
+      'Collect stars',
+      'Complete a round to collect 1,000 stars. A saved 40-minute break starts before the next round.',
     ),
     (
       Icons.ios_share_rounded,
-      'Share if you want',
-      'Optional. Tell a friend about Flyprox. They will not see your answers.',
+      'Choose when to play again',
+      'Wait for the break to finish, or tap WhatsApp or Instagram in sharing options to skip it. Sending a message is optional.',
     ),
   ];
 

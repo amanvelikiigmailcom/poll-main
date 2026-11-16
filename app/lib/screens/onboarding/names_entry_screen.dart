@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../router/app_router.dart';
+import '../../providers/user_provider.dart';
 import '../../services/local_game_service.dart';
 
 const Color _primaryBlue = Color(0xFF4B6EF5);
 const int _minFriends = LocalGameService.minFriends;
 
 /// Local quiz setup: a display name or nickname and at least 3 participants.
-class NamesEntryScreen extends StatefulWidget {
+class NamesEntryScreen extends ConsumerStatefulWidget {
   const NamesEntryScreen({super.key});
 
   @override
-  State<NamesEntryScreen> createState() => _NamesEntryScreenState();
+  ConsumerState<NamesEntryScreen> createState() => _NamesEntryScreenState();
 }
 
-class _NamesEntryScreenState extends State<NamesEntryScreen> {
+class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
   /// 0 = own name, 1 = participants
   int _step = 0;
 
@@ -89,7 +91,8 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
     if (name.toLowerCase() == player) {
       _friendController.clear();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("That's your name — add someone else")),
+        const SnackBar(
+            content: Text("That is your game name. Add another participant.")),
       );
       _refocus(_friendFocus);
       return;
@@ -121,6 +124,8 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
         playerName: player,
         friends: List<String>.from(_friends),
       );
+      if (!mounted) return;
+      await ref.read(localProfileProvider.notifier).refresh();
       if (!mounted) return;
       context.go(AppRoutes.home);
     } catch (_) {
@@ -289,7 +294,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
               border: Border.all(color: Colors.white38),
             ),
             child: Text(
-              'Add at least $_minFriends people. '
+              'Add at least $_minFriends participants. '
               'You have ${_friends.length}. '
               '${_minFriends - _friends.length} more to go.',
               style: const TextStyle(
@@ -443,7 +448,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
                   const SizedBox(height: 24),
                   Center(
                     child: Text(
-                      'Add at least $_minFriends people',
+                      'Add at least $_minFriends participants',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.6),
                         fontSize: 15,
@@ -481,7 +486,7 @@ class _NamesEntryScreenState extends State<NamesEntryScreen> {
             child: Text(
               enough
                   ? 'Continue'
-                  : 'At least $_minFriends people '
+                  : 'At least $_minFriends participants '
                       '(${_minFriends - _friends.length} more)',
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
             ),

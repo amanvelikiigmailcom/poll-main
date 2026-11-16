@@ -2,16 +2,16 @@
   "appName": "Hidavo",
   "onboarding": {
     "screen1": {
-      "title": "Vote Anonymously",
-      "description": "Participate in daily polls about your classmates. Nobody will know who voted for whom"
+      "title": "Play and Vote",
+      "description": "Play quick quiz rounds with nicknames or example participants."
     },
     "screen2": {
       "title": "No Negativity",
       "description": "Only positive questions. The app is designed for fun and communication"
     },
     "screen3": {
-      "title": "Anonymous Feed",
-      "description": "See who votes for whom in your class. Anonymously and safely"
+      "title": "Class Feed",
+      "description": "See who gets the most votes in your class. Fun and safe"
     },
     "screen4": {
       "title": "Invite Friends",
@@ -173,11 +173,6 @@
     "of": "of",
     "skip": "Skip",
     "shuffle": "Shuffle",
-    "category": {
-      "humor": "Humor",
-      "normal": "Normal",
-      "sympathy": "Sympathy"
-    },
     "timer": {
       "title": "Next round in...",
       "invite": "Invite a friend",
@@ -259,7 +254,7 @@
     "empty": "No activity yet",
     "revealWho": "Find out who",
     "voted": "voted for",
-    "inPoll": "in poll",
+    "inPoll": "in quiz",
     "revealWhoVoted": "Find out who voted",
     "hide": "Hide",
     "learnMore": "Learn more"

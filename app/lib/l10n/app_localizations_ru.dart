@@ -18,11 +18,11 @@ class AppLocalizationsRu extends AppLocalizations {
   String get onboarding_start => 'Начать';
 
   @override
-  String get onboarding1_title => 'Голосуй анонимно';
+  String get onboarding1_title => 'Играй и голосуй';
 
   @override
   String get onboarding1_desc =>
-      'Отвечай на веселые вопросы о своих одноклассниках — никто не узнает, что это ты. Полная анонимность гарантирована.';
+      'Отвечай на весёлые вопросы о своих одноклассниках и собирай звёзды. Дружелюбная игра-викторина для твоего класса.';
 
   @override
   String get onboarding2_title => 'Без негатива';
@@ -32,7 +32,7 @@ class AppLocalizationsRu extends AppLocalizations {
       'Только позитивные вопросы, которые сближают ваш класс. Безопасная и дружелюбная среда для всех.';
 
   @override
-  String get onboarding3_title => 'Анонимная лента';
+  String get onboarding3_title => 'Лента класса';
 
   @override
   String get onboarding3_desc =>
@@ -168,7 +168,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get voting_beforeVoteDesc =>
-      'Минимум нужно ввести 3 друзей, чтобы начать голосование.';
+      'Добавьте три игровых имени или используйте примеры, чтобы начать викторину.';
 
   @override
   String get voting_continueWithout => 'Продолжить без друзей';

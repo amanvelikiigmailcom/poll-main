@@ -102,7 +102,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(28, 8, 16, 0),
                     child: Row(children: [
-                      const Icon(Icons.bolt_rounded, color: Color(0xFFFFD878)),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.asset(
+                          'assets/images/flyprox-logo.png',
+                          width: 32,
+                          height: 32,
+                          semanticLabel: 'Flyprox logo',
+                        ),
+                      ),
                       const SizedBox(width: 5),
                       const Expanded(
                           child: Align(
@@ -250,7 +258,7 @@ class _IntroPage extends StatelessWidget {
                     width: 340,
                     height: 300,
                     child: switch (index) {
-                      0 => const _PollIllustration(),
+                      0 => const _QuizIllustration(),
                       1 => const _CircleIllustration(),
                       _ => const _StarsIllustration(),
                     }),
@@ -342,8 +350,8 @@ class _Badge extends StatelessWidget {
       );
 }
 
-class _PollIllustration extends StatelessWidget {
-  const _PollIllustration();
+class _QuizIllustration extends StatelessWidget {
+  const _QuizIllustration();
 
   @override
   Widget build(BuildContext context) =>

@@ -18,11 +18,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboarding_start => 'Get Started';
 
   @override
-  String get onboarding1_title => 'Vote Anonymously';
+  String get onboarding1_title => 'Play and Vote';
 
   @override
   String get onboarding1_desc =>
-      'Answer fun questions about your classmates — nobody knows it\'s you. Complete anonymity guaranteed.';
+      'Answer fun questions about your classmates and collect stars. A friendly quiz game for your class.';
 
   @override
   String get onboarding2_title => 'No Negativity';
@@ -32,7 +32,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Only positive questions that bring your class closer together. Safe and friendly environment for everyone.';
 
   @override
-  String get onboarding3_title => 'Anonymous Feed';
+  String get onboarding3_title => 'Class Feed';
 
   @override
   String get onboarding3_desc =>

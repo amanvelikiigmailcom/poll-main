@@ -46,7 +46,7 @@ class LikesEmptyScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'You just joined. Likes appear when people pick you in polls.',
+                  'Play a quiz round to collect stars on this device.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 15,

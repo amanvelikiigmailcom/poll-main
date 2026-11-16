@@ -19,30 +19,29 @@ class _BeforeVote2ScreenState extends State<BeforeVote2Screen>
     _StepData(
       emoji: '👁️',
       color: Color(0xFF4B6EF5),
-      title: 'Full anonymity',
+      title: 'Local play',
       description:
-          'No one will know who you voted for. All answers are hidden.',
+          'Play a quiz game on your device with your own nicknames or fictional names.',
     ),
     _StepData(
-      emoji: '🗳️',
+      emoji: '🎮',
       color: Color(0xFFFF9500),
-      title: 'How voting works',
+      title: 'How the game works',
       description:
-          'One question — 4 cards: you + three friends (3 friends enough). Pick who fits best.',
+          'One question, four game-name cards. Choose the name that fits best.',
     ),
     _StepData(
       emoji: '⭐',
       color: Color(0xFFFFD700),
       title: 'Earn stars',
-      description:
-          'You get stars each time someone votes for you. Collect them and unlock items.',
+      description: 'Complete a 12-question round to collect 1,000 stars.',
     ),
     _StepData(
       emoji: '🔓',
       color: Color(0xFF9B59B6),
-      title: 'See who voted',
+      title: 'Play another round',
       description:
-          'With Premium you can see who voted for you in each question.',
+          'A 40-minute break follows each round. Wait, or tap WhatsApp or Instagram in sharing options to skip it. Sending is optional.',
     ),
   ];
 
@@ -71,7 +70,8 @@ class _BeforeVote2ScreenState extends State<BeforeVote2Screen>
         backgroundColor: AppColors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.textPrimary, size: 20),
+          icon: const Icon(Icons.arrow_back_ios_new,
+              color: AppColors.textPrimary, size: 20),
           onPressed: () => context.pop(),
         ),
         centerTitle: true,
@@ -117,7 +117,7 @@ class _BeforeVote2ScreenState extends State<BeforeVote2Screen>
                             ),
                           ),
                           Text(
-                            'vote anonymously',
+                            'fun quiz game',
                             style: TextStyle(
                               color: Colors.white70,
                               fontSize: 13,

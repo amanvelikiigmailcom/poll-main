@@ -6,6 +6,8 @@ import '../../theme/app_colors.dart';
 import '../../router/app_router.dart';
 import '../../utils/helpers.dart';
 import '../../services/local_game_service.dart';
+import '../../services/question_report_service.dart';
+import '../../widgets/common/question_report_dialog.dart';
 
 // ---------------------------------------------------------------------------
 // Data models
@@ -46,7 +48,10 @@ class PollQuestion {
 // ---------------------------------------------------------------------------
 
 class VoteScreen extends StatefulWidget {
-  const VoteScreen({super.key});
+  const VoteScreen(
+      {super.key, this.reportService = const QuestionReportService()});
+
+  final QuestionReportService reportService;
 
   @override
   State<VoteScreen> createState() => _VoteScreenState();
@@ -61,8 +66,10 @@ class _VoteScreenState extends State<VoteScreen>
   bool _roundLoadStarted = false;
 
   int _currentIndex = 0;
+  int _roundNumber = 0;
   String? _selectedOptionId;
   bool _isAdvancing = false;
+  bool _reporting = false;
   List<PollOption> _shuffledOptions = [];
 
   // Slide transition
@@ -81,7 +88,8 @@ class _VoteScreenState extends State<VoteScreen>
       begin: const Offset(1.0, 0.0),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
-    _fadeAnim = CurvedAnimation(parent: _slideController, curve: Curves.easeOut);
+    _fadeAnim =
+        CurvedAnimation(parent: _slideController, curve: Curves.easeOut);
     _slideController.value = 1.0; // start visible
   }
 
@@ -111,9 +119,36 @@ class _VoteScreenState extends State<VoteScreen>
       return;
     }
 
-    final generated = await LocalGameService.instance
-        .generateRound(languageCode: languageCode);
+    final svc = LocalGameService.instance;
+    final completed = await svc.getCompletedRounds();
     if (!mounted) return;
+    final isIntro = completed < LocalGameService.introRounds;
+
+    // Intro rounds resume where the player stopped instead of restarting.
+    List<GeneratedQuestion> generated = [];
+    var startIndex = 0;
+    if (isIntro) {
+      final saved = await svc.loadRoundProgress();
+      if (!mounted) return;
+      if (saved != null &&
+          saved.round == completed &&
+          saved.questionIndex < _totalQuestions) {
+        final restored = await svc.restoreRound(
+          ids: saved.questionIds,
+          languageCode: languageCode,
+        );
+        if (!mounted) return;
+        if (restored != null && restored.length == _totalQuestions) {
+          generated = restored;
+          startIndex = saved.questionIndex;
+        }
+      }
+    }
+    final fresh = generated.isEmpty;
+    if (fresh) {
+      generated = await svc.generateRound(languageCode: languageCode);
+      if (!mounted) return;
+    }
 
     if (generated.isEmpty) {
       setState(() => _loading = false);
@@ -130,15 +165,26 @@ class _VoteScreenState extends State<VoteScreen>
             options: g.optionNames
                 .asMap()
                 .entries
-                .map((e) => PollOption(id: '${g.id}_${e.key}', name: e.value, grade: ''))
+                .map((e) => PollOption(
+                    id: '${g.id}_${e.key}', name: e.value, grade: ''))
                 .toList(),
           ),
         )
         .toList();
+    if (fresh && isIntro) {
+      await svc.saveRoundProgress(
+        round: completed,
+        questionIndex: 0,
+        questionIds: questions.map((q) => q.id).toList(),
+      );
+      if (!mounted) return;
+    }
     setState(() {
       _questions = questions;
+      _currentIndex = startIndex;
+      _roundNumber = completed;
       _shuffledOptions =
-          questions.isNotEmpty ? List.from(questions.first.options) : [];
+          questions.isNotEmpty ? List.from(questions[startIndex].options) : [];
       _loading = false;
     });
   }
@@ -177,6 +223,14 @@ class _VoteScreenState extends State<VoteScreen>
         _isAdvancing = false;
         _shuffledOptions = List.from(_questions[_currentIndex].options);
       });
+      if (_roundNumber < LocalGameService.introRounds) {
+        await LocalGameService.instance.saveRoundProgress(
+          round: _roundNumber,
+          questionIndex: _currentIndex,
+          questionIds: _questions.map((q) => q.id).toList(),
+        );
+        if (!mounted) return;
+      }
       await _slideController.forward();
     }
   }
@@ -196,28 +250,23 @@ class _VoteScreenState extends State<VoteScreen>
     setState(() => _shuffledOptions.shuffle());
   }
 
-  // Category helpers
-  Color _catBg(String cat) {
-    switch (cat) {
-      case 'humor': return AppColors.humorCategory;
-      case 'sympathy': return AppColors.sympathyCategory;
-      default: return AppColors.normalCategory;
-    }
-  }
-
-  Color _catFg(String cat) {
-    switch (cat) {
-      case 'humor': return AppColors.humorCategoryText;
-      case 'sympathy': return AppColors.sympathyCategoryText;
-      default: return AppColors.normalCategoryText;
-    }
-  }
-
-  String _catLabel(String cat) {
-    switch (cat) {
-      case 'humor': return '😂 Humor';
-      case 'sympathy': return '❤️ Sympathy';
-      default: return '💬 General';
+  Future<void> _reportQuestion() async {
+    if (_reporting || _isAdvancing) return;
+    final question = _currentQuestion;
+    setState(() => _reporting = true);
+    try {
+      await showDialog<void>(
+        context: context,
+        builder: (_) => QuestionReportDialog(
+          report: QuestionReport(
+            questionId: question.id,
+            questionText: question.question,
+          ),
+          service: widget.reportService,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _reporting = false);
     }
   }
 
@@ -245,8 +294,6 @@ class _VoteScreenState extends State<VoteScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildCategoryBadge(),
-                        const SizedBox(height: 14),
                         _buildQuestion(),
                         const SizedBox(height: 20),
                         _buildOptionsGrid(),
@@ -289,7 +336,7 @@ class _VoteScreenState extends State<VoteScreen>
                   Text('⭐', style: TextStyle(fontSize: 14)),
                   SizedBox(width: 4),
                   Text(
-                    '+12',
+                    '+${LocalGameService.starsPerRound} / round',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -311,60 +358,6 @@ class _VoteScreenState extends State<VoteScreen>
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildCategoryBadge() {
-    final cat = _currentQuestion.category;
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: () {
-        final info = {
-          'humor': 'Light and funny questions to make your friends laugh.',
-          'sympathy': 'Positive questions about charm and vibe — only good vibes.',
-          'normal': 'Casual everyday questions about school life.',
-        }[cat] ?? '';
-        showModalBottomSheet<void>(
-          context: context,
-          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-          builder: (_) => Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(_catLabel(cat), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-                const SizedBox(height: 8),
-                Text(info, style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4)),
-                const SizedBox(height: 16),
-                SizedBox(width: double.infinity, child: ElevatedButton(onPressed: () => Navigator.pop(context), style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryBlue, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))), child: const Text('Got it'))),
-              ],
-            ),
-          ),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: _catBg(cat),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              _catLabel(cat),
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: _catFg(cat),
-              ),
-            ),
-            const SizedBox(width: 4),
-            Icon(Icons.info_outline_rounded, size: 14, color: _catFg(cat)),
-          ],
-        ),
       ),
     );
   }
@@ -394,7 +387,8 @@ class _VoteScreenState extends State<VoteScreen>
               child: _OptionCard(
                 option: opt,
                 isSelected: _selectedOptionId == opt.id,
-                isDisabled: _selectedOptionId != null && _selectedOptionId != opt.id,
+                isDisabled:
+                    _selectedOptionId != null && _selectedOptionId != opt.id,
                 onTap: () => _selectOption(opt.id),
               ),
             );
@@ -419,7 +413,8 @@ class _VoteScreenState extends State<VoteScreen>
           label: const Text('Shuffle'),
           style: TextButton.styleFrom(
             foregroundColor: AppColors.textSecondary,
-            textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            textStyle:
+                const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
           ),
         ),
         OutlinedButton(
@@ -431,11 +426,17 @@ class _VoteScreenState extends State<VoteScreen>
             ),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             foregroundColor: AppColors.textSecondary,
-            textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            textStyle:
+                const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             visualDensity: VisualDensity.compact,
           ),
           child: const Text('Skip'),
+        ),
+        TextButton.icon(
+          onPressed: _reporting || _isAdvancing ? null : _reportQuestion,
+          icon: const Icon(Icons.flag_outlined, size: 18),
+          label: const Text('Report question'),
         ),
       ],
     );

@@ -5,7 +5,7 @@
     "display": "standalone",
     "background_color": "#4B6EF5",
     "theme_color": "#4B6EF5",
-    "description": "Flyprox — anonymous school polls",
+    "description": "Flyprox - a name-based quiz game",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

@@ -10,9 +10,9 @@
   "onboarding_start": "Get Started",
   "@onboarding_start": { "description": "Start button on last onboarding slide" },
 
-  "onboarding1_title": "Vote Anonymously",
+  "onboarding1_title": "Play and Vote",
   "@onboarding1_title": { "description": "Onboarding slide 1 title" },
-  "onboarding1_desc": "Answer fun questions about your classmates — nobody knows it's you. Complete anonymity guaranteed.",
+  "onboarding1_desc": "Answer fun questions about your classmates and collect stars. A friendly quiz game for your class.",
   "@onboarding1_desc": { "description": "Onboarding slide 1 description" },
 
   "onboarding2_title": "No Negativity",
@@ -20,7 +20,7 @@
   "onboarding2_desc": "Only positive questions that bring your class closer together. Safe and friendly environment for everyone.",
   "@onboarding2_desc": { "description": "Onboarding slide 2 description" },
 
-  "onboarding3_title": "Anonymous Feed",
+  "onboarding3_title": "Class Feed",
   "@onboarding3_title": { "description": "Onboarding slide 3 title" },
   "onboarding3_desc": "See who got voted for in your class feed — and collect stars as you rise to the top.",
   "@onboarding3_desc": { "description": "Onboarding slide 3 description" },

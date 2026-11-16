@@ -10,6 +10,7 @@ import '../../providers/user_provider.dart';
 import '../../services/local_game_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/common/university_picker_field.dart';
+import '../../widgets/common/reset_game_action.dart';
 
 // ---------------------------------------------------------------------------
 // Local form state
@@ -123,16 +124,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late final TextEditingController _usernameCtrl;
   late final TextEditingController _universityCtrl;
   final _formKey = GlobalKey<FormState>();
-  String? _deleteReason;
-
-  static const _deleteReasons = [
-    'No longer want to use the app',
-    'The app is not convenient',
-    'Privacy concerns',
-    'Will create a new account',
-    'Other reason',
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -286,9 +277,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               ),
               const SizedBox(height: 16),
               TextButton(
-                onPressed: () => _showDeleteDialog(context),
+                onPressed: () => showResetGameDialog(context, ref),
                 child: const Text(
-                  'Delete account',
+                  'Reset game',
                   style: TextStyle(
                     color: AppColors.accentRed,
                     fontSize: 14,
@@ -304,72 +295,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     );
   }
 
-  void _showDeleteDialog(BuildContext context) {
-    String? localReason = _deleteReason;
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16)),
-          title: const Text(
-            'Delete account?',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Please select a reason:',
-                  style: TextStyle(
-                      fontSize: 14, color: AppColors.textSecondary),
-                ),
-                const SizedBox(height: 8),
-                ..._deleteReasons.map(
-                  (r) => RadioListTile<String>(
-                    title: Text(r,
-                        style: const TextStyle(fontSize: 14)),
-                    value: r,
-                    groupValue: localReason,
-                    activeColor: AppColors.primaryBlue,
-                    contentPadding: EdgeInsets.zero,
-                    onChanged: (v) =>
-                        setDialogState(() => localReason = v),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: localReason == null
-                  ? null
-                  : () {
-                      setState(() => _deleteReason = localReason);
-                      Navigator.pop(ctx);
-                      // TODO: call delete account API
-                    },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.accentRed,
-                foregroundColor: AppColors.white,
-                disabledBackgroundColor: AppColors.border,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-              ),
-              child: const Text('Delete permanently'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 // ---------------------------------------------------------------------------

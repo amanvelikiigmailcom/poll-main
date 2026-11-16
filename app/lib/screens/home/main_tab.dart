@@ -46,8 +46,9 @@ class _MainTabState extends ConsumerState<MainTab> {
       _starsCount = stars;
       _peopleCount = people;
       _secondsRemaining = remaining;
-      _tabState =
-          remaining > 0 ? _HomeTabState.timerActive : _HomeTabState.voteAvailable;
+      _tabState = remaining > 0
+          ? _HomeTabState.timerActive
+          : _HomeTabState.voteAvailable;
     });
     _ticker?.cancel();
     if (remaining > 0) {
@@ -76,7 +77,7 @@ class _MainTabState extends ConsumerState<MainTab> {
     return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
-  /// Start poll only if login + name + ≥3 friends. No school-wait screen.
+  /// Start the game after a nickname and at least 3 participants are ready.
   Future<void> _startVote() async {
     final ready = await LocalGameService.instance.hasEnoughNames();
     if (!mounted) return;
@@ -88,7 +89,7 @@ class _MainTabState extends ConsumerState<MainTab> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
-          'Add your name and 3 people you know to start the quiz.',
+          'Choose a nickname and 3 participants, or use example names to start the game.',
         ),
         behavior: SnackBarBehavior.floating,
       ),
@@ -255,7 +256,7 @@ class _MainTabState extends ConsumerState<MainTab> {
           ),
           const SizedBox(height: 8),
           const Text(
-            '12 questions about people you named. Only you see the answers.',
+            'Play 12 questions with your game names. Your choices stay on this device.',
             style: TextStyle(color: Colors.white70, fontSize: 14),
             textAlign: TextAlign.center,
           ),
@@ -282,7 +283,6 @@ class _MainTabState extends ConsumerState<MainTab> {
       ),
     );
   }
-
 }
 
 // ── Helper widgets ────────────────────────────────────────────────────────────

@@ -8,13 +8,24 @@ class SafetyCenterScreen extends StatelessWidget {
 
   static const _primaryBlue = Color(0xFF4B6EF5);
 
-  Future<void> _mail() async {
+  Future<void> _mail(BuildContext context) async {
     final uri = Uri(
       scheme: 'mailto',
       path: AppConstants.supportEmail,
-      query: 'subject=Flyprox safety',
+      queryParameters: const {'subject': 'Flyprox game support'},
     );
-    await launchUrl(uri);
+    try {
+      final opened = await launchUrl(uri);
+      if (opened || !context.mounted) return;
+    } catch (_) {
+      if (!context.mounted) return;
+    }
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Please email ${AppConstants.supportEmail}')),
+      );
+    }
   }
 
   @override
@@ -35,7 +46,7 @@ class SafetyCenterScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Text(
-              'Flyprox is a private quiz on your device. '
+              'Flyprox is a name-based quiz game on your device. '
               'People you name are not contacted.',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
@@ -46,14 +57,14 @@ class SafetyCenterScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           const _Rule(
-            title: 'First names only',
+            title: 'Use game names',
             body:
-                'Do not type phone numbers, addresses, or full legal names.',
+                'Nicknames and fictional names are welcome. Do not type phone numbers, addresses, full legal names or other private information.',
           ),
           const _Rule(
             title: 'Your answers stay here',
             body:
-                'This version does not send votes to other people or to a Flyprox server.',
+                'The local game does not send your choices to other people or to a Flyprox server.',
           ),
           const _Rule(
             title: 'Be kind',
@@ -65,9 +76,14 @@ class SafetyCenterScreen extends StatelessWidget {
             body:
                 'Flyprox is for people 14 and older. Do not use the app if you are under 14.',
           ),
+          const _Rule(
+            title: 'Report a question',
+            body:
+                'Use Report question during a round or email support with the question text. Leave out participant names and sensitive information.',
+          ),
           const SizedBox(height: 8),
           TextButton(
-            onPressed: _mail,
+            onPressed: () => _mail(context),
             child: const Text('Email ${AppConstants.supportEmail}'),
           ),
         ],
@@ -101,7 +117,8 @@ class _Rule extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
             ),
             const SizedBox(height: 6),
-            Text(body, style: const TextStyle(color: Colors.black54, height: 1.4)),
+            Text(body,
+                style: const TextStyle(color: Colors.black54, height: 1.4)),
           ],
         ),
       ),

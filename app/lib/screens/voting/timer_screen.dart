@@ -12,9 +12,9 @@ const Color _accentRed = Color(0xFFFF3B5C);
 // ---------------------------------------------------------------------------
 const List<String> _motivationQuotes = [
   '"Real stars shine even when no one watches"',
-  '"Every vote is a small sign of respect. Collect them!"',
-  '"Those who wait get twice as much"',
-  '"New round soon. Get ready to surprise your friends!"',
+  '"Every round is a chance to try a new question."',
+  '"Take a break. A new round will be ready soon."',
+  '"New round soon. Get ready for more game questions!"',
   '"Best moments come to those who wait"',
 ];
 

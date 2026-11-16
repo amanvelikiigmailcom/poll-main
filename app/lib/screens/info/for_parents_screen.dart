@@ -2,18 +2,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../utils/constants.dart';
+
 class ForParentsScreen extends ConsumerWidget {
   const ForParentsScreen({super.key});
 
   static const _primaryBlue = Color(0xFF4B6EF5);
 
-  Future<void> _sendEmail() async {
+  Future<void> _sendEmail(BuildContext context) async {
     final uri = Uri(
       scheme: 'mailto',
-      path: 'parents@hidavo.app',
-      query: 'subject=Вопрос от родителя&body=Здравствуйте,\n\nУ меня есть вопрос об использовании Flyprox моим ребёнком:\n\n',
+      path: AppConstants.supportEmail,
+      queryParameters: const {'subject': 'Flyprox parent or guardian question'},
     );
-    if (await canLaunchUrl(uri)) await launchUrl(uri);
+    try {
+      final opened = await launchUrl(uri);
+      if (opened || !context.mounted) return;
+    } catch (_) {
+      if (!context.mounted) return;
+    }
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Please email ${AppConstants.supportEmail}')),
+      );
+    }
   }
 
   @override
@@ -31,28 +44,28 @@ class ForParentsScreen extends ConsumerWidget {
           children: [
             _section(
               Icons.info_rounded,
-              'Как работает приложение',
-              'Flyprox — это анонимное приложение для школьников, где ученики голосуют друг за друга в шуточных опросах. Голосование полностью анонимно — невозможно узнать кто за кого голосовал.',
+              'How the game works',
+              'Flyprox is a name-based quiz game played on one device. Players choose a nickname and participant names, or use ready-made examples, then play 12-question rounds.',
             ),
             _section(
               Icons.lock_rounded,
-              'Анонимность и безопасность',
-              '• Нельзя голосовать за себя\n• Голосование только внутри своей школы\n• Контакты обрабатываются локально на устройстве\n• Мы не продаём данные третьим лицам\n• Все данные хранятся зашифрованно',
+              'Participant names',
+              'Nicknames and fictional names are welcome. The names are labels on game cards, not connected accounts. Other people do not need the app, and Flyprox does not contact them or send them the player’s choices.',
             ),
             _section(
               Icons.child_care_rounded,
-              'Возрастные ограничения',
-              'Приложение предназначено для школьников 14–19 лет. При регистрации пользователь указывает возраст. Контент проходит модерацию.',
+              'Age and responsible play',
+              'Flyprox is intended for people aged 14 and over. Use it for entertainment and discuss respectful play. Do not enter sensitive information about anyone or use the game to harass or embarrass another person.',
             ),
             _section(
               Icons.privacy_tip_rounded,
-              'Политика конфиденциальности',
-              'Мы соблюдаем требования GDPR и законодательства о защите данных несовершеннолетних (COPPA). Полная политика доступна на сайте hidavo.app/privacy',
+              'Game data and privacy',
+              'The game profile, participant names and progress are stored locally. No server account is required. Read Privacy policy and Terms of use in Settings for the current information about data and optional sharing.',
             ),
             _section(
               Icons.supervisor_account_rounded,
-              'Как контролировать активность',
-              '• Попросите ребёнка показать приложение\n• Обсудите правила безопасного общения онлайн\n• При необходимости можно удалить аккаунт через Настройки',
+              'Helping a player',
+              'Explore the game together, choose fictional names if preferred, and discuss the prompts. Report a concerning question using Report question or email support. Choose Reset game in Settings to delete local game data.',
             ),
             const SizedBox(height: 16),
             Container(
@@ -66,19 +79,24 @@ class ForParentsScreen extends ConsumerWidget {
                 children: [
                   const Icon(Icons.mail_rounded, color: _primaryBlue, size: 36),
                   const SizedBox(height: 12),
-                  const Text('Поддержка для родителей', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+                  const Text('Parent and guardian support',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
                   const SizedBox(height: 8),
-                  const Text('parents@hidavo.app', style: TextStyle(color: Colors.grey)),
+                  const Text(AppConstants.supportEmail,
+                      style: TextStyle(color: Colors.grey)),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
-                    onPressed: _sendEmail,
+                    onPressed: () => _sendEmail(context),
                     icon: const Icon(Icons.mail_outline_rounded),
-                    label: const Text('Написать нам'),
+                    label: const Text('Email support'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _primaryBlue,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                 ],
@@ -94,17 +112,22 @@ class ForParentsScreen extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+          color: Colors.white, borderRadius: BorderRadius.circular(12)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
             Icon(icon, color: _primaryBlue, size: 20),
             const SizedBox(width: 8),
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            Expanded(
+                child: Text(title,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 16))),
           ]),
           const SizedBox(height: 10),
-          Text(body, style: const TextStyle(color: Colors.black87, height: 1.5)),
+          Text(body,
+              style: const TextStyle(color: Colors.black87, height: 1.5)),
         ],
       ),
     );

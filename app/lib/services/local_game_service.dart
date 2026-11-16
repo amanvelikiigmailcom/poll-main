@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../data/intro_questions.dart';
 import '../data/poll_questions.dart';
 
 /// A poll question resolved against the locally-saved friend names,
@@ -18,6 +19,21 @@ class GeneratedQuestion {
     required this.emoji,
     required this.category,
     required this.optionNames,
+  });
+}
+
+/// Saved mid-round position: which round was in progress (as a count of
+/// completed rounds), the current question index, and the round's question
+/// ids in play order.
+class RoundProgress {
+  final int round;
+  final int questionIndex;
+  final List<String> questionIds;
+
+  const RoundProgress({
+    required this.round,
+    required this.questionIndex,
+    required this.questionIds,
   });
 }
 
@@ -39,9 +55,15 @@ class LocalGameService {
   static const _starsKey = 'local_star_balance';
   static const _lastRoundKey = 'local_last_round_completed_at';
   static const _usedQuestionIdsKey = 'local_used_question_ids';
+  static const _completedRoundsKey = 'local_rounds_completed';
+  static const _roundProgressKey = 'local_round_progress';
 
   static const int roundLength = 12;
   static const int questionsPerCategory = 4;
+
+  /// First [introRounds] rounds play the fixed neutral intro
+  /// ([introQuestionSeeds]); later rounds use the full pool.
+  static const int introRounds = 2;
   static const int starsPerRound = 1000;
   static const int roundBreakSeconds = 40 * 60;
 
@@ -225,6 +247,8 @@ class LocalGameService {
     await prefs.remove(_starsKey);
     await prefs.remove(_lastRoundKey);
     await prefs.remove(_usedQuestionIdsKey);
+    await prefs.remove(_completedRoundsKey);
+    await prefs.remove(_roundProgressKey);
   }
 
   // ── 40-minute round timer ────────────────────────────────────────────────
@@ -245,10 +269,15 @@ class LocalGameService {
     await prefs.setInt(_lastRoundKey, DateTime.now().millisecondsSinceEpoch);
   }
 
-  /// Called when a 12-question round finishes: awards the flat 1000 stars
-  /// and starts the 40-minute break before the next round unlocks.
+  /// Called when a 12-question round finishes: awards the flat 1000 stars,
+  /// counts the round as completed, clears saved mid-round progress and
+  /// starts the 40-minute break before the next round unlocks.
   Future<int> completeRound() async {
     await _markRoundCompletedNow();
+    final prefs = await _prefs;
+    final done = await getCompletedRounds();
+    await prefs.setInt(_completedRoundsKey, done + 1);
+    await _clearRoundProgress();
     return addStars(starsPerRound);
   }
 
@@ -256,6 +285,94 @@ class LocalGameService {
   Future<void> bypassTimer() async {
     final prefs = await _prefs;
     await prefs.remove(_lastRoundKey);
+  }
+
+  // ── Completed rounds + mid-round progress ──────────────────────────────
+
+  /// How many full 12-question rounds were completed on this device.
+  /// Drives the intro flow: rounds below [introRounds] play the fixed
+  /// neutral intro; the counter survives app restarts and is cleared
+  /// together with everything else by [clearAll].
+  Future<int> getCompletedRounds() async {
+    final prefs = await _prefs;
+    final n = prefs.getInt(_completedRoundsKey);
+    if (n == null || n < 0) return 0;
+    return n;
+  }
+
+  /// Remembers where the player stopped inside the current intro round so
+  /// an app restart resumes the same round instead of returning to its
+  /// start. Only the intro rounds ([introRounds]) use this; later rounds
+  /// keep the previous behavior (a fresh round on every entry).
+  Future<void> saveRoundProgress({
+    required int round,
+    required int questionIndex,
+    required List<String> questionIds,
+  }) async {
+    final prefs = await _prefs;
+    await prefs.setString(
+      _roundProgressKey,
+      jsonEncode({
+        'round': round,
+        'index': questionIndex,
+        'ids': questionIds,
+      }),
+    );
+  }
+
+  Future<RoundProgress?> loadRoundProgress() async {
+    final prefs = await _prefs;
+    final raw = prefs.getString(_roundProgressKey);
+    if (raw == null) return null;
+    try {
+      final map = jsonDecode(raw) as Map<String, dynamic>;
+      final round = map['round'] as int;
+      final index = map['index'] as int;
+      final ids = (map['ids'] as List<dynamic>).cast<String>().toList();
+      if (round < 0 || index < 0 || ids.isEmpty) return null;
+      return RoundProgress(
+          round: round, questionIndex: index, questionIds: ids);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _clearRoundProgress() async {
+    final prefs = await _prefs;
+    await prefs.remove(_roundProgressKey);
+  }
+
+  PollQuestionSeed? _seedById(String id) {
+    for (final seed in introQuestionSeeds) {
+      if (seed.id == id) return seed;
+    }
+    for (final seed in pollQuestionSeeds) {
+      if (seed.id == id) return seed;
+    }
+    return null;
+  }
+
+  /// Rebuilds the questions for previously saved [ids] (mid-round resume).
+  /// Returns null when the setup is gone or any id is unknown, so the
+  /// caller generates a fresh round instead.
+  Future<List<GeneratedQuestion>?> restoreRound({
+    required List<String> ids,
+    String languageCode = 'ru',
+  }) async {
+    final playerName = await getPlayerName();
+    final friends = await getNames();
+    if (playerName == null || playerName.isEmpty || friends.isEmpty) {
+      return null;
+    }
+    final seeds = <PollQuestionSeed>[];
+    for (final id in ids) {
+      final seed = _seedById(id);
+      if (seed == null) return null;
+      seeds.add(seed);
+    }
+    return seeds
+        .map((s) => _toGenerated(s, playerName, friends, languageCode))
+        .toList();
   }
 
   // ── Round generation ─────────────────────────────────────────────────────
@@ -316,20 +433,55 @@ class LocalGameService {
     return options;
   }
 
-  /// Builds the next 12-question round: 4 sympathy, then 4 normal, then
-  /// 4 humor (sympathy always first). Each question has up to 4 names:
-  /// always includes the player + classmates.
+  GeneratedQuestion _toGenerated(
+    PollQuestionSeed seed,
+    String playerName,
+    List<String> friends,
+    String languageCode,
+  ) {
+    return GeneratedQuestion(
+      id: seed.id,
+      question: seed.text(languageCode),
+      emoji: seed.emoji,
+      category: seed.category,
+      optionNames: _buildOptions(playerName, friends),
+    );
+  }
+
+  /// Builds the next 12-question round.
+  ///
+  /// Rounds 1–2 ([introRounds]) play the fixed neutral intro from
+  /// [introQuestionSeeds] in order. Round 3+ keeps the previous behavior:
+  /// 4 sympathy, then 4 normal, then 4 humor (sympathy always first),
+  /// picked at random excluding already-used pool questions.
+  /// Each question has up to 4 names: always includes the player +
+  /// classmates.
   Future<List<GeneratedQuestion>> generateRound({
     String languageCode = 'ru',
   }) async {
     final playerName = await getPlayerName();
     final friends = await getNames();
-    final used = await _usedQuestionIds();
 
     if (playerName == null || playerName.isEmpty || friends.isEmpty) {
       return [];
     }
 
+    final completed = await getCompletedRounds();
+    if (completed < introRounds) {
+      final seeds = introQuestionSeeds
+          .skip(completed * roundLength)
+          .take(roundLength)
+          .toList();
+      if (seeds.length == roundLength) {
+        return seeds
+            .map((s) => _toGenerated(s, playerName, friends, languageCode))
+            .toList();
+      }
+      // Truncated intro data — fall through to the pool instead of
+      // stranding the player on an empty round.
+    }
+
+    final used = await _usedQuestionIds();
     final seeds = <PollQuestionSeed>[];
     for (final category in _categoryOrder) {
       seeds.addAll(_pickForCategory(category, used, questionsPerCategory));
@@ -337,14 +489,8 @@ class LocalGameService {
     used.addAll(seeds.map((s) => s.id));
     await _saveUsedQuestionIds(used);
 
-    return seeds.map((seed) {
-      return GeneratedQuestion(
-        id: seed.id,
-        question: seed.text(languageCode),
-        emoji: seed.emoji,
-        category: seed.category,
-        optionNames: _buildOptions(playerName, friends),
-      );
-    }).toList();
+    return seeds
+        .map((s) => _toGenerated(s, playerName, friends, languageCode))
+        .toList();
   }
 }

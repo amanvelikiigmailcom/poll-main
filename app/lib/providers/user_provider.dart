@@ -168,11 +168,13 @@ class LocalProfile {
 }
 
 class LocalProfileNotifier extends StateNotifier<LocalProfile> {
+  int _refreshGeneration = 0;
   LocalProfileNotifier() : super(const LocalProfile()) {
     refresh();
   }
 
   Future<void> refresh() async {
+    final generation = ++_refreshGeneration;
     final game = LocalGameService.instance;
     final username = await game.getUsername() ?? '';
     final playerName = await game.getPlayerName() ?? '';
@@ -180,6 +182,7 @@ class LocalProfileNotifier extends StateNotifier<LocalProfile> {
     final universityYear = await game.getUniversityYear();
     final stars = await game.getStars();
     final peopleCount = (await game.getNames()).length;
+    if (!mounted || generation != _refreshGeneration) return;
     state = LocalProfile(
       username: username,
       playerName: playerName,
@@ -189,6 +192,12 @@ class LocalProfileNotifier extends StateNotifier<LocalProfile> {
       peopleCount: peopleCount,
       isLoaded: true,
     );
+  }
+
+  /// Clears the visible cache immediately and invalidates pending refreshes.
+  void clear() {
+    _refreshGeneration++;
+    state = const LocalProfile(isLoaded: true);
   }
 
   Future<void> save({

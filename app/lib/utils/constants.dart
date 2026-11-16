@@ -39,10 +39,17 @@ class AppConstants {
   static const String keyCurrentUser = 'current_user';
 
   // Deep links
-  static const String telegramBotDeepLink = 'tg://resolve?domain=HidavoBot&start=auth_';
+  static const String telegramBotDeepLink =
+      'tg://resolve?domain=HidavoBot&start=auth_';
 
   // URLs
-  static const String termsUrl = 'https://hidavo.app/terms';
-  static const String privacyUrl = 'https://hidavo.app/privacy';
-  static const String supportEmail = 'support@hidavo.app';
+  static const String marketingUrl =
+      'https://distinct-lunaria-d0a.notion.site/41ae779d274281a095c3dd25afefafe2';
+  static const String supportUrl =
+      'https://distinct-lunaria-d0a.notion.site/41ae779d2742815494ebfa72e5db4620';
+  static const String termsUrl =
+      'https://distinct-lunaria-d0a.notion.site/41ae779d27428104bac7d2e41d83015a';
+  static const String privacyUrl =
+      'https://distinct-lunaria-d0a.notion.site/41ae779d27428120b9bbfb769e7063f6';
+  static const String supportEmail = 'support@flyprox.com';
 }
