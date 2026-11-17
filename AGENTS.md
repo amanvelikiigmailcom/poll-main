@@ -84,3 +84,12 @@ flutter run -d chrome
 - Подготовленные изменения опубликованной политики: `docs/privacy-policy-update.md`. Это проект дополнений; публикация в Notion требует отдельного подтверждения. Поставщики поддержки, сроки хранения, правовые основания и применимость GDPR требуют отдельной проверки владельцем приложения.
 
 - Исходные PPM-материалы дизайна (146 файлов, ~151 МиБ) хранятся в `design-reference/ppm/`, вне `app/assets/`, и не входят в ресурсы Flutter. Не добавлять эту папку в `pubspec.yaml`.
+
+## Проверенные версии зависимостей (2026-11-17)
+
+- Flutter локально и в Xcode Cloud закреплён на 3.44.4; минимальные требования пакета — Flutter 3.44 / Dart 3.12. Сборка проверена на Xcode/iOS SDK 27.2, минимальный iOS остаётся 15.0.
+- Заметно отставшие прямые зависимости обновлялись по одной с анализом и полным набором из 51 теста после каждого шага: go_router 17.5.0, flutter_riverpod 3.5.0, pinput 6.0.2, flutter_secure_storage 10.3.4, permission_handler 12.0.3, smooth_page_indicator 3.0.0.
+- go_router 18 и pinput 7 требуют миграции с встроенного Material на material_ui/cupertino_ui; не перескакивать на эти версии без проверки всего интерфейса. Текущие StateNotifier/StateProvider используют поддерживаемый `flutter_riverpod/legacy.dart`.
+- flutter_secure_storage 10 сохраняет путь миграции с версии 9; включены `migrateOnAlgorithmChange`, `migrateWithBackup`, а `resetOnError` выключен. Не переходить на 11 до проверки миграции существующих Android-данных; одного локального запуска версии 10 для будущих пользователей недостаточно.
+- permission_handler 13 требует Android API 37 и более нового AGP, чем текущий 8.7.3; версия 12.0.3 выбрана для совместимости с существующей Android-конфигурацией. Android SDK на этом Mac отсутствует, Android-сборка не проверена.
+- После свежего checkout перед локальным iOS Archive: `cd app && flutter pub get`, затем `cd ios && pod install`; открывать Runner.xcworkspace. Pods/Manifest.lock генерируется локально и должен совпадать с Podfile.lock.
