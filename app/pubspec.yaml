@@ -31,7 +31,7 @@ dependencies:
   smooth_page_indicator: ^1.1.0
   pinput: ^6.0.2
   image_picker: ^1.1.2
-  permission_handler: ^11.3.1
+  permission_handler: ^12.0.3
 
   # Phone input
   intl_phone_field: ^3.2.0
