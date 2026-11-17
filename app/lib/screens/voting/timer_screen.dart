@@ -12,6 +12,9 @@ const Color _accentRed = Color(0xFFFF3B5C);
 // Motivation quotes shown while waiting
 // ---------------------------------------------------------------------------
 const List<String> _motivationQuotes = [
+  'Did you know? People tend to prefer those they see frequently.',
+  'Did you know? Laughter actually increases pain tolerance.',
+  'Did you know? Friendship can increase your lifespan.',
   '"Real stars shine even when no one watches"',
   '"Every round is a chance to try a new question."',
   '"Take a break. A new round will be ready soon."',
