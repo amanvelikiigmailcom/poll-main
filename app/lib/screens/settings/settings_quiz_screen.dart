@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class SettingsPollScreen extends ConsumerStatefulWidget {
-  const SettingsPollScreen({super.key});
+class SettingsQuizScreen extends ConsumerStatefulWidget {
+  const SettingsQuizScreen({super.key});
 
   @override
-  ConsumerState<SettingsPollScreen> createState() => _SettingsPollScreenState();
+  ConsumerState<SettingsQuizScreen> createState() => _SettingsQuizScreenState();
 }
 
-class _SettingsPollScreenState extends ConsumerState<SettingsPollScreen> {
+class _SettingsQuizScreenState extends ConsumerState<SettingsQuizScreen> {
   static const _primaryBlue = Color(0xFF4B6EF5);
 
   String _selected = 'Все';
@@ -20,7 +20,7 @@ class _SettingsPollScreenState extends ConsumerState<SettingsPollScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F8F8),
       appBar: AppBar(
-        title: const Text('Настройки опроса'),
+        title: const Text('Настройки викторины'),
         backgroundColor: Colors.white,
       ),
       body: Column(
@@ -35,7 +35,7 @@ class _SettingsPollScreenState extends ConsumerState<SettingsPollScreen> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Выберите, участников какого пола вы хотите видеть в опросах.',
+                  'Выберите, участников какого пола вы хотите видеть в викторинах.',
                   style: TextStyle(color: Colors.grey, fontSize: 14),
                 ),
                 const SizedBox(height: 20),

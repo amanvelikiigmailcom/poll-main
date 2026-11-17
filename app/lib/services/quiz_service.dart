@@ -1,32 +1,32 @@
 import 'api_service.dart';
 
-/// A single poll question with its candidate options.
-class PollQuestion {
+/// A single quiz question with its candidate options.
+class QuizQuestion {
   final String id;
   final String text;
   final String category; // humor | normal | sympathy
-  final List<PollCandidate> candidates;
+  final List<QuizCandidate> candidates;
 
-  const PollQuestion({
+  const QuizQuestion({
     required this.id,
     required this.text,
     required this.category,
     required this.candidates,
   });
 
-  factory PollQuestion.fromJson(Map<String, dynamic> json) {
-    return PollQuestion(
+  factory QuizQuestion.fromJson(Map<String, dynamic> json) {
+    return QuizQuestion(
       id: json['id'] as String,
       text: json['text'] as String,
       category: json['category'] as String? ?? 'normal',
       candidates: (json['candidates'] as List<dynamic>? ?? [])
-          .map((e) => PollCandidate.fromJson(e as Map<String, dynamic>))
+          .map((e) => QuizCandidate.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
   }
 }
 
-class PollCandidate {
+class QuizCandidate {
   final String id;
   final String firstName;
   final String lastName;
@@ -34,7 +34,7 @@ class PollCandidate {
   final int grade;
   final String? gradeClass;
 
-  const PollCandidate({
+  const QuizCandidate({
     required this.id,
     required this.firstName,
     required this.lastName,
@@ -45,8 +45,8 @@ class PollCandidate {
 
   String get fullName => '$firstName $lastName'.trim();
 
-  factory PollCandidate.fromJson(Map<String, dynamic> json) {
-    return PollCandidate(
+  factory QuizCandidate.fromJson(Map<String, dynamic> json) {
+    return QuizCandidate(
       id: json['id'] as String,
       firstName: json['firstName'] as String? ?? '',
       lastName: json['lastName'] as String? ?? '',
@@ -57,25 +57,25 @@ class PollCandidate {
   }
 }
 
-/// Full poll session (up to 12 questions for the current round).
-class PollSession {
+/// Full quiz session (up to 12 questions for the current round).
+class QuizSession {
   final String sessionId;
-  final List<PollQuestion> questions;
+  final List<QuizQuestion> questions;
   final int totalQuestions;
   final int answeredCount;
 
-  const PollSession({
+  const QuizSession({
     required this.sessionId,
     required this.questions,
     required this.totalQuestions,
     this.answeredCount = 0,
   });
 
-  factory PollSession.fromJson(Map<String, dynamic> json) {
-    return PollSession(
+  factory QuizSession.fromJson(Map<String, dynamic> json) {
+    return QuizSession(
       sessionId: json['sessionId'] as String? ?? '',
       questions: (json['questions'] as List<dynamic>? ?? [])
-          .map((e) => PollQuestion.fromJson(e as Map<String, dynamic>))
+          .map((e) => QuizQuestion.fromJson(e as Map<String, dynamic>))
           .toList(),
       totalQuestions: json['totalQuestions'] as int? ?? 12,
       answeredCount: json['answeredCount'] as int? ?? 0,
@@ -85,10 +85,10 @@ class PollSession {
 
 /// Timer status returned by the server.
 class TimerStatus {
-  /// Whether a poll round is currently active.
+  /// Whether a quiz round is currently active.
   final bool isActive;
 
-  /// Seconds remaining until the next poll round starts (0 when active).
+  /// Seconds remaining until the next quiz round starts (0 when active).
   final int secondsRemaining;
 
   /// UTC timestamp when the next round begins (nullable when active).
@@ -132,26 +132,26 @@ class VoteResult {
   }
 }
 
-class PollService {
+class QuizService {
   final ApiService _api;
 
-  PollService(this._api);
+  QuizService(this._api);
 
-  /// Fetches the current poll session (12 questions for this round).
-  Future<PollSession> getPolls() async {
-    final response = await _api.get<Map<String, dynamic>>('/api/polls/current');
-    return PollSession.fromJson(response.data!);
+  /// Fetches the current quiz session (12 questions for this round).
+  Future<QuizSession> getQuizzes() async {
+    final response = await _api.get<Map<String, dynamic>>('/api/quizzes/current');
+    return QuizSession.fromJson(response.data!);
   }
 
-  /// Submits a vote: the user chose [winnerId] for [pollId].
+  /// Submits a vote: the user chose [winnerId] for [quizId].
   Future<VoteResult> submitVote({
-    required String pollId,
+    required String quizId,
     required String winnerId,
   }) async {
     final response = await _api.post<Map<String, dynamic>>(
       '/api/votes',
       data: {
-        'pollId': pollId,
+        'quizId': quizId,
         'winnerId': winnerId,
       },
     );
@@ -161,7 +161,7 @@ class PollService {
   /// Returns the current timer / round status.
   Future<TimerStatus> getTimerStatus() async {
     final response =
-        await _api.get<Map<String, dynamic>>('/api/polls/timer');
+        await _api.get<Map<String, dynamic>>('/api/quizzes/timer');
     return TimerStatus.fromJson(response.data!);
   }
 }

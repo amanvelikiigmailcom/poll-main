@@ -49,8 +49,8 @@ class _NotificationsSettingsScreenState
         enabled: true,
       ),
       _NotificationItem(
-        title: 'Новый опрос доступен',
-        subtitle: 'Уведомления о появлении новых опросов для вас',
+        title: 'Новая викторина доступна',
+        subtitle: 'Уведомления о появлении новых викторин для вас',
         enabled: false,
       ),
       _NotificationItem(

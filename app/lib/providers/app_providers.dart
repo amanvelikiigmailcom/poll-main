@@ -33,13 +33,13 @@ export 'user_provider.dart'
         userNotifierProvider,
         currentUserProvider;
 
-export 'poll_provider.dart'
+export 'quiz_provider.dart'
     show
-        PollSessionState,
-        PollNotifier,
+        QuizSessionState,
+        QuizNotifier,
         TimerState,
         TimerNotifier,
-        pollNotifierProvider,
+        quizNotifierProvider,
         timerNotifierProvider,
         currentQuestionProvider;
 
@@ -49,7 +49,7 @@ export 'service_providers.dart'
         apiServiceProvider,
         authServiceProvider,
         userServiceProvider,
-        pollServiceProvider;
+        quizServiceProvider;
 
 // ── Locale override ──────────────────────────────────────────────────────────
 
@@ -59,10 +59,10 @@ final appLocaleProvider = StateProvider<Locale?>((ref) => null);
 
 // ── Timer provider (standalone countdown) ────────────────────────────────────
 //
-// The full timer notifier lives in poll_provider.dart (TimerNotifier /
+// The full timer notifier lives in quiz_provider.dart (TimerNotifier /
 // timerNotifierProvider).  The alias below gives screens a short import path.
 
-/// Shorthand alias — already exported via poll_provider.dart above.
+/// Shorthand alias — already exported via quiz_provider.dart above.
 // (no additional code needed; re-exported as timerNotifierProvider)
 
 // ── Auth state convenience alias ─────────────────────────────────────────────

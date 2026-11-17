@@ -1,18 +1,18 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../services/poll_service.dart';
+import '../services/quiz_service.dart';
 import 'service_providers.dart';
 
-// ── Poll session state ────────────────────────────────────────────────────────
+// ── Quiz session state ────────────────────────────────────────────────────────
 
-class PollSessionState {
-  final PollSession? session;
+class QuizSessionState {
+  final QuizSession? session;
   final int currentQuestionIndex;
   final bool isLoading;
   final String? errorMessage;
   final bool isComplete;
 
-  const PollSessionState({
+  const QuizSessionState({
     this.session,
     this.currentQuestionIndex = 0,
     this.isLoading = false,
@@ -20,15 +20,15 @@ class PollSessionState {
     this.isComplete = false,
   });
 
-  PollSessionState copyWith({
-    PollSession? session,
+  QuizSessionState copyWith({
+    QuizSession? session,
     int? currentQuestionIndex,
     bool? isLoading,
     String? errorMessage,
     bool? isComplete,
     bool clearError = false,
   }) {
-    return PollSessionState(
+    return QuizSessionState(
       session: session ?? this.session,
       currentQuestionIndex: currentQuestionIndex ?? this.currentQuestionIndex,
       isLoading: isLoading ?? this.isLoading,
@@ -37,7 +37,7 @@ class PollSessionState {
     );
   }
 
-  PollQuestion? get currentQuestion {
+  QuizQuestion? get currentQuestion {
     final s = session;
     if (s == null || currentQuestionIndex >= s.questions.length) return null;
     return s.questions[currentQuestionIndex];
@@ -47,17 +47,17 @@ class PollSessionState {
   bool get hasSession => session != null;
 }
 
-// ── Poll notifier ─────────────────────────────────────────────────────────────
+// ── Quiz notifier ─────────────────────────────────────────────────────────────
 
-class PollNotifier extends StateNotifier<PollSessionState> {
-  final PollService _pollService;
+class QuizNotifier extends StateNotifier<QuizSessionState> {
+  final QuizService _quizService;
 
-  PollNotifier(this._pollService) : super(const PollSessionState());
+  QuizNotifier(this._quizService) : super(const QuizSessionState());
 
-  Future<void> loadPolls() async {
+  Future<void> loadQuizzes() async {
     state = state.copyWith(isLoading: true, clearError: true, isComplete: false);
     try {
-      final session = await _pollService.getPolls();
+      final session = await _quizService.getQuizzes();
       state = state.copyWith(
         isLoading: false,
         session: session,
@@ -71,12 +71,12 @@ class PollNotifier extends StateNotifier<PollSessionState> {
 
   /// Submits the vote and advances to the next question.
   Future<VoteResult?> submitVote({
-    required String pollId,
+    required String quizId,
     required String winnerId,
   }) async {
     try {
-      final result = await _pollService.submitVote(
-        pollId: pollId,
+      final result = await _quizService.submitVote(
+        quizId: quizId,
         winnerId: winnerId,
       );
       _advance();
@@ -101,7 +101,7 @@ class PollNotifier extends StateNotifier<PollSessionState> {
   }
 
   void reset() {
-    state = const PollSessionState();
+    state = const QuizSessionState();
   }
 }
 
@@ -150,15 +150,15 @@ class TimerState {
 // ── Timer notifier ────────────────────────────────────────────────────────────
 
 class TimerNotifier extends StateNotifier<TimerState> {
-  final PollService _pollService;
+  final QuizService _quizService;
   Timer? _ticker;
 
-  TimerNotifier(this._pollService) : super(const TimerState());
+  TimerNotifier(this._quizService) : super(const TimerState());
 
   Future<void> fetchTimerStatus() async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
-      final status = await _pollService.getTimerStatus();
+      final status = await _quizService.getTimerStatus();
       state = state.copyWith(
         isLoading: false,
         isActive: status.isActive,
@@ -195,17 +195,17 @@ class TimerNotifier extends StateNotifier<TimerState> {
 
 // ── Providers ─────────────────────────────────────────────────────────────────
 
-final pollNotifierProvider =
-    StateNotifierProvider<PollNotifier, PollSessionState>((ref) {
-  return PollNotifier(ref.watch(pollServiceProvider));
+final quizNotifierProvider =
+    StateNotifierProvider<QuizNotifier, QuizSessionState>((ref) {
+  return QuizNotifier(ref.watch(quizServiceProvider));
 });
 
 final timerNotifierProvider =
     StateNotifierProvider<TimerNotifier, TimerState>((ref) {
-  return TimerNotifier(ref.watch(pollServiceProvider));
+  return TimerNotifier(ref.watch(quizServiceProvider));
 });
 
-/// Convenience read-only provider for the current poll question (may be null).
-final currentQuestionProvider = Provider<PollQuestion?>((ref) {
-  return ref.watch(pollNotifierProvider).currentQuestion;
+/// Convenience read-only provider for the current quiz question (may be null).
+final currentQuestionProvider = Provider<QuizQuestion?>((ref) {
+  return ref.watch(quizNotifierProvider).currentQuestion;
 });

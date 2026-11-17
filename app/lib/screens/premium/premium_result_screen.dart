@@ -24,15 +24,15 @@ class PersonData {
 }
 
 class PremiumResultScreen extends StatefulWidget {
-  final String pollEmoji;
-  final String pollQuestion;
+  final String quizEmoji;
+  final String quizQuestion;
   final PremiumTier tier;
   final List<PersonData>? persons;
 
   const PremiumResultScreen({
     super.key,
-    this.pollEmoji = '😊',
-    this.pollQuestion = 'Кто самый красивый?',
+    this.quizEmoji = '😊',
+    this.quizQuestion = 'Кто самый красивый?',
     this.tier = PremiumTier.pro,
     this.persons,
   });
@@ -180,7 +180,7 @@ class _PremiumResultScreenState extends State<PremiumResultScreen>
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: Text(
-          '${widget.pollEmoji} ${widget.pollQuestion}',
+          '${widget.quizEmoji} ${widget.quizQuestion}',
           style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           overflow: TextOverflow.ellipsis,
         ),

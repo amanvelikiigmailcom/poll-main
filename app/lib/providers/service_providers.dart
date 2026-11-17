@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
-import '../services/poll_service.dart';
+import '../services/quiz_service.dart';
 import '../services/storage_service.dart';
 import '../services/user_service.dart';
 
@@ -32,6 +32,6 @@ final userServiceProvider = Provider<UserService>((ref) {
   );
 });
 
-final pollServiceProvider = Provider<PollService>((ref) {
-  return PollService(ref.watch(apiServiceProvider));
+final quizServiceProvider = Provider<QuizService>((ref) {
+  return QuizService(ref.watch(apiServiceProvider));
 });

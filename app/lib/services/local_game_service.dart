@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/intro_questions.dart';
-import '../data/poll_questions.dart';
+import '../data/quiz_questions.dart';
 
-/// A poll question resolved against the locally-saved friend names,
+/// A quiz question resolved against the locally-saved friend names,
 /// ready to hand to the vote screens.
 class GeneratedQuestion {
   final String id;
@@ -54,7 +54,7 @@ class RoundAnswer {
 
 /// Fully local (no backend, no auth) game state: the player's own name,
 /// friend-name list, star balance, 40-minute round timer, and generation
-/// of each 12-question round from [pollQuestionSeeds].
+/// of each 12-question round from [quizQuestionSeeds].
 ///
 /// Gas-style options: each question shows **4 names** =
 /// **your name + 3 classmates** (shuffled).
@@ -406,11 +406,11 @@ class LocalGameService {
     await prefs.remove(_roundProgressKey);
   }
 
-  PollQuestionSeed? _seedById(String id) {
+  QuizQuestionSeed? _seedById(String id) {
     for (final seed in introQuestionSeeds) {
       if (seed.id == id) return seed;
     }
-    for (final seed in pollQuestionSeeds) {
+    for (final seed in quizQuestionSeeds) {
       if (seed.id == id) return seed;
     }
     return null;
@@ -428,7 +428,7 @@ class LocalGameService {
     if (playerName == null || playerName.isEmpty || friends.isEmpty) {
       return null;
     }
-    final seeds = <PollQuestionSeed>[];
+    final seeds = <QuizQuestionSeed>[];
     for (final id in ids) {
       final seed = _seedById(id);
       if (seed == null) return null;
@@ -457,12 +457,12 @@ class LocalGameService {
     await prefs.setString(_usedQuestionIdsKey, jsonEncode(ids.toList()));
   }
 
-  List<PollQuestionSeed> _pickForCategory(
+  List<QuizQuestionSeed> _pickForCategory(
     String category,
     Set<String> used,
     int count,
   ) {
-    var pool = pollQuestionSeeds
+    var pool = quizQuestionSeeds
         .where((q) => q.category == category && !used.contains(q.id))
         .toList();
     // Every question in this category has been used already — reset the
@@ -471,9 +471,9 @@ class LocalGameService {
     if (pool.length < count) {
       used.removeWhere(
         (id) =>
-            pollQuestionSeeds.any((q) => q.id == id && q.category == category),
+            quizQuestionSeeds.any((q) => q.id == id && q.category == category),
       );
-      pool = pollQuestionSeeds.where((q) => q.category == category).toList();
+      pool = quizQuestionSeeds.where((q) => q.category == category).toList();
     }
     pool.shuffle(_random);
     return pool.take(count).toList();
@@ -498,7 +498,7 @@ class LocalGameService {
   }
 
   GeneratedQuestion _toGenerated(
-    PollQuestionSeed seed,
+    QuizQuestionSeed seed,
     String playerName,
     List<String> friends,
     String languageCode,
@@ -546,7 +546,7 @@ class LocalGameService {
     }
 
     final used = await _usedQuestionIds();
-    final seeds = <PollQuestionSeed>[];
+    final seeds = <QuizQuestionSeed>[];
     for (final category in _categoryOrder) {
       seeds.addAll(_pickForCategory(category, used, questionsPerCategory));
     }

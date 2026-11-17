@@ -33,7 +33,7 @@ import '../screens/settings/notifications_settings_screen.dart';
 import '../screens/settings/language_settings_screen.dart';
 import '../screens/settings/blocked_users_screen.dart';
 import '../screens/settings/hidden_users_screen.dart';
-import '../screens/settings/settings_poll_screen.dart';
+import '../screens/settings/settings_quiz_screen.dart';
 import '../screens/social/likes_filled_screen.dart';
 import '../screens/social/likes_empty_screen.dart';
 import '../screens/social/likes_result_screen.dart';
@@ -82,7 +82,7 @@ abstract final class AppRoutes {
   static const languageSettings = '/language-settings';
   static const blockedUsers = '/blocked-users';
   static const hiddenUsers = '/hidden-users';
-  static const settingsPoll = '/settings-poll';
+  static const settingsQuiz = '/settings-quiz';
   static const likesFilled = '/likes';
   static const likesEmpty = '/likes-empty';
   static const likesResult = '/likes-result';
@@ -223,8 +223,8 @@ final GoRouter appRouter = GoRouter(
             path: AppRoutes.hiddenUsers,
             builder: (_, __) => const HiddenUsersScreen()),
         GoRoute(
-            path: AppRoutes.settingsPoll,
-            builder: (_, __) => const SettingsPollScreen()),
+            path: AppRoutes.settingsQuiz,
+            builder: (_, __) => const SettingsQuizScreen()),
         GoRoute(
             path: AppRoutes.likesFilled,
             builder: (_, __) => const LikesFilledScreen()),

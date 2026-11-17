@@ -69,7 +69,7 @@ class LikesEmptyScreen extends ConsumerWidget {
                       elevation: 0,
                     ),
                     child: const Text(
-                      'Go to polls',
+                      'Play the quiz',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,

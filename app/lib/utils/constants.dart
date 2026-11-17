@@ -4,7 +4,7 @@ class AppConstants {
 
   // Timer
   static const int timerDurationSeconds = 40 * 60; // 40 minutes
-  static const int dailyPollsCount = 50;
+  static const int dailyQuizzesCount = 50;
   static const int questionsPerRound = 12;
   static const int optionsPerQuestion = 4;
 

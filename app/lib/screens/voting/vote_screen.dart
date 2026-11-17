@@ -13,13 +13,13 @@ import '../../widgets/common/question_report_dialog.dart';
 // Data models
 // ---------------------------------------------------------------------------
 
-class PollOption {
+class QuizOption {
   final String id;
   final String name;
   final String grade;
   final String? avatarUrl;
 
-  const PollOption({
+  const QuizOption({
     required this.id,
     required this.name,
     required this.grade,
@@ -27,14 +27,14 @@ class PollOption {
   });
 }
 
-class PollQuestion {
+class QuizQuestion {
   final String id;
   final String question;
   final String emoji;
   final String category; // humor | normal | sympathy
-  final List<PollOption> options;
+  final List<QuizOption> options;
 
-  const PollQuestion({
+  const QuizQuestion({
     required this.id,
     required this.question,
     required this.emoji,
@@ -61,7 +61,7 @@ class _VoteScreenState extends State<VoteScreen>
     with SingleTickerProviderStateMixin {
   static const int _totalQuestions = 12;
 
-  List<PollQuestion> _questions = [];
+  List<QuizQuestion> _questions = [];
   bool _loading = true;
   bool _roundLoadStarted = false;
 
@@ -70,7 +70,7 @@ class _VoteScreenState extends State<VoteScreen>
   String? _selectedOptionId;
   bool _isAdvancing = false;
   bool _reporting = false;
-  List<PollOption> _shuffledOptions = [];
+  List<QuizOption> _shuffledOptions = [];
 
   // Slide transition
   late AnimationController _slideController;
@@ -156,7 +156,7 @@ class _VoteScreenState extends State<VoteScreen>
 
     final questions = generated
         .map(
-          (g) => PollQuestion(
+          (g) => QuizQuestion(
             id: g.id,
             question: g.question,
             emoji: g.emoji,
@@ -164,7 +164,7 @@ class _VoteScreenState extends State<VoteScreen>
             options: g.optionNames
                 .asMap()
                 .entries
-                .map((e) => PollOption(
+                .map((e) => QuizOption(
                     id: '${g.id}_${e.key}', name: e.value, grade: ''))
                 .toList(),
           ),
@@ -195,7 +195,7 @@ class _VoteScreenState extends State<VoteScreen>
     super.dispose();
   }
 
-  PollQuestion get _currentQuestion => _questions[_currentIndex];
+  QuizQuestion get _currentQuestion => _questions[_currentIndex];
 
   void _selectOption(String optionId) {
     if (_selectedOptionId != null || _isAdvancing) return;
@@ -467,7 +467,7 @@ class _VoteScreenState extends State<VoteScreen>
 // ---------------------------------------------------------------------------
 
 class _OptionCard extends StatelessWidget {
-  final PollOption option;
+  final QuizOption option;
   final bool isSelected;
   final bool isDisabled;
   final VoidCallback onTap;

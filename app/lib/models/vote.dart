@@ -1,12 +1,12 @@
 import 'package:equatable/equatable.dart';
 
-import 'poll.dart';
+import 'quiz.dart';
 
 /// Records a completed vote cast by the current user.
 class Vote extends Equatable {
   const Vote({
     required this.id,
-    required this.pollId,
+    required this.quizId,
     required this.winnerId,
     required this.winnerName,
     this.winnerAvatar,
@@ -16,20 +16,20 @@ class Vote extends Equatable {
   });
 
   final String id;
-  final String pollId;
+  final String quizId;
   final String winnerId;
   final String winnerName;
   final String? winnerAvatar;
 
   /// School grade of the winner (8–12).
   final int winnerGrade;
-  final PollCategory category;
+  final QuizCategory category;
   final DateTime createdAt;
 
   factory Vote.fromJson(Map<String, dynamic> json) {
     return Vote(
       id: json['id'] as String,
-      pollId: json['pollId'] as String,
+      quizId: json['quizId'] as String,
       winnerId: json['winnerId'] as String,
       winnerName: json['winnerName'] as String,
       winnerAvatar: json['winnerAvatar'] as String?,
@@ -43,7 +43,7 @@ class Vote extends Equatable {
 
   Map<String, dynamic> toJson() => {
         'id': id,
-        'pollId': pollId,
+        'quizId': quizId,
         'winnerId': winnerId,
         'winnerName': winnerName,
         'winnerAvatar': winnerAvatar,
@@ -54,17 +54,17 @@ class Vote extends Equatable {
 
   Vote copyWith({
     String? id,
-    String? pollId,
+    String? quizId,
     String? winnerId,
     String? winnerName,
     String? winnerAvatar,
     int? winnerGrade,
-    PollCategory? category,
+    QuizCategory? category,
     DateTime? createdAt,
   }) {
     return Vote(
       id: id ?? this.id,
-      pollId: pollId ?? this.pollId,
+      quizId: quizId ?? this.quizId,
       winnerId: winnerId ?? this.winnerId,
       winnerName: winnerName ?? this.winnerName,
       winnerAvatar: winnerAvatar ?? this.winnerAvatar,
@@ -74,24 +74,24 @@ class Vote extends Equatable {
     );
   }
 
-  static PollCategory _categoryFromString(String value) {
+  static QuizCategory _categoryFromString(String value) {
     switch (value) {
       case 'humor':
-        return PollCategory.humor;
+        return QuizCategory.humor;
       case 'sympathy':
-        return PollCategory.sympathy;
+        return QuizCategory.sympathy;
       default:
-        return PollCategory.normal;
+        return QuizCategory.normal;
     }
   }
 
-  static String _categoryToString(PollCategory category) {
+  static String _categoryToString(QuizCategory category) {
     switch (category) {
-      case PollCategory.humor:
+      case QuizCategory.humor:
         return 'humor';
-      case PollCategory.sympathy:
+      case QuizCategory.sympathy:
         return 'sympathy';
-      case PollCategory.normal:
+      case QuizCategory.normal:
         return 'normal';
     }
   }
@@ -99,7 +99,7 @@ class Vote extends Equatable {
   @override
   List<Object?> get props => [
         id,
-        pollId,
+        quizId,
         winnerId,
         winnerName,
         winnerAvatar,

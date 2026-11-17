@@ -1,11 +1,11 @@
 import 'package:equatable/equatable.dart';
 
-/// Category of a poll question.
-enum PollCategory { humor, normal, sympathy }
+/// Category of a quiz question.
+enum QuizCategory { humor, normal, sympathy }
 
-/// A single candidate option shown inside a poll question.
-class PollOption extends Equatable {
-  const PollOption({
+/// A single candidate option shown inside a quiz question.
+class QuizOption extends Equatable {
+  const QuizOption({
     required this.userId,
     required this.name,
     this.avatarUrl,
@@ -19,8 +19,8 @@ class PollOption extends Equatable {
   /// School grade (8–12).
   final int grade;
 
-  factory PollOption.fromJson(Map<String, dynamic> json) {
-    return PollOption(
+  factory QuizOption.fromJson(Map<String, dynamic> json) {
+    return QuizOption(
       userId: json['userId'] as String,
       name: json['name'] as String,
       avatarUrl: json['avatarUrl'] as String?,
@@ -35,13 +35,13 @@ class PollOption extends Equatable {
         'grade': grade,
       };
 
-  PollOption copyWith({
+  QuizOption copyWith({
     String? userId,
     String? name,
     String? avatarUrl,
     int? grade,
   }) {
-    return PollOption(
+    return QuizOption(
       userId: userId ?? this.userId,
       name: name ?? this.name,
       avatarUrl: avatarUrl ?? this.avatarUrl,
@@ -53,9 +53,9 @@ class PollOption extends Equatable {
   List<Object?> get props => [userId, name, avatarUrl, grade];
 }
 
-/// A single poll question with four candidate [options].
-class Poll extends Equatable {
-  const Poll({
+/// A single quiz question with four candidate [options].
+class Quiz extends Equatable {
+  const Quiz({
     required this.id,
     required this.question,
     required this.emoji,
@@ -69,22 +69,22 @@ class Poll extends Equatable {
 
   /// Decorative emoji accompanying the question.
   final String emoji;
-  final PollCategory category;
+  final QuizCategory category;
 
-  /// Always contains exactly 4 [PollOption] entries.
-  final List<PollOption> options;
+  /// Always contains exactly 4 [QuizOption] entries.
+  final List<QuizOption> options;
 
-  /// Whether the current user has already voted on this poll.
+  /// Whether the current user has already voted on this quiz.
   final bool isAnswered;
 
-  factory Poll.fromJson(Map<String, dynamic> json) {
-    return Poll(
+  factory Quiz.fromJson(Map<String, dynamic> json) {
+    return Quiz(
       id: json['id'] as String,
       question: json['question'] as String,
       emoji: json['emoji'] as String? ?? '⭐',
       category: _categoryFromString(json['category'] as String? ?? 'normal'),
       options: (json['options'] as List<dynamic>? ?? [])
-          .map((e) => PollOption.fromJson(e as Map<String, dynamic>))
+          .map((e) => QuizOption.fromJson(e as Map<String, dynamic>))
           .toList(),
       isAnswered: json['isAnswered'] as bool? ?? false,
     );
@@ -99,15 +99,15 @@ class Poll extends Equatable {
         'isAnswered': isAnswered,
       };
 
-  Poll copyWith({
+  Quiz copyWith({
     String? id,
     String? question,
     String? emoji,
-    PollCategory? category,
-    List<PollOption>? options,
+    QuizCategory? category,
+    List<QuizOption>? options,
     bool? isAnswered,
   }) {
-    return Poll(
+    return Quiz(
       id: id ?? this.id,
       question: question ?? this.question,
       emoji: emoji ?? this.emoji,
@@ -117,24 +117,24 @@ class Poll extends Equatable {
     );
   }
 
-  static PollCategory _categoryFromString(String value) {
+  static QuizCategory _categoryFromString(String value) {
     switch (value) {
       case 'humor':
-        return PollCategory.humor;
+        return QuizCategory.humor;
       case 'sympathy':
-        return PollCategory.sympathy;
+        return QuizCategory.sympathy;
       default:
-        return PollCategory.normal;
+        return QuizCategory.normal;
     }
   }
 
-  static String _categoryToString(PollCategory category) {
+  static String _categoryToString(QuizCategory category) {
     switch (category) {
-      case PollCategory.humor:
+      case QuizCategory.humor:
         return 'humor';
-      case PollCategory.sympathy:
+      case QuizCategory.sympathy:
         return 'sympathy';
-      case PollCategory.normal:
+      case QuizCategory.normal:
         return 'normal';
     }
   }

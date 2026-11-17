@@ -11,7 +11,7 @@ class Activity extends Equatable {
     this.voterId,
     required this.voterGrade,
     required this.winnerName,
-    required this.pollQuestion,
+    required this.quizQuestion,
     required this.createdAt,
   });
 
@@ -23,11 +23,11 @@ class Activity extends Equatable {
   /// Grade of the voter (8–12).
   final int voterGrade;
 
-  /// Display name of the poll winner for this activity entry.
+  /// Display name of the quiz winner for this activity entry.
   final String winnerName;
 
-  /// The poll question text shown in the feed.
-  final String pollQuestion;
+  /// The quiz question text shown in the feed.
+  final String quizQuestion;
   final DateTime createdAt;
 
   factory Activity.fromJson(Map<String, dynamic> json) {
@@ -36,7 +36,7 @@ class Activity extends Equatable {
       voterId: json['voterId'] as String?,
       voterGrade: json['voterGrade'] as int? ?? 8,
       winnerName: json['winnerName'] as String,
-      pollQuestion: json['pollQuestion'] as String,
+      quizQuestion: json['quizQuestion'] as String,
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'] as String)
           : DateTime.now(),
@@ -48,7 +48,7 @@ class Activity extends Equatable {
         'voterId': voterId,
         'voterGrade': voterGrade,
         'winnerName': winnerName,
-        'pollQuestion': pollQuestion,
+        'quizQuestion': quizQuestion,
         'createdAt': createdAt.toIso8601String(),
       };
 
@@ -57,7 +57,7 @@ class Activity extends Equatable {
     String? voterId,
     int? voterGrade,
     String? winnerName,
-    String? pollQuestion,
+    String? quizQuestion,
     DateTime? createdAt,
   }) {
     return Activity(
@@ -65,12 +65,12 @@ class Activity extends Equatable {
       voterId: voterId ?? this.voterId,
       voterGrade: voterGrade ?? this.voterGrade,
       winnerName: winnerName ?? this.winnerName,
-      pollQuestion: pollQuestion ?? this.pollQuestion,
+      quizQuestion: quizQuestion ?? this.quizQuestion,
       createdAt: createdAt ?? this.createdAt,
     );
   }
 
   @override
   List<Object?> get props =>
-      [id, voterId, voterGrade, winnerName, pollQuestion, createdAt];
+      [id, voterId, voterGrade, winnerName, quizQuestion, createdAt];
 }
