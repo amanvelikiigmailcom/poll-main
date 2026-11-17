@@ -14,7 +14,11 @@ class StorageService {
 
   StorageService()
       : _secureStorage = const FlutterSecureStorage(
-          aOptions: AndroidOptions(encryptedSharedPreferences: true),
+          aOptions: AndroidOptions(
+            migrateOnAlgorithmChange: true,
+            migrateWithBackup: true,
+            resetOnError: false,
+          ),
           iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
         );
 

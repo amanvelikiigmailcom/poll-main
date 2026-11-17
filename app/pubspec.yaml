@@ -23,7 +23,7 @@ dependencies:
 
   # Storage
   shared_preferences: ^2.2.3
-  flutter_secure_storage: ^9.0.0
+  flutter_secure_storage: ^10.3.4
 
   # UI
   cached_network_image: ^3.3.1
