@@ -15,6 +15,7 @@ library;
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'auth_provider.dart' show authNotifierProvider;
 
 // ── Feature providers (re-exported for convenience) ─────────────────────────
