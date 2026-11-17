@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/app_colors.dart';
+import '../../theme/navigation_icons.dart';
 
-/// Four working tabs: Home · Game · Profile · Settings.
+/// Four equal tabs with matching Phosphor regular/fill icons.
 class AppBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -18,9 +19,7 @@ class AppBottomNavBar extends StatelessWidget {
     return DecoratedBox(
       decoration: const BoxDecoration(
         color: AppColors.white,
-        border: Border(
-          top: BorderSide(color: Color(0xFFE8E8E8), width: 0.5),
-        ),
+        border: Border(top: BorderSide(color: Color(0xFFE8E8E8), width: 0.5)),
       ),
       child: SafeArea(
         top: false,
@@ -30,26 +29,29 @@ class AppBottomNavBar extends StatelessWidget {
             children: [
               _TabIcon(
                 label: 'Home',
-                icon: Icons.home_outlined,
-                activeIcon: Icons.home_rounded,
+                icon: NavigationIcons.home,
+                activeIcon: NavigationIcons.homeFill,
                 selected: currentIndex == 0,
                 onTap: () => onTap(0),
               ),
-              _VoteTab(
+              _TabIcon(
+                label: 'Quiz',
+                icon: NavigationIcons.quiz,
+                activeIcon: NavigationIcons.quizFill,
                 selected: currentIndex == 1,
                 onTap: () => onTap(1),
               ),
               _TabIcon(
                 label: 'Profile',
-                icon: Icons.person_outline_rounded,
-                activeIcon: Icons.person_rounded,
+                icon: NavigationIcons.profile,
+                activeIcon: NavigationIcons.profileFill,
                 selected: currentIndex == 2,
                 onTap: () => onTap(2),
               ),
               _TabIcon(
                 label: 'Settings',
-                icon: Icons.settings_outlined,
-                activeIcon: Icons.settings,
+                icon: NavigationIcons.settings,
+                activeIcon: NavigationIcons.settingsFill,
                 selected: currentIndex == 3,
                 onTap: () => onTap(3),
               ),
@@ -80,54 +82,14 @@ class _TabIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return Expanded(
       child: Semantics(
-        label: label,
-        button: true,
         selected: selected,
-        child: Tooltip(
-          message: label,
-          excludeFromSemantics: true,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: onTap,
-            child: Center(
-              child: Icon(
-                selected ? activeIcon : icon,
-                size: 28,
-                color: selected ? AppColors.textPrimary : AppColors.textHint,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _VoteTab extends StatelessWidget {
-  const _VoteTab({required this.selected, required this.onTap});
-
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Center(
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: selected ? AppColors.primaryBlue : AppColors.textPrimary,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.how_to_vote_rounded,
-              color: Colors.white,
-              size: 22,
-            ),
+        child: SizedBox.expand(
+          child: IconButton(
+            tooltip: label,
+            onPressed: onTap,
+            iconSize: 28,
+            color: selected ? AppColors.primaryBlue : AppColors.textSecondary,
+            icon: Icon(selected ? activeIcon : icon),
           ),
         ),
       ),

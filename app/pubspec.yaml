@@ -72,5 +72,14 @@ flutter:
     - assets/animations/
     - assets/data/
     - assets/l10n/
+    - assets/fonts/phosphor/LICENSE.txt
+
+  fonts:
+    - family: FlyproxNavRegular
+      fonts:
+        - asset: assets/fonts/phosphor/flyprox-nav-regular.ttf
+    - family: FlyproxNavFill
+      fonts:
+        - asset: assets/fonts/phosphor/flyprox-nav-fill.ttf
 
   generate: true

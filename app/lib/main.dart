@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
+import 'theme/navigation_icons.dart';
 import 'services/game_settings.dart';
 import 'providers/service_providers.dart';
 import 'services/storage_service.dart';
@@ -12,6 +13,7 @@ import 'services/storage_service.dart';
 // ---------------------------------------------------------------------------
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  NavigationIcons.registerLicense();
 
   // ── System UI ─────────────────────────────────────────────────────────────
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);

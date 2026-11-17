@@ -35,7 +35,7 @@ void main() {
   testWidgets('settings is a fourth tab and remains selected on help pages',
       (tester) async {
     await mount(tester, AppRoutes.profile);
-    expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
+    expect(find.byTooltip('Settings'), findsOneWidget);
     await tester.tap(find.byTooltip('Settings'));
     await pumpRoute(tester);
     expect(
@@ -77,7 +77,7 @@ void main() {
     final original = prefs.getInt('local_last_round_completed_at');
     await mount(tester, AppRoutes.home);
     for (var i = 0; i < 3; i++) {
-      await tester.tap(find.byIcon(Icons.how_to_vote_rounded));
+      await tester.tap(find.byTooltip('Quiz'));
       await pumpRoute(tester);
       expect(
           appRouter.routeInformationProvider.value.uri.path, AppRoutes.timer);
@@ -87,7 +87,7 @@ void main() {
       await pumpRoute(tester);
     }
     await game.bypassTimer();
-    await tester.tap(find.byIcon(Icons.how_to_vote_rounded));
+    await tester.tap(find.byTooltip('Quiz'));
     await pumpRoute(tester);
     expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.vote);
     expect(find.text('Question 1 of 12'), findsOneWidget);
@@ -110,7 +110,7 @@ void main() {
         (tester) async {
       await mount(tester, retired);
       expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
-      await tester.tap(find.byIcon(Icons.how_to_vote_rounded));
+      await tester.tap(find.byTooltip('Quiz'));
       await pumpRoute(tester);
       expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.vote);
       expect(find.text('Question 1 of 12'), findsOneWidget);
@@ -127,7 +127,7 @@ void main() {
             .subtract(const Duration(minutes: 41))
             .millisecondsSinceEpoch);
     await mount(tester, AppRoutes.home);
-    await tester.tap(find.byIcon(Icons.how_to_vote_rounded));
+    await tester.tap(find.byTooltip('Quiz'));
     await pumpRoute(tester);
     expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.vote);
     await tester.pumpWidget(const SizedBox());
