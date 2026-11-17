@@ -29,7 +29,7 @@ dependencies:
   cached_network_image: ^3.3.1
   shimmer: ^3.0.0
   smooth_page_indicator: ^1.1.0
-  pinput: ^3.0.1
+  pinput: ^6.0.2
   image_picker: ^1.1.2
   permission_handler: ^11.3.1
 
