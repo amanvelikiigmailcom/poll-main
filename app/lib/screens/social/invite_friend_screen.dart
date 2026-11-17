@@ -69,10 +69,10 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
       });
 
   Future<void> _instagram() => _share(() async {
-        final result = await InviteShareService.instance.shareInstagram();
-        _toast(result.openedApp
-            ? 'Copied. Paste it in Instagram.'
-            : 'Copied. Open Instagram and paste the message.');
+        final opened = await InviteShareService.instance.shareInstagram();
+        _toast(opened
+            ? 'Choose someone in Instagram to send Hi!'
+            : 'Couldn’t open Instagram. Check that it’s installed.');
       });
 
   Future<void> _copyMessage() async {
@@ -135,7 +135,7 @@ class _InviteFriendScreenState extends State<InviteFriendScreen> {
                     'WhatsApp', 'Open a ready-made message', _whatsapp),
                 const SizedBox(height: 12),
                 _socialButton('Instagram',
-                    'Copy the message and open Instagram', _instagram),
+                    'Choose someone in Instagram and send Hi!', _instagram),
                 const SizedBox(height: 24),
                 Container(
                   padding: const EdgeInsets.all(16),

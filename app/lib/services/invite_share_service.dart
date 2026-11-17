@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Shares a short, text-only invite. No website or referral link is required.
-/// Instagram uses copy-and-open so no URL is added to the message.
+/// Instagram opens its recipient picker with a short greeting and no URL.
 class InviteShareService {
   InviteShareService._();
   static final InviteShareService instance = InviteShareService._();
@@ -27,18 +27,10 @@ class InviteShareService {
     return true;
   }
 
-  /// Instagram has no public API to prefill a DM. Standard approach used by
-  /// apps: copy ready message → open Instagram so user pastes into Direct/Story.
-  Future<ClipboardShareResult> shareInstagram() async {
-    final p = await buildPayload();
-    await Clipboard.setData(ClipboardData(text: p.message));
-
-    // Try native app first, then web
-    final appUri = Uri.parse('instagram://app');
-    final webUri = Uri.parse('https://www.instagram.com/');
-    final opened = await _launch(appUri) || await _launch(webUri);
-    return ClipboardShareResult(copied: true, openedApp: opened);
-  }
+  /// Undocumented Instagram route, verified by the user on their iPhone.
+  /// Opening it does not confirm that the user sent a message.
+  Future<bool> shareInstagram() =>
+      _launch(Uri.parse('instagram://sharesheet?text=Hi%21'));
 
   Future<void> copyMessage() async {
     final p = await buildPayload();
@@ -72,14 +64,4 @@ class InvitePayload {
   final String message;
 
   const InvitePayload({required this.message});
-}
-
-class ClipboardShareResult {
-  final bool copied;
-  final bool openedApp;
-
-  const ClipboardShareResult({
-    required this.copied,
-    required this.openedApp,
-  });
 }
