@@ -26,9 +26,9 @@ void main() {
     final uri = report.emailUri;
     expect(uri.scheme, 'mailto');
     expect(uri.path, AppConstants.supportEmail);
-    expect(uri.queryParameters['subject'], contains('question_42'));
+    expect(uri.queryParameters['subject'], 'Flyprox question report');
     expect(uri.queryParameters['body'], contains(report.questionText));
-    expect(uri.queryParameters['body'], contains('Question ID: question_42'));
+    expect(uri.queryParameters['body'], contains('Reference: question_42'));
     expect(uri.toString(), contains('%20'));
   });
 

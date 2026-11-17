@@ -10,11 +10,11 @@ class QuestionReport {
   final String questionText;
 
   String get recipient => AppConstants.supportEmail;
-  String get subject => 'Flyprox question report: $questionId';
-  String get body => 'Question ID: $questionId\n'
-      'Question: $questionText\n\n'
-      'Please describe the issue below. Do not include participant names '
-      'or other private information.\n\n';
+  String get subject => 'Flyprox question report';
+  String get body => 'Question: $questionText\n\n'
+      'What’s wrong?\n\n\n'
+      'Please leave out names and private details.\n\n'
+      'Reference: $questionId';
 
   Uri get emailUri => Uri(
         scheme: 'mailto',

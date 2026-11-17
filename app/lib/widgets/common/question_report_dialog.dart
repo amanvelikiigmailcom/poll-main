@@ -57,9 +57,7 @@ class _QuestionReportDialogState extends State<QuestionReportDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              'Review the draft, then open your email app. '
-              'Flyprox does not send it automatically. '
-              'Your player name, participant names and answers are not included.',
+              'Describe the issue in your email app, then send.',
             ),
             const SizedBox(height: 16),
             SelectableText(widget.report.copyText),
