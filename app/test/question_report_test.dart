@@ -79,8 +79,8 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    await tester.ensureVisible(find.text('Report question'));
-    await tester.tap(find.text('Report question'));
+    await tester.ensureVisible(find.text('Report a question'));
+    await tester.tap(find.text('Report a question'));
     await tester.pumpAndSettle();
     expect(opened, isEmpty);
     await tester.tap(find.text('Cancel'));
@@ -90,7 +90,7 @@ void main() {
     expect(await LocalGameService.instance.getStars(), 0);
     expect(await LocalGameService.instance.secondsUntilNextRound(), 0);
 
-    await tester.tap(find.text('Report question'));
+    await tester.tap(find.text('Report a question'));
     await tester.pumpAndSettle();
     final report = tester
         .widget<QuestionReportDialog>(find.byType(QuestionReportDialog))

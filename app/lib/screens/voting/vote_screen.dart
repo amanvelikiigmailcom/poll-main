@@ -455,7 +455,7 @@ class _VoteScreenState extends State<VoteScreen>
         TextButton.icon(
           onPressed: _reporting || _isAdvancing ? null : _reportQuestion,
           icon: const Icon(Icons.flag_outlined, size: 18),
-          label: const Text('Report question'),
+          label: const Text('Report a question'),
         ),
       ],
     );

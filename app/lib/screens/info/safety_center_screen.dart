@@ -79,7 +79,7 @@ class SafetyCenterScreen extends StatelessWidget {
           const _Rule(
             title: 'Report a question',
             body:
-                'Use Report question during a round or email support with the question text. Leave out participant names and sensitive information.',
+                'Use Report a question during a round or email support with the question text. Leave out participant names and sensitive information.',
           ),
           const SizedBox(height: 8),
           TextButton(

@@ -50,7 +50,7 @@ class _QuestionReportDialogState extends State<QuestionReportDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: const Text('Report question'),
+        title: const Text('Report a question'),
         scrollable: true,
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

@@ -65,7 +65,7 @@ class ForParentsScreen extends ConsumerWidget {
             _section(
               Icons.supervisor_account_rounded,
               'Helping a player',
-              'Explore the game together, choose fictional names if preferred, and discuss the prompts. Report a concerning question using Report question or email support. Choose Reset game in Settings to delete local game data.',
+              'Explore the game together, choose fictional names if preferred, and discuss the prompts. Report a concerning question using Report a question or email support. Choose Reset game in Settings to delete local game data.',
             ),
             const SizedBox(height: 16),
             Container(

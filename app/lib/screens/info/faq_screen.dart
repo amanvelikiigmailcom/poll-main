@@ -41,7 +41,7 @@ class FaqScreen extends ConsumerWidget {
     ),
     (
       'How can I report a question?',
-      'Use Report question while playing, or contact support from Safety. Please include the question text and leave out participant names or other private information.'
+      'Use Report a question while playing, or contact support from Safety. Please include the question text and leave out participant names or other private information.'
     ),
   ];
 

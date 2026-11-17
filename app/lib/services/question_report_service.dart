@@ -12,7 +12,7 @@ class QuestionReport {
   String get recipient => AppConstants.supportEmail;
   String get subject => 'Flyprox question report';
   String get body => 'Question: $questionText\n\n'
-      'What’s wrong?\n\n\n'
+      'What’s wrong with this question?\n\n\n'
       'Please leave out names and private details.\n\n'
       'Reference: $questionId';
 
