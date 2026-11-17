@@ -1,7 +1,7 @@
 # Flyprox startup video
 
-Place the final file at `app/assets/animations/flyprox-intro.mp4` and fully restart Flutter.
-The existing animations asset directory includes it automatically.
+The bundled video is `app/assets/animations/flyprox-intro.mp4`: 4 seconds, 1080 × 1920, H.264/yuv420p at 30 fps, AAC stereo at 44.1 kHz, approximately 228 KiB.
+The existing animations asset directory includes it automatically. Fully restart Flutter when replacing the file.
 
 ## Export
 
