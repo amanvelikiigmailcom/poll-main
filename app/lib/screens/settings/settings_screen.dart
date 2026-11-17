@@ -23,11 +23,7 @@ class SettingsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Settings'),
         centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-          onPressed: () =>
-              context.canPop() ? context.pop() : context.go(AppRoutes.profile),
-        ),
+        automaticallyImplyLeading: false,
       ),
       body: ListView(
         children: [

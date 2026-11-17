@@ -6,6 +6,7 @@ import 'package:flyprox_app/providers/service_providers.dart';
 import 'package:flyprox_app/router/app_router.dart';
 import 'package:flyprox_app/services/local_game_service.dart';
 import 'package:flyprox_app/services/storage_service.dart';
+import 'package:flyprox_app/widgets/common/bottom_nav_bar.dart';
 
 Future<void> pumpRoute(WidgetTester tester) async {
   for (var i = 0; i < 8; i++) {
@@ -29,6 +30,42 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await LocalGameService.instance.savePlayerAndFriends(
         playerName: 'Player', friends: ['Alex', 'Sam', 'Jordan']);
+  });
+
+  testWidgets('settings is a fourth tab and remains selected on help pages',
+      (tester) async {
+    await mount(tester, AppRoutes.profile);
+    expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
+    await tester.tap(find.byTooltip('Settings'));
+    await pumpRoute(tester);
+    expect(
+        appRouter.routeInformationProvider.value.uri.path, AppRoutes.settings);
+    expect(
+        tester
+            .widget<AppBottomNavBar>(find.byType(AppBottomNavBar))
+            .currentIndex,
+        3);
+    await tester.scrollUntilVisible(find.text('How to play'), 200,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.text('How to play'));
+    await pumpRoute(tester);
+    expect(find.text('How to use'), findsOneWidget);
+    expect(
+        tester
+            .widget<AppBottomNavBar>(find.byType(AppBottomNavBar))
+            .currentIndex,
+        3);
+    await tester.tap(find.byTooltip('Profile'));
+    await pumpRoute(tester);
+    expect(
+        appRouter.routeInformationProvider.value.uri.path, AppRoutes.profile);
+    expect(
+        tester
+            .widget<AppBottomNavBar>(find.byType(AppBottomNavBar))
+            .currentIndex,
+        2);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets(

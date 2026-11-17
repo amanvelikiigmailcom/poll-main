@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme/app_colors.dart';
 
-/// Three working tabs: Home · Vote · Profile.
+/// Four working tabs: Home · Game · Profile · Settings.
 class AppBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -29,6 +29,7 @@ class AppBottomNavBar extends StatelessWidget {
           child: Row(
             children: [
               _TabIcon(
+                label: 'Home',
                 icon: Icons.home_outlined,
                 activeIcon: Icons.home_rounded,
                 selected: currentIndex == 0,
@@ -39,10 +40,18 @@ class AppBottomNavBar extends StatelessWidget {
                 onTap: () => onTap(1),
               ),
               _TabIcon(
+                label: 'Profile',
                 icon: Icons.person_outline_rounded,
                 activeIcon: Icons.person_rounded,
                 selected: currentIndex == 2,
                 onTap: () => onTap(2),
+              ),
+              _TabIcon(
+                label: 'Settings',
+                icon: Icons.settings_outlined,
+                activeIcon: Icons.settings,
+                selected: currentIndex == 3,
+                onTap: () => onTap(3),
               ),
             ],
           ),
@@ -54,12 +63,14 @@ class AppBottomNavBar extends StatelessWidget {
 
 class _TabIcon extends StatelessWidget {
   const _TabIcon({
+    required this.label,
     required this.icon,
     required this.activeIcon,
     required this.selected,
     required this.onTap,
   });
 
+  final String label;
   final IconData icon;
   final IconData activeIcon;
   final bool selected;
@@ -68,14 +79,23 @@ class _TabIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Center(
-          child: Icon(
-            selected ? activeIcon : icon,
-            size: 28,
-            color: selected ? AppColors.textPrimary : AppColors.textHint,
+      child: Semantics(
+        label: label,
+        button: true,
+        selected: selected,
+        child: Tooltip(
+          message: label,
+          excludeFromSemantics: true,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap,
+            child: Center(
+              child: Icon(
+                selected ? activeIcon : icon,
+                size: 28,
+                color: selected ? AppColors.textPrimary : AppColors.textHint,
+              ),
+            ),
           ),
         ),
       ),

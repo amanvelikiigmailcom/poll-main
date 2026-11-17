@@ -83,14 +83,6 @@ class _ProfileHeaderCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       child: Column(
         children: [
-          Align(
-            alignment: Alignment.centerRight,
-            child: IconButton(
-              tooltip: 'Settings',
-              onPressed: () => context.push(AppRoutes.settings),
-              icon: const Icon(Icons.settings_outlined),
-            ),
-          ),
           _AvatarWidget(user: user, encoded: local.avatar, letter: letter, radius: 52),
           const SizedBox(height: 14),
           // Name + verified badge

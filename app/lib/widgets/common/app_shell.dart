@@ -5,7 +5,7 @@ import '../../router/app_router.dart';
 import '../../services/local_game_service.dart';
 import 'bottom_nav_bar.dart';
 
-/// Logged-in chrome: page on top, three working tabs at the bottom.
+/// Local-game pages with four tabs at the bottom.
 class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.child});
 
@@ -17,16 +17,20 @@ class AppShell extends StatelessWidget {
         path.startsWith('/timer')) {
       return 1;
     }
-    if (path.startsWith('/home/profile') ||
-        path.startsWith('/profile') ||
-        path.startsWith('/edit-profile') ||
-        path.startsWith('/settings') ||
-        path.startsWith('/invite') ||
+    if (path.startsWith('/settings') ||
+        path.startsWith('/faq') ||
+        path.startsWith('/for-parents') ||
         path.startsWith('/privacy') ||
         path.startsWith('/terms') ||
         path.startsWith('/how-to') ||
         path.startsWith('/safety') ||
         path.startsWith('/delete-account')) {
+      return 3;
+    }
+    if (path.startsWith('/home/profile') ||
+        path.startsWith('/profile') ||
+        path.startsWith('/edit-profile') ||
+        path.startsWith('/invite')) {
       return 2;
     }
     return 0;
@@ -48,6 +52,8 @@ class AppShell extends StatelessWidget {
                 : AppRoutes.vote);
       case 2:
         context.go(AppRoutes.profile);
+      case 3:
+        context.go(AppRoutes.settings);
     }
   }
 
