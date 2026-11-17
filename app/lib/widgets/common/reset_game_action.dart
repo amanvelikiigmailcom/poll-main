@@ -14,7 +14,7 @@ Future<void> showResetGameDialog(BuildContext context, WidgetRef ref) async {
     builder: (dialogContext) => AlertDialog(
       title: const Text('Reset game?'),
       content: const Text(
-        'Your nickname, participant names, university, stars, question history '
+        'Your nickname, participant names, university, photo, saved answers, stars, question history '
         'and current timer will be deleted from this device. This cannot be undone.',
       ),
       actions: [

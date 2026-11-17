@@ -20,6 +20,7 @@ import '../screens/info/terms_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../services/local_game_service.dart';
 import '../widgets/common/app_shell.dart';
+import '../widgets/common/startup_intro.dart';
 
 import '../screens/info/faq_screen.dart';
 import '../screens/info/for_parents_screen.dart';
@@ -99,14 +100,7 @@ class _SplashRedirect extends ConsumerStatefulWidget {
 }
 
 class _SplashRedirectState extends ConsumerState<_SplashRedirect> {
-  @override
-  void initState() {
-    super.initState();
-    _redirect();
-  }
-
   Future<void> _redirect() async {
-    await Future<void>.delayed(const Duration(milliseconds: 600));
     final hasNames = await LocalGameService.instance.hasEnoughNames();
     if (!mounted) return;
     final introDone = ref.read(storageServiceProvider).isOnboardingDone();
@@ -118,27 +112,8 @@ class _SplashRedirectState extends ConsumerState<_SplashRedirect> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF4B6EF5),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Image.asset('assets/images/flyprox-logo.png',
-                width: 112, height: 112, semanticLabel: 'Flyprox logo'),
-            const SizedBox(height: 16),
-            const Text('Flyprox',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 4)),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => StartupIntro(onComplete: _redirect);
+
 }
 
 final GoRouter appRouter = GoRouter(

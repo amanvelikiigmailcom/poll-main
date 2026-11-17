@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'l10n/app_localizations.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
+import 'services/game_settings.dart';
 
 /// Root widget of the Flyprox application.
 ///
@@ -18,9 +19,18 @@ class FlyproxApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return MaterialApp.router(
+    return ListenableBuilder(
+      listenable: GameSettings.instance,
+      builder: (context, _) => MaterialApp.router(
       // ── Identity ──────────────────────────────────────────────────────────
       title: 'Flyprox',
+      themeAnimationDuration: GameSettings.instance.effectiveReduceMotion
+        ? Duration.zero : const Duration(milliseconds: 200),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(disableAnimations:
+          MediaQuery.disableAnimationsOf(context) || GameSettings.instance.reduceMotion),
+        child: child!,
+      ),
       debugShowCheckedModeBanner: false,
 
       // ── Navigation ────────────────────────────────────────────────────────
@@ -46,6 +56,7 @@ class FlyproxApp extends ConsumerWidget {
       // Use the Material "stretch" overscroll on all platforms for a modern
       // feel consistent with the youth-oriented design spec.
       scrollBehavior: const _FlyproxScrollBehaviour(),
+      ),
     );
   }
 }

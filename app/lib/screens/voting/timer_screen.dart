@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/local_game_service.dart';
+import '../../services/game_settings.dart';
 
 const Color _primaryBlue = Color(0xFF4B6EF5);
 const Color _accentRed = Color(0xFFFF3B5C);
@@ -132,6 +133,12 @@ class _TimerScreenState extends State<TimerScreen>
       });
     });
 
+    if (GameSettings.instance.effectiveReduceMotion) {
+      _pulseController.stop();
+      _pulseController.value = 1;
+      _fadeController.duration = Duration.zero;
+      _fadeController.value = 1;
+    }
     _syncTimer();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) => _syncTimer());
   }

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
+import 'services/game_settings.dart';
 import 'providers/service_providers.dart';
 import 'services/storage_service.dart';
 
@@ -26,6 +27,7 @@ Future<void> main() async {
   // ── Storage ───────────────────────────────────────────────────────────────
   final storageService = StorageService();
   await storageService.init();
+  await GameSettings.instance.load();
 
   // ── Run ───────────────────────────────────────────────────────────────────
   runApp(

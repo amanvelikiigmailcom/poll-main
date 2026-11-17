@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../../services/game_settings.dart';
+import '../../widgets/common/round_reveal.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../router/app_router.dart';
@@ -83,7 +84,14 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
   }
 
   void _startSequence() async {
-    HapticFeedback.heavyImpact();
+    GameSettings.instance.feedback(strong: true);
+    if (GameSettings.instance.effectiveReduceMotion) {
+      _sparkleController.stop();
+      _starBounceController.value = 1;
+      _contentFadeController.value = 1;
+      _displayedCount = _starsEarned;
+      return;
+    }
     await _starBounceController.forward();
     if (!mounted) return;
     _contentFadeController.forward();
@@ -250,7 +258,7 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                               ),
                               const SizedBox(height: 12),
                               const Text(
-                                'Nice round. These answers stay on your device.\nNobody else sees who you picked.',
+                                'Your choices are saved only on this device.\nTap Reveal to see your round.',
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: Colors.white60,
@@ -265,6 +273,19 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                     ),
                   ),
                 ),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: () => showRoundReveal(context),
+                    icon: const Icon(Icons.visibility_outlined),
+                    label: const Text('Reveal'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Colors.amber,
+                      foregroundColor: const Color(0xFF1A237E)),
+                  ),
+                ),
+                const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(

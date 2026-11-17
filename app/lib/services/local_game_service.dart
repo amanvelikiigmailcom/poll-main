@@ -37,6 +37,21 @@ class RoundProgress {
   });
 }
 
+/// One choice made on this device; a null choice represents a skip.
+class RoundAnswer {
+  const RoundAnswer({required this.questionId, required this.question,
+    required this.voter, this.choice});
+  final String questionId;
+  final String question;
+  final String voter;
+  final String? choice;
+  Map<String, dynamic> toJson() => {'id': questionId, 'question': question,
+    'voter': voter, 'choice': choice};
+  factory RoundAnswer.fromJson(Map<String, dynamic> json) => RoundAnswer(
+    questionId: json['id'] as String, question: json['question'] as String,
+    voter: json['voter'] as String, choice: json['choice'] as String?);
+}
+
 /// Fully local (no backend, no auth) game state: the player's own name,
 /// friend-name list, star balance, 40-minute round timer, and generation
 /// of each 12-question round from [pollQuestionSeeds].
@@ -77,6 +92,49 @@ class LocalGameService {
   final Random _random = Random();
 
   Future<SharedPreferences> get _prefs => SharedPreferences.getInstance();
+
+  static const _answersKey = 'local_round_answers';
+  static const _lastAnswersKey = 'local_last_round_answers';
+  static const _avatarKey = 'local_avatar';
+
+  Future<List<RoundAnswer>> getRoundAnswers({bool completed = false}) async {
+    final raw = (await _prefs).getString(completed ? _lastAnswersKey : _answersKey);
+    if (raw == null) return [];
+    try {
+      return (jsonDecode(raw) as List).map((e) =>
+        RoundAnswer.fromJson(Map<String, dynamic>.from(e as Map))).toList();
+    } catch (_) { return []; }
+  }
+
+  Future<void> beginRoundAnswers() async => (await _prefs).remove(_answersKey);
+
+  Future<void> recordAnswer(RoundAnswer answer) async {
+    final answers = await getRoundAnswers();
+    final index = answers.indexWhere((a) => a.questionId == answer.questionId);
+    if (index < 0) { answers.add(answer); } else { answers[index] = answer; }
+    await (await _prefs).setString(_answersKey,
+      jsonEncode(answers.map((a) => a.toJson()).toList()));
+  }
+
+  Future<String> exportLocalData() async => const JsonEncoder.withIndent('  ').convert({
+    'nickname': await getPlayerName(),
+    'handle': await getUsername(),
+    'participantNames': await getNames(),
+    'university': await getUniversity(),
+    'universityYear': await getUniversityYear(),
+    'avatarPngBase64': await getAvatar(),
+    'stars': await getStars(),
+    'completedRounds': await getCompletedRounds(),
+    'currentRound': (await getRoundAnswers()).map((a) => a.toJson()).toList(),
+    'lastRound': (await getRoundAnswers(completed: true)).map((a) => a.toJson()).toList(),
+  });
+
+  Future<String?> getAvatar() async => (await _prefs).getString(_avatarKey);
+  Future<void> saveAvatar(String? encoded) async {
+    final prefs = await _prefs;
+    if (encoded == null) { await prefs.remove(_avatarKey); }
+    else { await prefs.setString(_avatarKey, encoded); }
+  }
 
   // ── Optional local profile handle ────────────────────────────────────
 
@@ -239,6 +297,9 @@ class LocalGameService {
   /// Wipe every local quiz field. There is no server account in this build.
   Future<void> clearAll() async {
     final prefs = await _prefs;
+    await prefs.remove(_answersKey);
+    await prefs.remove(_lastAnswersKey);
+    await prefs.remove(_avatarKey);
     await prefs.remove(_usernameKey);
     await prefs.remove(_playerNameKey);
     await prefs.remove(_universityKey);
@@ -270,9 +331,13 @@ class LocalGameService {
   }
 
   /// Called when a 12-question round finishes: awards the flat 1000 stars,
-  /// counts the round as completed, clears saved mid-round progress and
+  /// saves the latest reveal, counts the round, clears mid-round progress and
   /// starts the 40-minute break before the next round unlocks.
   Future<int> completeRound() async {
+    final answers = await getRoundAnswers();
+    await (await _prefs).setString(_lastAnswersKey,
+      jsonEncode(answers.map((a) => a.toJson()).toList()));
+    await beginRoundAnswers();
     await _markRoundCompletedNow();
     final prefs = await _prefs;
     final done = await getCompletedRounds();
@@ -292,7 +357,7 @@ class LocalGameService {
   /// How many full 12-question rounds were completed on this device.
   /// Drives the intro flow: rounds below [introRounds] play the fixed
   /// neutral intro; the counter survives app restarts and is cleared
-  /// together with everything else by [clearAll].
+  /// together with the other game records by [clearAll].
   Future<int> getCompletedRounds() async {
     final prefs = await _prefs;
     final n = prefs.getInt(_completedRoundsKey);
@@ -302,8 +367,7 @@ class LocalGameService {
 
   /// Remembers where the player stopped inside the current intro round so
   /// an app restart resumes the same round instead of returning to its
-  /// start. Only the intro rounds ([introRounds]) use this; later rounds
-  /// keep the previous behavior (a fresh round on every entry).
+  /// start. All rounds use this so saved choices stay attached to their round.
   Future<void> saveRoundProgress({
     required int round,
     required int questionIndex,

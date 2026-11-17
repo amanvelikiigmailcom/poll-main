@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../../services/local_game_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,6 +8,7 @@ import '../../router/app_router.dart';
 import '../../services/external_link_service.dart';
 import '../../utils/constants.dart';
 import '../../theme/app_colors.dart';
+import '../../services/game_settings.dart';
 import '../../widgets/common/reset_game_action.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -43,6 +46,57 @@ class SettingsScreen extends ConsumerWidget {
               onTap: () => showResetGameDialog(context, ref),
             ),
           ]),
+          const _SectionHeader(title: 'EFFECTS'),
+          ListenableBuilder(
+            listenable: GameSettings.instance,
+            builder: (context, _) {
+              final settings = GameSettings.instance;
+              return _SettingsCard(children: [
+                SwitchListTile(title: const Text('Sound'), value: settings.sound,
+                  onChanged: (v) => settings.setOption('sound', v)),
+                SwitchListTile(title: const Text('Haptics'), value: settings.haptics,
+                  onChanged: (v) => settings.setOption('haptics', v)),
+                SwitchListTile(title: const Text('Reduce motion'),
+                  subtitle: const Text('Also respects your device setting'),
+                  value: settings.reduceMotion,
+                  onChanged: (v) => settings.setOption('reduce_motion', v)),
+              ]);
+            },
+          ),
+          const _SectionHeader(title: 'PRIVACY'),
+          _SettingsCard(children: [
+            _ArrowTile(icon: Icons.data_object, title: 'View my local data',
+              onTap: () async {
+                final data = await LocalGameService.instance.exportLocalData();
+                if (!context.mounted) return;
+                await showDialog<void>(context: context, builder: (dialogContext) => AlertDialog(
+                  title: const Text('Your local data'),
+                  content: SizedBox(width: 500, child: SingleChildScrollView(
+                    child: SelectableText(data))),
+                  actions: [
+                    TextButton(onPressed: () async {
+                      try {
+                        await Clipboard.setData(ClipboardData(text: data));
+                        if (dialogContext.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Copied. This includes private game data.')));
+                        }
+                      } catch (_) {
+                        if (dialogContext.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Couldn’t copy. Select the text to copy it.')));
+                        }
+                      }
+                    }, child: const Text('Copy JSON')),
+                    TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Close')),
+                  ],
+                ));
+              }),
+          ]),
+          const Padding(padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            child: Text('Your profile, photo and latest round choices stay on this device. '
+              'Use nicknames or example names. Reset game removes this local game data. '
+              'Opening email, sharing or visiting external pages uses the service you choose.')),
           const _SectionHeader(title: 'APP'),
           _SettingsCard(children: [
             _ArrowTile(

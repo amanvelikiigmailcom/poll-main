@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import '../../services/game_settings.dart';
 import 'package:go_router/go_router.dart';
 import '../../theme/app_colors.dart';
 import '../../router/app_router.dart';
@@ -122,12 +122,11 @@ class _VoteScreenState extends State<VoteScreen>
     final svc = LocalGameService.instance;
     final completed = await svc.getCompletedRounds();
     if (!mounted) return;
-    final isIntro = completed < LocalGameService.introRounds;
 
-    // Intro rounds resume where the player stopped instead of restarting.
+    // Resume the current round without losing locally saved choices.
     List<GeneratedQuestion> generated = [];
     var startIndex = 0;
-    if (isIntro) {
+    {
       final saved = await svc.loadRoundProgress();
       if (!mounted) return;
       if (saved != null &&
@@ -171,7 +170,8 @@ class _VoteScreenState extends State<VoteScreen>
           ),
         )
         .toList();
-    if (fresh && isIntro) {
+    if (fresh) {
+      await svc.beginRoundAnswers();
       await svc.saveRoundProgress(
         round: completed,
         questionIndex: 0,
@@ -199,13 +199,32 @@ class _VoteScreenState extends State<VoteScreen>
 
   void _selectOption(String optionId) {
     if (_selectedOptionId != null || _isAdvancing) return;
-    HapticFeedback.lightImpact();
+    GameSettings.instance.feedback();
     setState(() => _selectedOptionId = optionId);
     _autoAdvance();
   }
 
   Future<void> _autoAdvance() async {
     setState(() => _isAdvancing = true);
+    try {
+      final question = _currentQuestion;
+      final selected = _selectedOptionId;
+      await LocalGameService.instance.recordAnswer(RoundAnswer(
+        questionId: question.id, question: question.question,
+        voter: await LocalGameService.instance.getPlayerName() ?? 'You',
+        choice: selected == null ? null :
+          question.options.firstWhere((o) => o.id == selected).name,
+      ));
+    } catch (_) {
+      if (!mounted) return;
+      setState(() { _isAdvancing = false; _selectedOptionId = null; });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Couldn’t save your choice. Please try again.')));
+      return;
+    }
+    if (!mounted) return;
+    _slideController.duration = GameSettings.instance.effectiveReduceMotion
+      ? Duration.zero : const Duration(milliseconds: 350);
     // Brief pause to show selection highlight
     await Future.delayed(const Duration(milliseconds: 650));
     if (!mounted) return;
@@ -223,7 +242,7 @@ class _VoteScreenState extends State<VoteScreen>
         _isAdvancing = false;
         _shuffledOptions = List.from(_questions[_currentIndex].options);
       });
-      if (_roundNumber < LocalGameService.introRounds) {
+      {
         await LocalGameService.instance.saveRoundProgress(
           round: _roundNumber,
           questionIndex: _currentIndex,
@@ -237,7 +256,7 @@ class _VoteScreenState extends State<VoteScreen>
 
   void _skipQuestion() {
     if (_isAdvancing) return;
-    HapticFeedback.lightImpact();
+    GameSettings.instance.feedback();
     setState(() {
       _selectedOptionId = null;
       _isAdvancing = false;
@@ -246,7 +265,7 @@ class _VoteScreenState extends State<VoteScreen>
   }
 
   void _shuffleOptions() {
-    HapticFeedback.selectionClick();
+    GameSettings.instance.feedback(selection: true);
     setState(() => _shuffledOptions.shuffle());
   }
 

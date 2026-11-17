@@ -152,10 +152,13 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
     await _continue();
   }
 
-  Widget _exampleButton() => TextButton(
+  Widget _exampleButton() => OutlinedButton.icon(
         onPressed: _saving ? null : _tryExamples,
-        style: TextButton.styleFrom(foregroundColor: Colors.white),
-        child: const Text('Try with example names'),
+        style: OutlinedButton.styleFrom(foregroundColor: Colors.white,
+          side: const BorderSide(color: Colors.white70),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14)),
+        icon: const Icon(Icons.play_circle_outline),
+        label: const Text('Try with example names'),
       );
 
   @override

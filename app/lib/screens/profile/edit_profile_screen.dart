@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'dart:convert';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -77,8 +78,10 @@ class _EditFormNotifier extends StateNotifier<_EditFormState> {
     required String username,
     required String university,
     int? universityYear,
+    String? avatar,
   }) {
     state = _EditFormState(
+      localAvatarPath: avatar,
       firstName: firstName,
       username: username,
       university: university,
@@ -94,8 +97,8 @@ class _EditFormNotifier extends StateNotifier<_EditFormState> {
         universityYear: year,
         clearYear: year == null,
       );
-  void setLocalAvatar(String path) =>
-      state = state.copyWith(localAvatarPath: path);
+  void setLocalAvatar(String? encoded) =>
+      state = state.copyWith(localAvatarPath: encoded, clearLocalAvatar: encoded == null);
   void setSaving(bool v) => state = state.copyWith(isSaving: v);
   void setError(String? message) => state = state.copyWith(
         errorMessage: message,
@@ -147,6 +150,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     username = await game.getUsername() ?? username;
     university = await game.getUniversity() ?? university;
     year = await game.getUniversityYear() ?? year;
+    final avatar = await game.getAvatar();
 
     if (!mounted) return;
     _firstNameCtrl.text = name;
@@ -157,6 +161,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           username: username,
           university: university,
           universityYear: year,
+          avatar: avatar,
         );
   }
 
@@ -169,11 +174,31 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final picked =
-        await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-    if (picked != null) {
-      ref.read(_editFormProvider.notifier).setLocalAvatar(picked.path);
+    try {
+      final picked = await ImagePicker().pickImage(source: ImageSource.gallery,
+        imageQuality: 70, maxWidth: 256, maxHeight: 256, requestFullMetadata: false);
+      if (picked == null || !mounted) return;
+      final bytes = await picked.readAsBytes();
+      if (bytes.length > 5 * 1024 * 1024) {
+        throw const FormatException('Please choose a smaller photo.');
+      }
+      // Re-encode to a small PNG, removing embedded photo metadata.
+      final codec = await ui.instantiateImageCodec(bytes, targetWidth: 256);
+      try {
+        final frame = await codec.getNextFrame();
+        try {
+          final png = await frame.image.toByteData(format: ui.ImageByteFormat.png);
+          if (png == null || png.lengthInBytes > 512 * 1024) {
+            throw const FormatException('Please choose a smaller photo.');
+          }
+          if (!mounted) return;
+          ref.read(_editFormProvider.notifier).setLocalAvatar(
+            base64Encode(png.buffer.asUint8List(png.offsetInBytes, png.lengthInBytes)));
+        } finally { frame.image.dispose(); }
+      } finally { codec.dispose(); }
+    } catch (_) {
+      if (mounted) { ref.read(_editFormProvider.notifier).setError(
+        'Couldn’t open this photo. Try a different image.'); }
     }
   }
 
@@ -186,6 +211,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     formNotifier.setError(null);
 
     try {
+      await LocalGameService.instance.saveAvatar(formState.localAvatarPath);
       await ref.read(localProfileProvider.notifier).save(
             username: formState.username.trim(),
             playerName: formState.firstName.trim(),
@@ -239,6 +265,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                 localPath: formState.localAvatarPath,
                 onTap: _pickImage,
               ),
+              if (formState.localAvatarPath != null)
+                TextButton(onPressed: () => ref.read(_editFormProvider.notifier).setLocalAvatar(null),
+                  child: const Text('Remove photo')),
+              const Padding(padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: Text('Photo is optional and stays on this device.', textAlign: TextAlign.center)),
               const SizedBox(height: 20),
               _TextFieldsSection(
                 firstNameCtrl: _firstNameCtrl,
@@ -324,7 +355,7 @@ class _AvatarSection extends StatelessWidget {
       // Local file picked by user
       avatar = CircleAvatar(
         radius: 48,
-        backgroundImage: FileImage(File(localPath!)),
+        backgroundImage: MemoryImage(base64Decode(localPath!)),
         backgroundColor: AppColors.primaryBlue,
       );
     } else if (hasNetwork) {

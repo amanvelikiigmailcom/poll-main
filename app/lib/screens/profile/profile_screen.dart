@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -90,7 +91,7 @@ class _ProfileHeaderCard extends StatelessWidget {
               icon: const Icon(Icons.settings_outlined),
             ),
           ),
-          _AvatarWidget(user: user, letter: letter, radius: 52),
+          _AvatarWidget(user: user, encoded: local.avatar, letter: letter, radius: 52),
           const SizedBox(height: 14),
           // Name + verified badge
           Row(
@@ -144,7 +145,9 @@ class _ProfileHeaderCard extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _AvatarWidget extends StatelessWidget {
+  final String? encoded;
   const _AvatarWidget({
+    this.encoded,
     this.user,
     required this.letter,
     this.radius = 40,
@@ -159,7 +162,10 @@ class _AvatarWidget extends StatelessWidget {
     final hasAvatar = user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty;
 
     Widget avatar;
-    if (hasAvatar) {
+    if (encoded != null) {
+      avatar = CircleAvatar(radius: radius,
+        backgroundImage: MemoryImage(base64Decode(encoded!)));
+    } else if (hasAvatar) {
       avatar = CircleAvatar(
         radius: radius,
         backgroundImage: NetworkImage(user!.avatarUrl!),
@@ -214,7 +220,10 @@ class _AvatarWidget extends StatelessWidget {
               ),
             ),
             Center(
-              child: hasAvatar
+              child: encoded != null
+                  ? ClipOval(child: Image.memory(base64Decode(encoded!),
+                      width: 260, height: 260, fit: BoxFit.cover))
+                  : hasAvatar
                   ? ClipOval(
                       child: Image.network(
                         user!.avatarUrl!,
