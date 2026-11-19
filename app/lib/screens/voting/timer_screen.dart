@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/local_game_service.dart';
 import '../../services/game_settings.dart';
+import '../../services/subscription_service.dart';
+import '../../router/app_router.dart';
 
 const Color _primaryBlue = Color(0xFF4B6EF5);
 const Color _accentRed = Color(0xFFFF3B5C);
@@ -147,6 +149,9 @@ class _TimerScreenState extends State<TimerScreen>
   }
 
   Future<void> _syncTimer() async {
+    if (await SubscriptionService.instance.isPro()) {
+      await LocalGameService.instance.bypassTimer();
+    }
     final remaining = await LocalGameService.instance.secondsUntilNextRound();
     if (!mounted) return;
     setState(() => _secondsLeft = remaining);
@@ -420,6 +425,24 @@ class _TimerScreenState extends State<TimerScreen>
               fontWeight: FontWeight.w700,
             ),
             elevation: 0,
+          ),
+        ),
+        const SizedBox(height: 10),
+        OutlinedButton.icon(
+          onPressed: () => context.push(AppRoutes.premium),
+          icon: const Icon(Icons.workspace_premium_outlined),
+          label: const Text('Go Premium — never wait'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: _primaryBlue,
+            side: const BorderSide(color: Color(0xFFDDE4FF), width: 1.5),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            textStyle: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         const SizedBox(height: 10),

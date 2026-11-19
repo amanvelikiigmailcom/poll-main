@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:in_app_purchase_platform_interface/in_app_purchase_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flyprox_app/providers/service_providers.dart';
 import 'package:flyprox_app/router/app_router.dart';
@@ -12,6 +14,13 @@ Future<void> pumpRoute(WidgetTester tester) async {
   for (var i = 0; i < 8; i++) {
     await tester.pump(const Duration(milliseconds: 100));
   }
+}
+
+/// Store billing is unavailable in widget tests, so the paywall renders
+/// with its fallback price and never touches the purchase stream.
+class _UnavailablePurchases extends InAppPurchasePlatform {
+  @override
+  Future<bool> isAvailable() async => false;
 }
 
 Future<void> mount(WidgetTester tester, String route) async {
@@ -45,8 +54,12 @@ void main() {
             .widget<AppBottomNavBar>(find.byType(AppBottomNavBar))
             .currentIndex,
         3);
-    await tester.scrollUntilVisible(find.text('How to play'), 200,
-        scrollable: find.byType(Scrollable).first);
+    await tester.dragUntilVisible(
+      find.text('How to play'),
+      find.byType(ListView),
+      const Offset(0, -300),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('How to play'));
     await pumpRoute(tester);
     expect(find.text('How to use'), findsOneWidget);
@@ -105,7 +118,7 @@ void main() {
     });
   }
 
-  for (final retired in [AppRoutes.premium, AppRoutes.premiumResult]) {
+  for (final retired in [AppRoutes.premiumResult]) {
     testWidgets('$retired returns to the free game without a purchase screen',
         (tester) async {
       await mount(tester, retired);
@@ -117,6 +130,20 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
   }
+
+  testWidgets('/premium opens the Premium paywall', (tester) async {
+    // Touch the singleton first: on first access it self-registers the real
+    // store platform, which would overwrite the fake set too early.
+    InAppPurchase.instance;
+    InAppPurchasePlatform.instance = _UnavailablePurchases();
+    await mount(tester, AppRoutes.premium);
+    expect(
+        appRouter.routeInformationProvider.value.uri.path, AppRoutes.premium);
+    expect(find.text('Premium Weekly'), findsOneWidget);
+    expect(find.text('Restore purchases'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
 
   testWidgets('expired cooldown allows the center tab to open a round',
       (tester) async {

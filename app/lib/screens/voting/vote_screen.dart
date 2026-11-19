@@ -7,6 +7,7 @@ import '../../router/app_router.dart';
 import '../../utils/helpers.dart';
 import '../../services/local_game_service.dart';
 import '../../services/question_report_service.dart';
+import '../../services/subscription_service.dart';
 import '../../widgets/common/question_report_dialog.dart';
 
 // ---------------------------------------------------------------------------
@@ -112,6 +113,9 @@ class _VoteScreenState extends State<VoteScreen>
       return;
     }
 
+    if (await SubscriptionService.instance.isPro()) {
+      await LocalGameService.instance.bypassTimer();
+    }
     final remaining = await LocalGameService.instance.secondsUntilNextRound();
     if (!mounted) return;
     if (remaining > 0) {
@@ -233,6 +237,10 @@ class _VoteScreenState extends State<VoteScreen>
     if (!mounted) return;
     if (_currentIndex >= _totalQuestions - 1) {
       await LocalGameService.instance.completeRound();
+      if (await SubscriptionService.instance.isPro()) {
+        await LocalGameService.instance
+            .addStars(LocalGameService.starsPerRound);
+      }
       if (!mounted) return;
       context.go(AppRoutes.starReceived);
     } else {

@@ -7,6 +7,7 @@ import '../../models/user.dart';
 import '../../providers/user_provider.dart';
 import '../../router/app_router.dart';
 import '../../services/local_game_service.dart';
+import '../../services/subscription_service.dart';
 import '../../theme/app_colors.dart';
 
 // ---------------------------------------------------------------------------
@@ -85,7 +86,7 @@ class _ProfileHeaderCard extends StatelessWidget {
         children: [
           _AvatarWidget(user: user, encoded: local.avatar, letter: letter, radius: 52),
           const SizedBox(height: 14),
-          // Name + verified badge
+          // Name + verified badge (Premium members only)
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -99,6 +100,19 @@ class _ProfileHeaderCard extends StatelessWidget {
                     color: AppColors.textPrimary,
                   ),
                 ),
+              ),
+              FutureBuilder<bool>(
+                future: SubscriptionService.instance.isPro(),
+                builder: (context, snapshot) {
+                  if (snapshot.data != true) {
+                    return const SizedBox.shrink();
+                  }
+                  return const Padding(
+                    padding: EdgeInsets.only(left: 6),
+                    child: Icon(Icons.verified,
+                        color: Color(0xFF4B6EF5), size: 22),
+                  );
+                },
               ),
             ],
           ),

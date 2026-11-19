@@ -4,11 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 
 import '../../router/app_router.dart';
+import '../../services/subscription_service.dart';
+import '../../utils/constants.dart';
 
-const String _kProWeeklyId = 'premium_pro_weekly';
-const String _kMaxMonthlyId = 'premium_max_monthly';
-const Set<String> _kProductIds = {_kProWeeklyId, _kMaxMonthlyId};
-
+/// Weekly Premium paywall ($6.99/week, product `premium_pro_weekly`).
+///
+/// Unlocks honest local benefits only: the full round Reveal, no 40-minute
+/// wait, double stars and a profile badge. No backend in this build.
 class PremiumScreen extends StatefulWidget {
   const PremiumScreen({super.key});
 
@@ -22,13 +24,14 @@ class _PremiumScreenState extends State<PremiumScreen> {
   static const Color gradientStart = Color(0xFF0D0D2B);
   static const Color gradientMid = Color(0xFF1A1A4E);
   static const Color gradientEnd = Color(0xFF0F3460);
+  static const String fallbackPrice = '\$6.99';
 
   final InAppPurchase _iap = InAppPurchase.instance;
-  late StreamSubscription<List<PurchaseDetails>> _purchaseSubscription;
+  StreamSubscription<List<PurchaseDetails>>? _purchaseSubscription;
 
   bool _available = false;
   bool _loading = true;
-  Map<String, ProductDetails> _products = {};
+  ProductDetails? _product;
   bool _purchasePending = false;
 
   @override
@@ -38,75 +41,88 @@ class _PremiumScreenState extends State<PremiumScreen> {
   }
 
   Future<void> _initIAP() async {
-    final available = await _iap.isAvailable();
-    if (!available) {
-      setState(() {
-        _available = false;
-        _loading = false;
-      });
-      return;
-    }
+    try {
+      final available = await _iap.isAvailable();
+      if (!available) {
+        if (mounted) {
+          setState(() {
+            _available = false;
+            _loading = false;
+          });
+        }
+        return;
+      }
 
-    _purchaseSubscription = _iap.purchaseStream.listen(
-      _onPurchaseUpdate,
-      onError: (Object e) {
-        _showMessage('Ошибка покупки: $e');
-      },
-    );
+      _purchaseSubscription = _iap.purchaseStream.listen(
+        _onPurchaseUpdate,
+        onError: (Object e) {
+          _showMessage('Purchase error: $e');
+        },
+      );
 
-    final response = await _iap.queryProductDetails(_kProductIds);
-    final Map<String, ProductDetails> products = {};
-    for (final p in response.productDetails) {
-      products[p.id] = p;
-    }
-
-    if (mounted) {
+      final response = await _iap.queryProductDetails(
+        {AppConstants.premiumProProductId},
+      );
+      if (!mounted) return;
       setState(() {
         _available = true;
         _loading = false;
-        _products = products;
+        _product = response.productDetails.isEmpty
+            ? null
+            : response.productDetails.first;
       });
+    } catch (_) {
+      // No store on this platform (e.g. web): show the paywall with the
+      // fallback price instead of hanging on the loader.
+      if (mounted) {
+        setState(() {
+          _available = false;
+          _loading = false;
+        });
+      }
     }
   }
 
-  void _onPurchaseUpdate(List<PurchaseDetails> purchases) {
+  Future<void> _onPurchaseUpdate(List<PurchaseDetails> purchases) async {
     for (final purchase in purchases) {
       if (purchase.status == PurchaseStatus.pending) {
-        setState(() => _purchasePending = true);
+        if (mounted) setState(() => _purchasePending = true);
       } else {
-        setState(() => _purchasePending = false);
+        if (mounted) setState(() => _purchasePending = false);
         if (purchase.status == PurchaseStatus.purchased ||
             purchase.status == PurchaseStatus.restored) {
-          _showMessage('Подписка успешно оформлена! 🎉');
+          await SubscriptionService.instance
+              .setPro(true, productId: purchase.productID);
+          _showMessage('Premium activated! Welcome 👑');
           if (purchase.pendingCompletePurchase) {
-            _iap.completePurchase(purchase);
+            await _iap.completePurchase(purchase);
           }
         } else if (purchase.status == PurchaseStatus.error) {
-          _showMessage('Ошибка: ${purchase.error?.message ?? 'Неизвестная ошибка'}');
+          _showMessage(
+              'Error: ${purchase.error?.message ?? 'Unknown error'}');
         } else if (purchase.status == PurchaseStatus.canceled) {
-          _showMessage('Покупка отменена');
+          _showMessage('Purchase canceled');
         }
       }
     }
   }
 
-  void _buyProduct(String productId) {
+  Future<void> _buy() async {
     if (!_available) {
-      _showMessage('Покупки недоступны на этом устройстве');
+      _showMessage('Purchases are not available on this device');
       return;
     }
-    final product = _products[productId];
+    final product = _product;
     if (product == null) {
-      _showMessage('Продукт не найден. Попробуйте позже.');
+      _showMessage('Product not found. Please try again later.');
       return;
     }
-    final param = PurchaseParam(productDetails: product);
-    _iap.buyNonConsumable(purchaseParam: param);
+    await _iap.buyNonConsumable(purchaseParam: PurchaseParam(productDetails: product));
   }
 
   Future<void> _restorePurchases() async {
     await _iap.restorePurchases();
-    _showMessage('Восстановление покупок...');
+    _showMessage('Restoring purchases...');
   }
 
   void _showMessage(String msg) {
@@ -118,12 +134,13 @@ class _PremiumScreenState extends State<PremiumScreen> {
 
   @override
   void dispose() {
-    _purchaseSubscription.cancel();
+    _purchaseSubscription?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final priceLabel = _product?.price ?? fallbackPrice;
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -149,10 +166,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                         child: Column(
                           children: [
                             const SizedBox(height: 8),
-                            const Text(
-                              '👑',
-                              style: TextStyle(fontSize: 48),
-                            ),
+                            const Text('👑', style: TextStyle(fontSize: 48)),
                             const SizedBox(height: 8),
                             const Text(
                               'Premium',
@@ -165,7 +179,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                             ),
                             const SizedBox(height: 8),
                             const Text(
-                              'Раскрой тех, кто голосовал за тебя',
+                              'Unlock your full round',
                               style: TextStyle(
                                 color: Colors.white60,
                                 fontSize: 14,
@@ -173,10 +187,10 @@ class _PremiumScreenState extends State<PremiumScreen> {
                               textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 24),
-                            _buildProCard(context),
-                            const SizedBox(height: 16),
-                            _buildMaxCard(context),
+                            _buildProCard(priceLabel),
                             const SizedBox(height: 24),
+                            _buildLegalBlock(priceLabel),
+                            const SizedBox(height: 12),
                             _buildBottomSection(),
                             const SizedBox(height: 16),
                           ],
@@ -205,10 +219,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
     );
   }
 
-  Widget _buildProCard(BuildContext context) {
-    final proProduct = _products[_kProWeeklyId];
-    final priceLabel = proProduct?.price ?? '\$7.99';
-
+  Widget _buildProCard(String priceLabel) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.08),
@@ -222,7 +233,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
           Row(
             children: [
               const Text(
-                'Premium Pro',
+                'Premium Weekly',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 22,
@@ -240,7 +251,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Text(
-                  'НЕДЕЛЯ',
+                  'WEEK',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 10,
@@ -253,7 +264,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            '$priceLabel / неделю',
+            '$priceLabel / week · 1-week auto-renewing subscription',
             style: const TextStyle(
               color: Colors.white54,
               fontSize: 13,
@@ -261,207 +272,56 @@ class _PremiumScreenState extends State<PremiumScreen> {
           ),
           const SizedBox(height: 16),
           _buildFeature(
-            icon: Icons.check_circle_outline,
-            iconColor: primaryBlue,
-            text: '2 раза в неделю — раскройте полные имена тех кто выбрал вас',
+            icon: Icons.visibility_outlined,
+            text: 'Full Reveal — all 12 answers every round',
           ),
           _buildFeature(
-            icon: Icons.check_circle_outline,
-            iconColor: primaryBlue,
-            text: '2 раза в неделю — первая буква имени',
+            icon: Icons.timer_off_outlined,
+            text: 'No 40-minute wait between rounds',
           ),
           _buildFeature(
-            icon: Icons.check_circle_outline,
-            iconColor: primaryBlue,
-            text: 'Звёздочки ×2',
+            icon: Icons.star_outline,
+            text: 'Stars ×2 for every completed round',
           ),
           _buildFeature(
-            icon: Icons.check_circle_outline,
-            iconColor: primaryBlue,
-            text: 'Значок ✓ в профиле на неделю',
+            icon: Icons.verified_outlined,
+            text: '✓ badge in your profile',
           ),
           const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed:
-                      _purchasePending ? null : () => _buyProduct(_kProWeeklyId),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: primaryBlue),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                  ),
-                  child: Text(
-                    priceLabel,
-                    style: const TextStyle(
-                      color: primaryBlue,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _purchasePending ? null : _buy,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: accentRed,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: Colors.grey.shade600,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
+                padding: const EdgeInsets.symmetric(vertical: 14),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: ElevatedButton(
-                  onPressed:
-                      _purchasePending ? null : () => _buyProduct(_kProWeeklyId),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: accentRed,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: Colors.grey.shade600,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                  ),
-                  child: const Text(
-                    'Получить Pro 👑',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMaxCard(BuildContext context) {
-    final maxProduct = _products[_kMaxMonthlyId];
-    final priceLabel = maxProduct?.price ?? '\$27.99';
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: accentRed.withValues(alpha: 0.6), width: 1.5),
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Text(
-                'Premium Max',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
+              child: Text(
+                'Get Premium · $priceLabel',
+                style: const TextStyle(
                   fontWeight: FontWeight.bold,
+                  fontSize: 16,
                 ),
               ),
-              const SizedBox(width: 6),
-              const Text('🏆', style: TextStyle(fontSize: 20)),
-              const Spacer(),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                decoration: BoxDecoration(
-                  color: accentRed,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Text(
-                  'МЕСЯЦ',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '$priceLabel / месяц',
-            style: const TextStyle(
-              color: Colors.white54,
-              fontSize: 13,
             ),
-          ),
-          const SizedBox(height: 16),
-          _buildInfinityFeature('Неограниченно — полные имена'),
-          _buildInfinityFeature('Неограниченно — первая буква'),
-          _buildInfinityFeature('Звёздочки ×2'),
-          _buildInfinityFeature('Значок ✓ на месяц'),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _purchasePending
-                      ? null
-                      : () => _buyProduct(_kMaxMonthlyId),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: primaryBlue),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                  ),
-                  child: Text(
-                    priceLabel,
-                    style: const TextStyle(
-                      color: primaryBlue,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: ElevatedButton(
-                  onPressed: _purchasePending
-                      ? null
-                      : () => _buyProduct(_kMaxMonthlyId),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: accentRed,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: Colors.grey.shade600,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                  ),
-                  child: const Text(
-                    'Получить Max 👑',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
-                ),
-              ),
-            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFeature({
-    required IconData icon,
-    required Color iconColor,
-    required String text,
-  }) {
+  Widget _buildFeature({required IconData icon, required String text}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: iconColor, size: 18),
+          Icon(icon, color: primaryBlue, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -474,25 +334,15 @@ class _PremiumScreenState extends State<PremiumScreen> {
     );
   }
 
-  Widget _buildInfinityFeature(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '♾️',
-            style: TextStyle(fontSize: 16),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(color: Colors.white, fontSize: 13),
-            ),
-          ),
-        ],
-      ),
+  Widget _buildLegalBlock(String priceLabel) {
+    return Text(
+      'Premium Weekly ($priceLabel per week) is a 1-week auto-renewing '
+      'subscription. Payment is charged to your Apple Account at confirmation '
+      'of purchase. The subscription renews automatically unless cancelled at '
+      'least 24 hours before the end of the current period. Manage or cancel '
+      'anytime in your App Store account settings.',
+      style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 11),
+      textAlign: TextAlign.center,
     );
   }
 
@@ -502,7 +352,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
         TextButton(
           onPressed: _restorePurchases,
           child: const Text(
-            'Восстановить покупки',
+            'Restore purchases',
             style: TextStyle(color: Colors.white60, fontSize: 13),
           ),
         ),
@@ -513,7 +363,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
             TextButton(
               onPressed: () => context.push(AppRoutes.terms),
               child: const Text(
-                'Условия использования',
+                'Terms of Use',
                 style: TextStyle(color: Colors.white38, fontSize: 11),
               ),
             ),
@@ -524,7 +374,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
             TextButton(
               onPressed: () => context.push(AppRoutes.privacy),
               child: const Text(
-                'Политика конфиденциальности',
+                'Privacy Policy',
                 style: TextStyle(color: Colors.white38, fontSize: 11),
               ),
             ),

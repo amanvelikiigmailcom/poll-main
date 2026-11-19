@@ -118,7 +118,7 @@ class PremiumLimits extends Equatable {
   bool get hasUnlimitedFullName => fullNameReveals == -1;
   bool get hasUnlimitedFirstLetter => firstLetterReveals == -1;
 
-  /// Preset limits for the Pro plan ($7.99/week).
+  /// Preset limits for the Pro plan ($6.99/week).
   factory PremiumLimits.pro() {
     return const PremiumLimits(
       fullNameReveals: 3,

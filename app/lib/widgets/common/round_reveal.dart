@@ -1,18 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../router/app_router.dart';
 import '../../services/local_game_service.dart';
 import '../../services/game_settings.dart';
+import '../../services/subscription_service.dart';
 
+/// Shows the locally saved round. Premium members see every answer;
+/// everyone else sees the first three with an upsell to Premium.
 Future<void> showRoundReveal(BuildContext context) async {
   final answers =
       await LocalGameService.instance.getRoundAnswers(completed: true);
+  final pro = await SubscriptionService.instance.isPro();
   if (!context.mounted) return;
   GameSettings.instance.feedback();
+  final visible = pro ? answers : answers.take(3).toList();
+  final locked = answers.length - visible.length;
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
     useSafeArea: true,
-    builder: (context) => FractionallySizedBox(
+    builder: (sheetContext) => FractionallySizedBox(
       heightFactor: 0.85,
       child: Column(children: [
         Padding(
@@ -20,27 +28,28 @@ Future<void> showRoundReveal(BuildContext context) async {
           child: Row(children: [
             Expanded(
                 child: Text('Your round revealed',
-                    style: Theme.of(context).textTheme.titleLarge)),
+                    style: Theme.of(sheetContext).textTheme.titleLarge)),
             IconButton(
                 tooltip: 'Close',
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.pop(sheetContext),
                 icon: const Icon(Icons.close)),
           ]),
         ),
-        const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: Text(
-                'Your choices on this device. These are not votes from other people.')),
+        Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(pro
+                ? 'Your choices on this device. These are not votes from other people.'
+                : 'First 3 of ${answers.length} shown. Go Premium to reveal the whole round.')),
         const SizedBox(height: 12),
         Expanded(
             child: answers.isEmpty
                 ? const Center(child: Text('No saved answers for this round.'))
                 : ListView.separated(
                     padding: const EdgeInsets.all(20),
-                    itemCount: answers.length,
+                    itemCount: visible.length,
                     separatorBuilder: (_, __) => const Divider(height: 28),
-                    itemBuilder: (context, index) {
-                      final answer = answers[index];
+                    itemBuilder: (sheetContext, index) {
+                      final answer = visible[index];
                       return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -53,13 +62,29 @@ Future<void> showRoundReveal(BuildContext context) async {
                                     ? 'Skipped'
                                     : 'You → ${answer.choice}',
                                 style: TextStyle(
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
+                                    color: Theme.of(sheetContext)
+                                        .colorScheme
+                                        .primary,
                                     fontSize: 18,
                                     fontWeight: FontWeight.w700)),
                           ]);
                     },
                   )),
+        if (!pro && locked > 0)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () {
+                  Navigator.pop(sheetContext);
+                  context.push(AppRoutes.premium);
+                },
+                icon: const Icon(Icons.workspace_premium_outlined),
+                label: Text('Reveal all $locked more with Premium'),
+              ),
+            ),
+          ),
       ]),
     ),
   );

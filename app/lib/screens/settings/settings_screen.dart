@@ -61,6 +61,13 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const _SectionHeader(title: 'PRIVACY'),
           _SettingsCard(children: [
+            _ArrowTile(
+              icon: Icons.delete_outline,
+              title: 'Delete account',
+              color: AppColors.accentRed,
+              onTap: () => context.push(AppRoutes.deleteAccount),
+            ),
+            const Divider(height: 1),
             _ArrowTile(icon: Icons.data_object, title: 'View my local data',
               onTap: () async {
                 final data = await LocalGameService.instance.exportLocalData();
@@ -95,6 +102,12 @@ class SettingsScreen extends ConsumerWidget {
               'Opening email, sharing or visiting external pages uses the service you choose.')),
           const _SectionHeader(title: 'APP'),
           _SettingsCard(children: [
+            _ArrowTile(
+              icon: Icons.workspace_premium_outlined,
+              title: 'Premium',
+              onTap: () => context.push(AppRoutes.premium),
+            ),
+            const Divider(height: 1),
             _ArrowTile(
               icon: Icons.auto_awesome_outlined,
               title: 'Replay intro',

@@ -39,6 +39,7 @@ import '../screens/social/likes_empty_screen.dart';
 import '../screens/social/likes_result_screen.dart';
 import '../screens/social/room_screen.dart';
 import '../screens/social/create_room_screen.dart';
+import '../screens/premium/premium_screen.dart';
 
 abstract final class AppRoutes {
   static const splash = '/';
@@ -206,8 +207,10 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
             path: AppRoutes.friendRequests,
             builder: (_, __) => const FriendRequestsScreen()),
-        // Retired purchase URLs lead back to the free game.
-        GoRoute(path: AppRoutes.premium, redirect: (_, __) => AppRoutes.home),
+        GoRoute(
+            path: AppRoutes.premium,
+            builder: (_, __) => const PremiumScreen()),
+        // Retired fake-voters result URL leads back to the free game.
         GoRoute(
             path: AppRoutes.premiumResult, redirect: (_, __) => AppRoutes.home),
         GoRoute(
