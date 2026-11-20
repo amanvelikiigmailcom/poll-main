@@ -14,7 +14,7 @@ import '../../widgets/common/reset_game_action.dart';
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
-  static const String _appVersion = '1.0.0 (build 1)';
+  static const String _appVersion = '1.0.1 (build 3)';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

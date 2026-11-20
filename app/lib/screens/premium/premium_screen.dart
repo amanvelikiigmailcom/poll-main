@@ -1,16 +1,14 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:in_app_purchase/in_app_purchase.dart';
 
-import '../../router/app_router.dart';
+import '../../services/external_link_service.dart';
 import '../../services/subscription_service.dart';
 import '../../utils/constants.dart';
 
 /// Weekly Premium paywall ($6.99/week, product `premium_pro_weekly`).
 ///
-/// Unlocks honest local benefits only: the full round Reveal, no 40-minute
-/// wait, double stars and a profile badge. No backend in this build.
+/// Our own paywall UI; billing runs through Superwall (see
+/// [SubscriptionService]). Unlocks honest local benefits only: the full
+/// round Reveal, no 40-minute wait, double stars and a profile badge.
 class PremiumScreen extends StatefulWidget {
   const PremiumScreen({super.key});
 
@@ -26,104 +24,38 @@ class _PremiumScreenState extends State<PremiumScreen> {
   static const Color gradientEnd = Color(0xFF0F3460);
   static const String fallbackPrice = '\$6.99';
 
-  final InAppPurchase _iap = InAppPurchase.instance;
-  StreamSubscription<List<PurchaseDetails>>? _purchaseSubscription;
+  final SubscriptionService _subs = SubscriptionService.instance;
 
-  bool _available = false;
   bool _loading = true;
-  ProductDetails? _product;
-  bool _purchasePending = false;
+  String _priceLabel = fallbackPrice;
 
   @override
   void initState() {
     super.initState();
-    _initIAP();
+    _subs.notice.addListener(_showNotice);
+    _loadPrice();
   }
 
-  Future<void> _initIAP() async {
-    try {
-      final available = await _iap.isAvailable();
-      if (!available) {
-        if (mounted) {
-          setState(() {
-            _available = false;
-            _loading = false;
-          });
-        }
-        return;
-      }
-
-      _purchaseSubscription = _iap.purchaseStream.listen(
-        _onPurchaseUpdate,
-        onError: (Object e) {
-          _showMessage('Purchase error: $e');
-        },
-      );
-
-      final response = await _iap.queryProductDetails(
-        {AppConstants.premiumProProductId},
-      );
-      if (!mounted) return;
-      setState(() {
-        _available = true;
-        _loading = false;
-        _product = response.productDetails.isEmpty
-            ? null
-            : response.productDetails.first;
-      });
-    } catch (_) {
-      // No store on this platform (e.g. web): show the paywall with the
-      // fallback price instead of hanging on the loader.
-      if (mounted) {
-        setState(() {
-          _available = false;
-          _loading = false;
-        });
-      }
-    }
+  Future<void> _loadPrice() async {
+    final label =
+        await _subs.priceLabel(AppConstants.premiumProProductId);
+    if (!mounted) return;
+    setState(() {
+      _priceLabel = label;
+      _loading = false;
+    });
   }
 
-  Future<void> _onPurchaseUpdate(List<PurchaseDetails> purchases) async {
-    for (final purchase in purchases) {
-      if (purchase.status == PurchaseStatus.pending) {
-        if (mounted) setState(() => _purchasePending = true);
-      } else {
-        if (mounted) setState(() => _purchasePending = false);
-        if (purchase.status == PurchaseStatus.purchased ||
-            purchase.status == PurchaseStatus.restored) {
-          await SubscriptionService.instance
-              .setPro(true, productId: purchase.productID);
-          _showMessage('Premium activated! Welcome 👑');
-          if (purchase.pendingCompletePurchase) {
-            await _iap.completePurchase(purchase);
-          }
-        } else if (purchase.status == PurchaseStatus.error) {
-          _showMessage(
-              'Error: ${purchase.error?.message ?? 'Unknown error'}');
-        } else if (purchase.status == PurchaseStatus.canceled) {
-          _showMessage('Purchase canceled');
-        }
-      }
-    }
+  void _showNotice() {
+    final msg = _subs.notice.value;
+    if (msg == null) return;
+    _subs.notice.value = null;
+    _showMessage(msg);
   }
 
-  Future<void> _buy() async {
-    if (!_available) {
-      _showMessage('Purchases are not available on this device');
-      return;
-    }
-    final product = _product;
-    if (product == null) {
-      _showMessage('Product not found. Please try again later.');
-      return;
-    }
-    await _iap.buyNonConsumable(purchaseParam: PurchaseParam(productDetails: product));
-  }
+  Future<void> _buy() => _subs.buyPro(AppConstants.premiumProProductId);
 
-  Future<void> _restorePurchases() async {
-    await _iap.restorePurchases();
-    _showMessage('Restoring purchases...');
-  }
+  Future<void> _restorePurchases() => _subs.restore();
 
   void _showMessage(String msg) {
     if (!mounted) return;
@@ -134,13 +66,13 @@ class _PremiumScreenState extends State<PremiumScreen> {
 
   @override
   void dispose() {
-    _purchaseSubscription?.cancel();
+    _subs.notice.removeListener(_showNotice);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final priceLabel = _product?.price ?? fallbackPrice;
+    final priceLabel = _priceLabel;
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -155,8 +87,12 @@ class _PremiumScreenState extends State<PremiumScreen> {
           child: Column(
             children: [
               _buildTopBar(context),
-              if (_purchasePending)
-                const LinearProgressIndicator(color: primaryBlue),
+              ValueListenableBuilder<bool>(
+                valueListenable: _subs.purchasePending,
+                builder: (context, pending, _) => pending
+                    ? const LinearProgressIndicator(color: primaryBlue)
+                    : const SizedBox.shrink(),
+              ),
               Expanded(
                 child: _loading
                     ? const Center(
@@ -290,22 +226,25 @@ class _PremiumScreenState extends State<PremiumScreen> {
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _purchasePending ? null : _buy,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: accentRed,
-                foregroundColor: Colors.white,
-                disabledBackgroundColor: Colors.grey.shade600,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            child: ValueListenableBuilder<bool>(
+              valueListenable: _subs.purchasePending,
+              builder: (context, pending, _) => ElevatedButton(
+                onPressed: pending ? null : _buy,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: accentRed,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: Colors.grey.shade600,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: Text(
-                'Get Premium · $priceLabel',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                child: Text(
+                  'Get Premium · $priceLabel',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ),
@@ -361,7 +300,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             TextButton(
-              onPressed: () => context.push(AppRoutes.terms),
+              onPressed: () =>
+                  openExternalLink(context, AppConstants.termsUrl),
               child: const Text(
                 'Terms of Use',
                 style: TextStyle(color: Colors.white38, fontSize: 11),
@@ -372,7 +312,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
               style: TextStyle(color: Colors.white24, fontSize: 11),
             ),
             TextButton(
-              onPressed: () => context.push(AppRoutes.privacy),
+              onPressed: () =>
+                  openExternalLink(context, AppConstants.privacyUrl),
               child: const Text(
                 'Privacy Policy',
                 style: TextStyle(color: Colors.white38, fontSize: 11),

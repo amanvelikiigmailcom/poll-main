@@ -1,26 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:in_app_purchase/in_app_purchase.dart';
-import 'package:in_app_purchase_platform_interface/in_app_purchase_platform_interface.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flyprox_app/providers/service_providers.dart';
 import 'package:flyprox_app/router/app_router.dart';
 import 'package:flyprox_app/services/local_game_service.dart';
 import 'package:flyprox_app/services/storage_service.dart';
+import 'package:flyprox_app/services/subscription_service.dart';
+import 'package:flyprox_app/utils/constants.dart';
 import 'package:flyprox_app/widgets/common/bottom_nav_bar.dart';
 
 Future<void> pumpRoute(WidgetTester tester) async {
   for (var i = 0; i < 8; i++) {
     await tester.pump(const Duration(milliseconds: 100));
   }
-}
-
-/// Store billing is unavailable in widget tests, so the paywall renders
-/// with its fallback price and never touches the purchase stream.
-class _UnavailablePurchases extends InAppPurchasePlatform {
-  @override
-  Future<bool> isAvailable() async => false;
 }
 
 Future<void> mount(WidgetTester tester, String route) async {
@@ -118,6 +112,29 @@ void main() {
     });
   }
 
+  testWidgets('pro members skip an active cooldown', (tester) async {
+    await LocalGameService.instance.completeRound();
+    await SubscriptionService.instance.setPro(true);
+    await mount(tester, AppRoutes.vote);
+    expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.vote);
+    expect(find.text('Question 1 of 12'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('profile shows the verified badge for pro members',
+      (tester) async {
+    await SubscriptionService.instance.setPro(true);
+    await mount(tester, AppRoutes.profile);
+    expect(find.byIcon(Icons.verified), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('profile hides the verified badge when free', (tester) async {
+    await mount(tester, AppRoutes.profile);
+    expect(find.byIcon(Icons.verified), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   for (final retired in [AppRoutes.premiumResult]) {
     testWidgets('$retired returns to the free game without a purchase screen',
         (tester) async {
@@ -132,13 +149,43 @@ void main() {
   }
 
   testWidgets('/premium opens the Premium paywall', (tester) async {
-    // Touch the singleton first: on first access it self-registers the real
-    // store platform, which would overwrite the fake set too early.
-    InAppPurchase.instance;
-    InAppPurchasePlatform.instance = _UnavailablePurchases();
+    tester.view.physicalSize = const Size(800, 2400);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
     await mount(tester, AppRoutes.premium);
     expect(
         appRouter.routeInformationProvider.value.uri.path, AppRoutes.premium);
+    expect(find.text('Premium Weekly'), findsOneWidget);
+    expect(find.textContaining('1-week auto-renewing subscription'),
+        findsWidgets);
+    expect(find.textContaining('\$6.99'), findsWidgets);
+    expect(find.text('Restore purchases'), findsOneWidget);
+    expect(find.text('Terms of Use'), findsOneWidget);
+    expect(find.text('Privacy Policy'), findsOneWidget);
+    expect(find.textContaining('renews automatically'), findsOneWidget);
+    const launcherChannel = MethodChannel('plugins.flutter.io/url_launcher');
+    String? launchedUrl;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(launcherChannel, (call) async {
+      if (call.method == 'launch') {
+        launchedUrl = (call.arguments as Map)['url'] as String?;
+        return true;
+      }
+      return null;
+    });
+    addTearDown(() => TestDefaultBinaryMessengerBinding.instance
+        .defaultBinaryMessenger
+        .setMockMethodCallHandler(launcherChannel, null));
+    await tester.tap(find.text('Terms of Use'));
+    await tester.pumpAndSettle();
+    expect(launchedUrl, AppConstants.termsUrl);
+    await tester.tap(find.text('Privacy Policy'));
+    await tester.pumpAndSettle();
+    expect(launchedUrl, AppConstants.privacyUrl);
+    // Multi-frame stability: content persists across further pumps.
+    await pumpRoute(tester);
+    await pumpRoute(tester);
     expect(find.text('Premium Weekly'), findsOneWidget);
     expect(find.text('Restore purchases'), findsOneWidget);
     expect(tester.takeException(), isNull);

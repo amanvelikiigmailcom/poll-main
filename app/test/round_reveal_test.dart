@@ -10,6 +10,8 @@ import 'package:flyprox_app/router/app_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flyprox_app/services/game_settings.dart';
 import 'package:flyprox_app/services/local_game_service.dart';
+import 'package:flyprox_app/services/subscription_service.dart';
+import 'package:flyprox_app/widgets/common/round_reveal.dart';
 import 'package:flyprox_app/screens/voting/vote_screen.dart';
 import 'package:flyprox_app/screens/voting/star_received_screen.dart';
 
@@ -127,10 +129,96 @@ void main() {
     }
     expect(find.text('Reveal'), findsOneWidget);
     expect(await game.getRoundAnswers(completed: true), hasLength(12));
+    expect(await game.getStars(), 1000);
     await tester.tap(find.text('Reveal'));
     await tester.pumpAndSettle();
     expect(find.text('Your round revealed'), findsOneWidget);
     expect(find.text('You → Alex'), findsWidgets);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  Future<void> seedTwelveAnswers() async {
+    final game = LocalGameService.instance;
+    await game.savePlayerAndFriends(
+        playerName: 'Player', friends: ['Alex', 'Sam', 'Jordan']);
+    for (var i = 0; i < 12; i++) {
+      await game.recordAnswer(RoundAnswer(
+          questionId: 'q$i',
+          question: 'Question $i?',
+          voter: 'Player',
+          choice: 'Alex'));
+    }
+    await game.completeRound();
+  }
+
+  Future<void> openRevealSheet(WidgetTester tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => showRoundReveal(context),
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('pro Reveal shows all twelve answers without upsell',
+      (tester) async {
+    await seedTwelveAnswers();
+    await SubscriptionService.instance.setPro(true);
+    await openRevealSheet(tester);
+    await tester.dragUntilVisible(
+      find.text('12. Question 11?'),
+      find.byType(ListView),
+      const Offset(0, -300),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('12. Question 11?'), findsOneWidget);
+    expect(find.textContaining('with Premium'), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('free Reveal shows three answers with a Premium upsell',
+      (tester) async {
+    await seedTwelveAnswers();
+    await openRevealSheet(tester);
+    expect(find.text('You → Alex'), findsWidgets);
+    expect(find.text('Reveal all 9 more with Premium'), findsOneWidget);
+    expect(find.text('4. Question 3?'), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('pro members earn double stars for a completed round',
+      (tester) async {
+    await GameSettings.instance.setOption('reduce_motion', true);
+    await GameSettings.instance.setOption('sound', false);
+    final game = LocalGameService.instance;
+    await game.savePlayerAndFriends(
+        playerName: 'Player', friends: ['Alex', 'Sam', 'Jordan']);
+    await SubscriptionService.instance.setPro(true);
+    final router = GoRouter(initialLocation: '/vote', routes: [
+      GoRoute(path: '/vote', builder: (_, __) => const VoteScreen()),
+      GoRoute(
+          path: '/star-received',
+          builder: (_, __) => const StarReceivedScreen()),
+    ]);
+    addTearDown(router.dispose);
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpAndSettle();
+    for (var i = 0; i < 12; i++) {
+      await tester.tap(find.text('Alex'));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+    }
+    expect(await game.getStars(), 2000);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });

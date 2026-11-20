@@ -73,13 +73,16 @@ void main() {
     AppRoutes.editProfile,
     AppRoutes.deleteAccount
   ]) {
+    final deleteWording = route == AppRoutes.deleteAccount;
+    final buttonLabel = deleteWording ? 'Delete account' : 'Reset game';
+    final dialogTitle = deleteWording ? 'Delete account?' : 'Reset game?';
     testWidgets('$route cancel leaves local game and cache intact',
         (tester) async {
       final container = await mountResetApp(tester, route);
-      await tester.ensureVisible(find.text('Reset game'));
-      await tester.tap(find.text('Reset game'));
+      await tester.ensureVisible(find.text(buttonLabel));
+      await tester.tap(find.text(buttonLabel));
       await tester.pumpAndSettle();
-      expect(find.text('Reset game?'), findsOneWidget);
+      expect(find.text(dialogTitle), findsOneWidget);
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
       expect(await LocalGameService.instance.getPlayerName(), 'Old player');
@@ -94,12 +97,16 @@ void main() {
     testWidgets('$route confirm clears game, cache and persisted progress',
         (tester) async {
       final container = await mountResetApp(tester, route);
-      await tester.ensureVisible(find.text('Reset game'));
-      await tester.tap(find.text('Reset game'));
+      await tester.ensureVisible(find.text(buttonLabel));
+      await tester.tap(find.text(buttonLabel));
       await tester.pumpAndSettle();
+      if (deleteWording) {
+        expect(find.textContaining('Are you sure you are ready to delete?'),
+            findsOneWidget);
+      }
       await tester.tap(find.descendant(
           of: find.byType(AlertDialog),
-          matching: find.widgetWithText(FilledButton, 'Reset game')));
+          matching: find.widgetWithText(FilledButton, buttonLabel)));
       await tester.pumpAndSettle();
       await checkClearedGame(container);
       expect(appRouter.routeInformationProvider.value.uri.path,

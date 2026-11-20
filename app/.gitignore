@@ -43,3 +43,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Local Superwall API key — never commit (see lib/config/superwall_keys.example.dart)
+lib/config/superwall_keys.dart

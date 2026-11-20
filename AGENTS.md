@@ -32,6 +32,8 @@ flutter test --no-pub
 
 - Проверенная среда: Flutter **3.44.4** локально и в CI, Dart **3.12+**, Xcode/iOS SDK **27.2**. Минимальная iOS **15.0** означает поддержку 15 и новее.
 - Bundle ID: `com.flyprox.flyproxApp`. Версия: `app/pubspec.yaml`; номера облачных сборок проверять отдельно.
+- Трейн 1.0.0 закрыт (версия была одобрена раньше): новые сборки только с повышением версии, сейчас 1.0.1+3. Подписка `premium_pro_weekly` ($6.99/нед) создана в Connect и подаётся вместе с версией.
+- Оплата: Superwall SDK (`superwallkit_flutter`), свой пейвол + прямые покупки; entitlement `pro`, dashboard app 60567. Ключ только локально в `app/lib/config/superwall_keys.dart` (gitignore), в чат и git не тащить.
 - Перед локальным Archive: из `app/` выполнить `flutter pub get`, затем `cd ios` и `pod install`. Открывать **Runner.xcworkspace**. `Pods/Manifest.lock` должен совпадать с `Podfile.lock`; не удалять lock-файлы для устранения ошибки.
 - Проверка компиляции из `app/`: `flutter build ios --release --no-codesign`. Результат: `app/build/ios/iphoneos/Runner.app`; эта сборка не подписана для установки.
 - Подписанная отправка: Xcode → **Product → Archive → Distribute App → App Store Connect → Upload**. **Validate App** только проверяет. Стандартный путь архива Flutter: `app/build/ios/archive/Runner.xcarchive`; архивы Xcode — Organizer, обычно `~/Library/Developer/Xcode/Archives/`.
