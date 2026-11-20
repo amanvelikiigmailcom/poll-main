@@ -9,6 +9,7 @@ import '../../services/external_link_service.dart';
 import '../../utils/constants.dart';
 import '../../theme/app_colors.dart';
 import '../../services/game_settings.dart';
+import '../../services/subscription_service.dart';
 import '../../widgets/common/reset_game_action.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -108,6 +109,8 @@ class SettingsScreen extends ConsumerWidget {
               onTap: () => context.push(AppRoutes.premium),
             ),
             const Divider(height: 1),
+            const _SubscriptionStatusTile(),
+            const Divider(height: 1),
             _ArrowTile(
               icon: Icons.auto_awesome_outlined,
               title: 'Replay intro',
@@ -189,17 +192,69 @@ class _ArrowTile extends StatelessWidget {
     required this.title,
     required this.onTap,
     this.color = AppColors.textPrimary,
+    this.subtitle,
   });
   final IconData icon;
   final String title;
   final VoidCallback onTap;
   final Color color;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) => ListTile(
         leading: Icon(icon, color: color),
         title: Text(title, style: TextStyle(color: color)),
+        subtitle: subtitle == null
+            ? null
+            : Text(subtitle!,
+                style: const TextStyle(
+                    color: AppColors.textHint, fontSize: 12)),
         trailing: const Icon(Icons.chevron_right_rounded),
         onTap: onTap,
       );
+}
+
+/// Live subscription state for support and self-diagnostics.
+class _SubscriptionStatusTile extends StatelessWidget {
+  const _SubscriptionStatusTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: SubscriptionService.instance.proListenable,
+      builder: (context, pro, _) => _ArrowTile(
+        icon: Icons.verified_outlined,
+        title: 'Subscription status',
+        subtitle: pro ? 'Active' : 'Free',
+        onTap: () => showSubscriptionStatusDialog(context),
+      ),
+    );
+  }
+}
+
+Future<void> showSubscriptionStatusDialog(BuildContext context) async {
+  final sub = SubscriptionService.instance;
+  final ready = sub.billingReady;
+  final pro = await sub.isPro();
+  final installId = await sub.debugInstallId();
+  final shortId =
+      installId.length > 8 ? '${installId.substring(0, 8)}…' : installId;
+  if (!context.mounted) return;
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: const Text('Subscription status'),
+      content: Text(
+        'Store billing: ${ready ? 'connected' : 'not connected'}\n'
+        'Premium: ${pro ? 'active' : 'inactive'}\n'
+        'User ID: $shortId',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext),
+          child: const Text('Close'),
+        ),
+      ],
+    ),
+  );
 }

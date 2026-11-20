@@ -37,7 +37,8 @@ Future<void> main() async {
   await GameSettings.instance.load();
 
   // ── Subscriptions (Superwall) ───────────────────────────────────────────
-  // The key lives only in untracked lib/config/superwall_keys.dart.
+  // Public SDK key from lib/config/superwall_keys.dart (placeholder in git,
+  // real value local-only).
   if (superwallIosApiKey.isNotEmpty) {
     try {
       Superwall.configure(superwallIosApiKey);

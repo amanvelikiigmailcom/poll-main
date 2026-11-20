@@ -4,19 +4,23 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:superwallkit_flutter/superwallkit_flutter.dart';
 
 import '../config/superwall_ids.dart';
+import 'billing_gateway.dart';
 
 /// Weekly Premium entitlement, powered by Superwall.
 ///
 /// Source of truth for paid access is the Superwall `pro` entitlement.
-/// The local flag doubles as a test/debug override (used by widget tests and
-/// as a graceful fallback when Superwall is not configured). It
-/// intentionally survives Reset game.
+/// The local flag doubles as a test/debug override. It intentionally
+/// survives Reset game.
+///
+/// Every billing entry retries the SDK attach, so a transient failure at
+/// startup (no network, slow init) never disables purchases permanently.
 class SubscriptionService {
-  SubscriptionService._();
+  SubscriptionService._() : _gateway = SuperwallGateway();
   static final SubscriptionService instance = SubscriptionService._();
+
+  BillingGateway _gateway;
 
   static const String _activeKey = 'sub_pro_active';
   static const String _productKey = 'sub_pro_product_id';
@@ -32,12 +36,11 @@ class SubscriptionService {
   /// One-shot user-facing message for the paywall to show and clear.
   final ValueNotifier<String?> notice = ValueNotifier(null);
 
-  StreamSubscription<SubscriptionStatus>? _statusSub;
-  bool _initialized = false;
+  StreamSubscription<Set<String>>? _statusSub;
   bool _ready = false;
   bool _entitlementActive = false;
 
-  /// True once Superwall is configured and reachable.
+  /// True once the billing backend is configured and reachable.
   bool get billingReady => _ready;
 
   Future<SharedPreferences> get _prefs => SharedPreferences.getInstance();
@@ -63,16 +66,18 @@ class SubscriptionService {
     proListenable.value = await isPro();
   }
 
-  /// Attach to Superwall. Safe to call once at startup; extra calls are
-  /// ignored. Never throws; without a configured SDK the service stays in
-  /// local-flag mode.
+  /// Short install identifier for the diagnostics dialog.
+  Future<String> debugInstallId() async {
+    final id = (await _prefs).getString(_installIdKey);
+    return (id == null || id.isEmpty) ? 'not set' : id;
+  }
+
+  /// Attach to the billing backend. Idempotent, retryable, never throws.
   Future<void> initialize() async {
-    if (_initialized) return;
-    _initialized = true;
+    if (_ready) return;
     try {
-      _ready = await Superwall.shared.getIsConfigured();
-    } catch (e) {
-      debugPrint('Superwall not configured: $e');
+      _ready = await _gateway.isConfigured();
+    } catch (_) {
       _ready = false;
     }
     if (!_ready) {
@@ -80,14 +85,7 @@ class SubscriptionService {
       return;
     }
     await _identifyInstall();
-    await _setAttributes();
-    try {
-      _statusSub = Superwall.shared.subscriptionStatus.listen((status) async {
-        await _refreshFromStatus(status);
-      });
-    } catch (e) {
-      debugPrint('Superwall status stream failed: $e');
-    }
+    await _attachStatusListener();
     await refresh();
   }
 
@@ -96,47 +94,48 @@ class SubscriptionService {
       final prefs = await _prefs;
       var id = prefs.getString(_installIdKey);
       if (id == null || id.isEmpty) {
-        final random = Random.secure();
-        id = base64UrlEncode(List.generate(16, (_) => random.nextInt(256)));
+        id = _newInstallId();
         await prefs.setString(_installIdKey, id);
       }
-      await Superwall.shared.identify(id);
+      await _gateway.identify(id);
     } catch (e) {
-      debugPrint('Superwall identify failed: $e');
+      debugPrint('Billing identify failed: $e');
     }
   }
 
-  Future<void> _setAttributes() async {
+  String _newInstallId() {
+    final random = Random.secure();
+    return base64UrlEncode(List.generate(16, (_) => random.nextInt(256)));
+  }
+
+  Future<void> _attachStatusListener() async {
+    if (_statusSub != null) return;
     try {
-      await Superwall.shared.setUserAttributes(const {
-        'app': 'flyprox',
-        'platform': 'ios',
-        'locale': 'en',
-      });
+      _statusSub = _gateway.watchActiveEntitlements().listen(
+        (ids) async {
+          _entitlementActive = ids.contains(SuperwallIds.proEntitlement);
+          proListenable.value = await isPro();
+        },
+        onError: (Object e) => debugPrint('Billing status failed: $e'),
+      );
     } catch (e) {
-      debugPrint('Superwall attributes failed: $e');
+      debugPrint('Billing status attach failed: $e');
     }
   }
 
-  Future<void> _refreshFromStatus(SubscriptionStatus status) async {
-    var active = false;
-    if (status is SubscriptionStatusActive) {
-      active = status.entitlements
-          .any((e) => e.id == SuperwallIds.proEntitlement);
-    }
-    _entitlementActive = active;
-    proListenable.value = await isPro();
+  Future<void> _ensureReady() async {
+    if (!_ready) await initialize();
   }
 
-  /// Re-read entitlements from the SDK (safe to call any time).
+  /// Re-read entitlements from the backend (safe to call any time).
   Future<void> refresh() async {
+    await _ensureReady();
     if (!_ready) return;
     try {
-      final entitlements = await Superwall.shared.getEntitlements();
-      _entitlementActive = entitlements.active
-          .any((e) => e.id == SuperwallIds.proEntitlement);
+      final ids = await _gateway.activeEntitlements();
+      _entitlementActive = ids.contains(SuperwallIds.proEntitlement);
     } catch (e) {
-      debugPrint('Superwall entitlements check failed: $e');
+      debugPrint('Billing entitlements check failed: $e');
     }
     proListenable.value = await isPro();
   }
@@ -144,59 +143,61 @@ class SubscriptionService {
   /// Store price label with a safe fallback.
   Future<String> priceLabel(String productId,
       {String fallback = '\$6.99'}) async {
+    await _ensureReady();
     if (!_ready) return fallback;
     try {
-      final products = await Superwall.shared.getProducts([productId]);
-      if (products.isEmpty) return fallback;
-      return products.first.localizedPrice;
+      return await _gateway.priceFor(productId) ?? fallback;
     } catch (_) {
       return fallback;
     }
   }
 
-  /// Buy through Superwall using our own paywall UI.
+  /// Buy through the billing backend using our own paywall UI.
   Future<void> buyPro(String productId) async {
+    await _ensureReady();
     if (!_ready) {
       notice.value = 'Purchases are not available on this device';
       return;
     }
     purchasePending.value = true;
     try {
-      final result = await Superwall.shared.purchase(productId);
-      if (result is PurchaseResultPurchased) {
-        await refresh();
-        notice.value = 'Premium activated! Welcome 👑';
-      } else if (result is PurchaseResultCancelled) {
-        notice.value = 'Purchase canceled';
-      } else if (result is PurchaseResultPending) {
-        notice.value = 'Purchase pending approval';
-      } else if (result is PurchaseResultFailed) {
-        notice.value = 'Error: ${result.error}';
+      final result = await _gateway.buy(productId);
+      switch (result.outcome) {
+        case BuyOutcome.purchased:
+          await refresh();
+          notice.value = 'Premium activated! Welcome 👑';
+        case BuyOutcome.cancelled:
+          notice.value = 'Purchase canceled';
+        case BuyOutcome.pending:
+          notice.value = 'Purchase pending approval';
+        case BuyOutcome.failed:
+          notice.value = 'Error: ${result.error}';
       }
     } catch (e) {
       notice.value = 'Error: $e';
-      debugPrint('Superwall purchase failed: $e');
+      debugPrint('Billing purchase failed: $e');
     } finally {
       purchasePending.value = false;
     }
   }
 
-  /// Restore past purchases through Superwall.
+  /// Restore past purchases through the billing backend.
   Future<void> restore() async {
+    await _ensureReady();
     if (!_ready) {
       notice.value = 'Purchases are not available on this device';
       return;
     }
     purchasePending.value = true;
     try {
-      await Superwall.shared.restorePurchases();
+      await _gateway.restore();
       await refresh();
       notice.value = proListenable.value
           ? 'Premium restored! Welcome 👑'
           : 'No purchases found';
     } catch (e) {
       notice.value = 'Error: $e';
-      debugPrint('Superwall restore failed: $e');
+      debugPrint('Billing restore failed: $e');
     } finally {
       purchasePending.value = false;
     }
@@ -210,18 +211,23 @@ class SubscriptionService {
     await prefs.remove(_installIdKey);
     if (!_ready) return;
     try {
-      await Superwall.shared.reset();
+      await _gateway.reset();
     } catch (e) {
-      debugPrint('Superwall reset failed: $e');
+      debugPrint('Billing reset failed: $e');
     }
     await _identifyInstall();
+  }
+
+  @visibleForTesting
+  void debugGateway(BillingGateway gateway) {
+    _gateway = gateway;
   }
 
   @visibleForTesting
   Future<void> resetForTest() async {
     await _statusSub?.cancel();
     _statusSub = null;
-    _initialized = false;
+    _gateway = SuperwallGateway();
     _ready = false;
     _entitlementActive = false;
     proListenable.value = false;

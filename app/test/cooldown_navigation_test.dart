@@ -9,6 +9,8 @@ import 'package:flyprox_app/services/local_game_service.dart';
 import 'package:flyprox_app/services/storage_service.dart';
 import 'package:flyprox_app/services/subscription_service.dart';
 import 'package:flyprox_app/utils/constants.dart';
+
+import 'fakes/fake_gateway.dart';
 import 'package:flyprox_app/widgets/common/bottom_nav_bar.dart';
 
 Future<void> pumpRoute(WidgetTester tester) async {
@@ -31,6 +33,8 @@ Future<void> mount(WidgetTester tester, String route) async {
 void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
+    await SubscriptionService.instance.resetForTest();
+    SubscriptionService.instance.debugGateway(FakeGateway());
     await LocalGameService.instance.savePlayerAndFriends(
         playerName: 'Player', friends: ['Alex', 'Sam', 'Jordan']);
   });
