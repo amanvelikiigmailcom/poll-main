@@ -40,6 +40,9 @@ import '../screens/social/likes_result_screen.dart';
 import '../screens/social/room_screen.dart';
 import '../screens/social/create_room_screen.dart';
 import '../screens/premium/premium_screen.dart';
+import '../screens/premium/age_picker_screen.dart';
+import '../screens/premium/age_blocked_screen.dart';
+import '../services/age_gate_service.dart';
 
 abstract final class AppRoutes {
   static const splash = '/';
@@ -98,6 +101,29 @@ class _SplashRedirect extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<_SplashRedirect> createState() => _SplashRedirectState();
+}
+
+/// Age gate in front of the paywall: unknown → wheel, blocked → dead end,
+/// verified → Premium. Reactive, so the picker needs no navigation of its own.
+class _PremiumGate extends StatelessWidget {
+  const _PremiumGate();
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<AgeGateStatus>(
+      valueListenable: AgeGateService.instance.statusListenable,
+      builder: (context, status, _) {
+        switch (status) {
+          case AgeGateStatus.verified:
+            return const PremiumScreen();
+          case AgeGateStatus.blocked:
+            return const AgeBlockedScreen();
+          case AgeGateStatus.unknown:
+            return const AgePickerScreen();
+        }
+      },
+    );
+  }
 }
 
 class _SplashRedirectState extends ConsumerState<_SplashRedirect> {
@@ -209,7 +235,7 @@ final GoRouter appRouter = GoRouter(
             builder: (_, __) => const FriendRequestsScreen()),
         GoRoute(
             path: AppRoutes.premium,
-            builder: (_, __) => const PremiumScreen()),
+            builder: (_, __) => const _PremiumGate()),
         // Retired fake-voters result URL leads back to the free game.
         GoRoute(
             path: AppRoutes.premiumResult, redirect: (_, __) => AppRoutes.home),

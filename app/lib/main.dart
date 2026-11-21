@@ -10,6 +10,7 @@ import 'services/game_settings.dart';
 import 'providers/service_providers.dart';
 import 'services/storage_service.dart';
 import 'services/subscription_service.dart';
+import 'services/age_gate_service.dart';
 import 'config/superwall_keys.dart';
 import 'package:superwallkit_flutter/superwallkit_flutter.dart';
 
@@ -35,6 +36,8 @@ Future<void> main() async {
   final storageService = StorageService();
   await storageService.init();
   await GameSettings.instance.load();
+  // Age-gate status for the /premium route; never blocks launch.
+  await AgeGateService.instance.load();
 
   // ── Subscriptions (Superwall) ───────────────────────────────────────────
   // Public SDK key from lib/config/superwall_keys.dart (placeholder in git,

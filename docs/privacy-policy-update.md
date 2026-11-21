@@ -9,6 +9,8 @@ These additions describe implementation, not a certification of GDPR compliance.
 - Your optional profile photo, saved as a small PNG image.
 - Your choices and skipped questions in the current round and most recently completed round, including the question text and your local player label.
 - Your sound, haptics and reduced-motion preferences.
+- Participant names you type or pick from your contacts. Contacts are chosen in system UI; the app receives only the names you select and never reads your full address book. Names stay on this device.
+- Your age-gate status (verified or blocked) and its check timestamp. The selected age itself is not retained, and nothing about the check leaves the device.
 
 Reveal shows your own saved choices on this device. Flyprox does not receive votes from the people whose names appear on the cards. The latest completed round replaces the previously completed round; choices are not retained as a growing history of completed games.
 

@@ -5,11 +5,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flyprox_app/providers/service_providers.dart';
 import 'package:flyprox_app/router/app_router.dart';
+import 'package:flyprox_app/services/age_gate_service.dart';
 import 'package:flyprox_app/services/local_game_service.dart';
 import 'package:flyprox_app/services/storage_service.dart';
 import 'package:flyprox_app/services/subscription_service.dart';
 import 'package:flyprox_app/utils/constants.dart';
 
+import 'fakes/fake_age_gate_store.dart';
 import 'fakes/fake_gateway.dart';
 import 'package:flyprox_app/widgets/common/bottom_nav_bar.dart';
 
@@ -153,6 +155,9 @@ void main() {
   }
 
   testWidgets('/premium opens the Premium paywall', (tester) async {
+    AgeGateService.instance.debugStore(InMemoryAgeGateStore());
+    addTearDown(AgeGateService.instance.resetForTest);
+    await AgeGateService.instance.verifyAdult();
     tester.view.physicalSize = const Size(800, 2400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
