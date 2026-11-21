@@ -11,6 +11,7 @@ class FakePhoneAuthDriver implements PhoneAuthDriver {
   bool available;
   CodeSent? codeResult;
   Object? sendError;
+  Future<CodeSent> Function(String)? sendHandler;
   String? confirmToken;
   Object? confirmError;
 
@@ -28,6 +29,7 @@ class FakePhoneAuthDriver implements PhoneAuthDriver {
     sendCalls++;
     lastPhone = phoneNumber;
     if (sendError != null) throw sendError!;
+    if (sendHandler != null) return sendHandler!(phoneNumber);
     return codeResult ?? const CodeSent(verificationId: 'vid-1');
   }
 

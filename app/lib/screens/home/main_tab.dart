@@ -256,7 +256,7 @@ class _MainTabState extends ConsumerState<MainTab> {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Play 12 questions with your game names. Your choices stay on this device.',
+            'Play 12 questions with your game names. Signed-in online rounds sync votes; guest rounds stay on this device.',
             style: TextStyle(color: Colors.white70, fontSize: 14),
             textAlign: TextAlign.center,
           ),

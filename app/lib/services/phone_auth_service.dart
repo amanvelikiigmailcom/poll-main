@@ -51,7 +51,11 @@ class PhoneAuthService {
 
   Future<PhoneCodeResult> sendCode(String phone) async {
     try {
-      final sent = await _driver.sendCode(phone);
+      final sent = await _driver.sendCode(phone).timeout(
+        const Duration(seconds: 90),
+        onTimeout: () => throw const PhoneAuthException(
+            'The code request timed out. Try again or continue without login.'),
+      );
       if (sent.verificationId == null && sent.autoIdToken == null) {
         return const PhoneCodeResult(
             success: false, message: 'Couldn’t send the code. Try again.');

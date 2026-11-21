@@ -27,6 +27,7 @@ class _PhoneRegistrationScreenState
 
   Future<void> _submit() async {
     if (_completePhone.isEmpty || _sending) return;
+    FocusManager.instance.primaryFocus?.unfocus();
     setState(() => _sending = true);
     final notifier = ref.read(authNotifierProvider.notifier);
     final result = await notifier.sendFirebaseCode(_completePhone);
@@ -53,121 +54,169 @@ class _PhoneRegistrationScreenState
 
   @override
   Widget build(BuildContext context) {
-    final available =
-        ref.watch(authNotifierProvider.select((s) => s.isLoading)) == false &&
-            ref.read(authNotifierProvider.notifier).isPhoneLoginAvailable;
+    final loading = ref.watch(authNotifierProvider.select((s) => s.isLoading));
+    final supported = ref
+        .read(authNotifierProvider.notifier)
+        .isPhoneLoginAvailable;
+    final available = supported && !loading;
     return Scaffold(
       backgroundColor: _primaryBlue,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: IconButton(
-                  onPressed: () => context.pop(),
-                  icon:
-                      const Icon(Icons.arrow_back_rounded, color: Colors.white),
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: IconButton(
+                          onPressed: () => context.pop(),
+                          icon: const Icon(
+                            Icons.arrow_back_rounded,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Log in with phone',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 30,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Use your number to sign in and let friends find you. '
+                        'Firebase verifies your number; Flyprox stores it for your account. '
+                        'Phone login is optional and currently supports US (+1) numbers.',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 15,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: IntlPhoneField(
+                          decoration: const InputDecoration(
+                            hintText: 'Phone number',
+                            border: InputBorder.none,
+                          ),
+                          initialCountryCode: 'US',
+                          disableLengthCheck: false,
+                          onChanged: (PhoneNumber phone) {
+                            setState(
+                              () => _completePhone = phone.number.isEmpty
+                                  ? ''
+                                  : phone.completeNumber,
+                            );
+                          },
+                        ),
+                      ),
+                      if (!supported) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.white38),
+                          ),
+                          child: const Text(
+                            'Phone login isn’t available in this build yet. '
+                            'Play as a guest for now.',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              height: 1.35,
+                            ),
+                          ),
+                        ),
+                      ],
+                      const Spacer(),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed:
+                              available &&
+                                  _completePhone.isNotEmpty &&
+                                  !_sending
+                              ? _submit
+                              : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: _primaryBlue,
+                            disabledBackgroundColor: Colors.white.withValues(
+                              alpha: 0.4,
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            _sending ? 'Sending…' : 'Send code',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (ContentService.instance.flag('guest_enabled')) ...[
+                        const SizedBox(height: 8),
+                        OutlinedButton(
+                          onPressed: () {
+                            FocusManager.instance.primaryFocus?.unfocus();
+                            context.pop();
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            side: const BorderSide(color: Colors.white70),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 14,
+                            ),
+                          ),
+                          child: const Text('Continue without login'),
+                        ),
+                      ],
+                      TextButton(
+                        onPressed: () {
+                          FocusManager.instance.primaryFocus?.unfocus();
+                          context.push(AppRoutes.privacy);
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.white,
+                        ),
+                        child: const Text('Privacy Policy'),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Log in with phone',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'We’ll text you a code. Your number lets friends find you — '
-                'nothing else changes in the game.',
-                style: TextStyle(
-                    color: Colors.white70, fontSize: 15, height: 1.4),
-              ),
-              const SizedBox(height: 28),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: IntlPhoneField(
-                  decoration: const InputDecoration(
-                    hintText: 'Phone number',
-                    border: InputBorder.none,
-                  ),
-                  initialCountryCode: 'KZ',
-                  disableLengthCheck: false,
-                  onChanged: (PhoneNumber phone) {
-                    setState(() => _completePhone =
-                        phone.number.isEmpty ? '' : phone.completeNumber);
-                  },
-                ),
-              ),
-              if (!available) ...[
-                const SizedBox(height: 16),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white38),
-                  ),
-                  child: const Text(
-                    'Phone login isn’t available in this build yet. '
-                    'Play as a guest for now.',
-                    style: TextStyle(
-                        color: Colors.white, fontSize: 14, height: 1.35),
-                  ),
-                ),
-              ],
-              const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed:
-                      available && _completePhone.isNotEmpty && !_sending
-                          ? _submit
-                          : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: _primaryBlue,
-                    disabledBackgroundColor:
-                        Colors.white.withValues(alpha: 0.4),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    _sending ? 'Sending…' : 'Send code',
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ),
-              if (ContentService.instance.flag('guest_enabled')) ...[
-                const SizedBox(height: 8),
-                OutlinedButton(
-                  onPressed: _sending ? null : () => context.pop(),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white70),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 14),
-                  ),
-                  child: const Text('Continue without login'),
-                ),
-              ],
-            ],
+            ),
           ),
         ),
       ),

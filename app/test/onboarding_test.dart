@@ -19,11 +19,15 @@ Future<StorageService> mountApp(WidgetTester tester) async {
   final storage = StorageService();
   await storage.init();
   appRouter.go(AppRoutes.splash);
-  await tester.pumpWidget(ProviderScope(
-    overrides: [storageServiceProvider.overrideWithValue(storage)],
-    child:
-        MaterialApp.router(routerConfig: appRouter, theme: AppTheme.lightTheme),
-  ));
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [storageServiceProvider.overrideWithValue(storage)],
+      child: MaterialApp.router(
+        routerConfig: appRouter,
+        theme: AppTheme.lightTheme,
+      ),
+    ),
+  );
   await tester.pump(const Duration(seconds: 1));
   await tester.pumpAndSettle();
   return storage;
@@ -39,24 +43,30 @@ void main() {
   tearDown(() => ContentService.instance.debugClear());
 
   testWidgets(
-      'first launch opens intro; Skip persists across a fresh app mount',
-      (tester) async {
-    final storage = await mountApp(tester);
-    expect(find.text('Who’s most\nlikely to…?'), findsOneWidget);
-    await tester.tap(find.text('Skip'));
-    await tester.pumpAndSettle();
-    expect(storage.isOnboardingDone(), isTrue);
-    expect(appRouter.routeInformationProvider.value.uri.path,
-        AppRoutes.namesEntry);
-    await tester.pumpWidget(const SizedBox());
-    await mountApp(tester);
-    expect(appRouter.routeInformationProvider.value.uri.path,
-        AppRoutes.namesEntry);
-    expect(find.byType(OnboardingScreen), findsNothing);
-  });
+    'first launch opens intro; Skip persists across a fresh app mount',
+    (tester) async {
+      final storage = await mountApp(tester);
+      expect(find.text('Who’s most\nlikely to…?'), findsOneWidget);
+      await tester.tap(find.text('Skip'));
+      await tester.pumpAndSettle();
+      expect(storage.isOnboardingDone(), isTrue);
+      expect(
+        appRouter.routeInformationProvider.value.uri.path,
+        AppRoutes.namesEntry,
+      );
+      await tester.pumpWidget(const SizedBox());
+      await mountApp(tester);
+      expect(
+        appRouter.routeInformationProvider.value.uri.path,
+        AppRoutes.namesEntry,
+      );
+      expect(find.byType(OnboardingScreen), findsNothing);
+    },
+  );
 
-  testWidgets('Next, Back and swipe reach three pages; finish opens setup',
-      (tester) async {
+  testWidgets('Next, Back and swipe reach three pages; finish opens setup', (
+    tester,
+  ) async {
     final storage = await mountApp(tester);
     await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
@@ -75,16 +85,20 @@ void main() {
     await tester.tap(find.text('Get started'));
     await tester.pumpAndSettle();
     expect(storage.isOnboardingDone(), isTrue);
-    expect(appRouter.routeInformationProvider.value.uri.path,
-        AppRoutes.namesEntry);
+    expect(
+      appRouter.routeInformationProvider.value.uri.path,
+      AppRoutes.namesEntry,
+    );
   });
 
-  testWidgets('existing players bypass intro; replay keeps their game data',
-      (tester) async {
+  testWidgets('existing players bypass intro; replay keeps their game data', (
+    tester,
+  ) async {
     await LocalGameService.instance.savePlayerAndFriends(
-        username: 'alex_01',
-        playerName: 'Alex',
-        friends: ['Sam', 'Jamie', 'Taylor', 'Robin']);
+      username: 'alex_01',
+      playerName: 'Alex',
+      friends: ['Sam', 'Jamie', 'Taylor', 'Robin'],
+    );
     await mountApp(tester);
     expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
     appRouter.push(AppRoutes.onboarding);
@@ -92,32 +106,40 @@ void main() {
     await tester.tap(find.text('Skip'));
     await tester.pumpAndSettle();
     expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
-    expect(await LocalGameService.instance.getNames(),
-        ['Sam', 'Jamie', 'Taylor', 'Robin']);
+    expect(await LocalGameService.instance.getNames(), [
+      'Sam',
+      'Jamie',
+      'Taylor',
+      'Robin',
+    ]);
   });
 
-  testWidgets('examples start a normal quiz without login and survive restart',
-      (tester) async {
-    await mountApp(tester);
-    await tester.tap(find.text('Skip'));
-    await tester.pumpAndSettle();
-    expect(find.text('What should we call you?'), findsOneWidget);
-    expect(find.text('Create username'), findsNothing);
+  testWidgets(
+    'examples start a normal quiz without login and survive restart',
+    (tester) async {
+      await mountApp(tester);
+      await tester.tap(find.text('Skip'));
+      await tester.pumpAndSettle();
+      expect(find.text('What should we call you?'), findsOneWidget);
+      expect(find.text('Create username'), findsNothing);
+      await tester.ensureVisible(find.text('Try with example names'));
     await tester.tap(find.text('Try with example names'));
-    await tester.pumpAndSettle();
-    final game = LocalGameService.instance;
-    expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
-    expect(await game.getUsername(), isNull);
-    expect(await game.getPlayerName(), 'Player');
-    expect(await game.getNames(), ['Alex', 'Sam', 'Jordan', 'Taylor']);
-    expect((await game.generateRound(languageCode: 'en')).length, 12);
-    await tester.pumpWidget(const SizedBox());
-    await mountApp(tester);
-    expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
-  });
+      await tester.pumpAndSettle();
+      final game = LocalGameService.instance;
+      expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
+      expect(await game.getUsername(), isNull);
+      expect(await game.getPlayerName(), 'Player');
+      expect(await game.getNames(), ['Alex', 'Sam', 'Jordan', 'Taylor']);
+      expect((await game.generateRound(languageCode: 'en')).length, 12);
+      await tester.pumpWidget(const SizedBox());
+      await mountApp(tester);
+      expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
+    },
+  );
 
-  testWidgets('manual nicknames start the game without a login',
-      (tester) async {
+  testWidgets('manual nicknames start the game without a login', (
+    tester,
+  ) async {
     await mountApp(tester);
     await tester.tap(find.text('Skip'));
     await tester.pumpAndSettle();
@@ -138,10 +160,44 @@ void main() {
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
     expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
+    expect(tester.testTextInput.isVisible, isFalse);
     expect(await LocalGameService.instance.getUsername(), isNull);
     expect(await LocalGameService.instance.getPlayerName(), 'Captain');
-    expect(await LocalGameService.instance.getNames(),
-        ['Moon', 'Sun', 'Star', 'Sky']);
+    expect(await LocalGameService.instance.getNames(), [
+      'Moon',
+      'Sun',
+      'Star',
+      'Sky',
+    ]);
+  });
+
+  testWidgets('friends fit above keyboard and Done dismisses it', (
+    tester,
+  ) async {
+    await LocalGameService.instance.savePlayerName('Captain');
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    tester.view.viewInsets = const FakeViewPadding(bottom: 340);
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetViewInsets);
+    await mountApp(tester);
+    await tester.tap(find.text('Skip'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    final input = find.byType(TextField);
+    await tester.ensureVisible(input);
+    await tester.enterText(input, 'Moon');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(tester.testTextInput.isVisible, isFalse);
+    expect(find.text('Moon'), findsOneWidget);
+    await tester.showKeyboard(input);
+    await tester.ensureVisible(find.text('Choose your friends'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Choose your friends'));
+    await tester.pumpAndSettle();
+    expect(tester.testTextInput.isVisible, isFalse);
   });
 
   testWidgets('examples do not duplicate the chosen nickname', (tester) async {
@@ -155,37 +211,49 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Continue without login'));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Try with example names'));
     await tester.tap(find.text('Try with example names'));
     await tester.pumpAndSettle();
     expect(await LocalGameService.instance.getPlayerName(), 'Alex');
-    expect(await LocalGameService.instance.getNames(),
-        ['Sam', 'Jordan', 'Taylor', 'Casey']);
+    expect(await LocalGameService.instance.getNames(), [
+      'Sam',
+      'Jordan',
+      'Taylor',
+      'Casey',
+    ]);
   });
 
   for (final scale in [1.0, 2.0]) {
-    testWidgets('all pages fit a small screen at text scale $scale',
-        (tester) async {
+    testWidgets('all pages fit a small screen at text scale $scale', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(320, 568);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       final storage = StorageService();
       await storage.init();
-      await tester.pumpWidget(ProviderScope(
-        overrides: [storageServiceProvider.overrideWithValue(storage)],
-        child: MaterialApp(
-          theme: AppTheme.lightTheme,
-          builder: (context, child) => MediaQuery(
-              data: MediaQuery.of(context)
-                  .copyWith(textScaler: TextScaler.linear(scale)),
-              child: child!),
-          home: const OnboardingScreen(),
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [storageServiceProvider.overrideWithValue(storage)],
+          child: MaterialApp(
+            theme: AppTheme.lightTheme,
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: TextScaler.linear(scale)),
+              child: child!,
+            ),
+            home: const OnboardingScreen(),
+          ),
         ),
-      ));
+      );
       for (var i = 0; i < 3; i++) {
         await tester.pumpAndSettle();
         final button = find.widgetWithText(
-            ElevatedButton, i == 2 ? 'Get started' : 'Next');
+          ElevatedButton,
+          i == 2 ? 'Get started' : 'Next',
+        );
         expect(button.hitTestable(), findsOneWidget);
         expect(find.text('Skip').hitTestable(), findsOneWidget);
         if (i < 2) await tester.tap(button);
@@ -193,26 +261,31 @@ void main() {
     });
   }
 
-  testWidgets('server pages replace the intro without code changes',
-      (tester) async {
+  testWidgets('server pages replace the intro without code changes', (
+    tester,
+  ) async {
     final pages = List.generate(
-        5,
-        (i) => {
-              'emoji': '⭐',
-              'title': 'Server page ${i + 1}',
-              'subtitle': 'Server subtitle ${i + 1}',
-            });
-    ContentService.instance
-        .debugSetOverrides({'onboarding_pages': jsonEncode(pages)});
+      5,
+      (i) => {
+        'emoji': '⭐',
+        'title': 'Server page ${i + 1}',
+        'subtitle': 'Server subtitle ${i + 1}',
+      },
+    );
+    ContentService.instance.debugSetOverrides({
+      'onboarding_pages': jsonEncode(pages),
+    });
     final storage = StorageService();
     await storage.init();
-    await tester.pumpWidget(ProviderScope(
-      overrides: [storageServiceProvider.overrideWithValue(storage)],
-      child: MaterialApp(
-        theme: AppTheme.lightTheme,
-        home: const OnboardingScreen(),
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [storageServiceProvider.overrideWithValue(storage)],
+        child: MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const OnboardingScreen(),
+        ),
       ),
-    ));
+    );
     await tester.pumpAndSettle();
     expect(find.text('Server page 1'), findsOneWidget);
     expect(find.text('Who’s most\nlikely to…?'), findsNothing);

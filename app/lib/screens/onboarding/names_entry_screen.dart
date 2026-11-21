@@ -49,7 +49,8 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
 
   void _refocus(FocusNode node) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
+      if (!mounted || _saving || ModalRoute.of(context)?.isCurrent == false)
+        return;
       node.requestFocus();
     });
   }
@@ -86,6 +87,7 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
   Future<void> _goToFriendsStep() async {
     final name = _playerController.text.trim();
     if (name.isEmpty) return;
+    FocusManager.instance.primaryFocus?.unfocus();
     // Move to the friends step first: the phone screens sit on top, and
     // popping back must reveal this step (go() would reuse this same state).
     setState(() {
@@ -103,10 +105,10 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
     }
   }
 
-  void _addFriend() {
+  void _addFriend({bool keepKeyboard = true}) {
     final name = _friendController.text.trim();
     if (name.isEmpty) {
-      _refocus(_friendFocus);
+      if (keepKeyboard) _refocus(_friendFocus);
       return;
     }
     final player = (_playerName ?? '').toLowerCase();
@@ -114,21 +116,26 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
       _friendController.clear();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text("That is your game name. Add another participant.")),
+          content: Text("That is your game name. Add another participant."),
+        ),
       );
-      _refocus(_friendFocus);
+      if (keepKeyboard) _refocus(_friendFocus);
       return;
     }
     if (_friends.any((n) => n.toLowerCase() == name.toLowerCase())) {
       _friendController.clear();
-      _refocus(_friendFocus);
+      if (keepKeyboard) _refocus(_friendFocus);
       return;
     }
     setState(() {
       _friends.add(name);
       _friendController.clear();
     });
-    _refocus(_friendFocus);
+    if (keepKeyboard) {
+      _refocus(_friendFocus);
+    } else {
+      _friendFocus.unfocus();
+    }
   }
 
   void _removeFriend(String name) {
@@ -140,6 +147,7 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
   Future<void> _continue() async {
     final player = _playerName?.trim() ?? '';
     if (player.isEmpty || _friends.length < _minFriends || _saving) return;
+    FocusManager.instance.primaryFocus?.unfocus();
     setState(() => _saving = true);
     try {
       await LocalGameService.instance.savePlayerAndFriends(
@@ -167,25 +175,28 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
           : _playerController.text.trim();
       _friends
         ..clear()
-        ..addAll(['Alex', 'Sam', 'Jordan', 'Taylor', 'Casey']
-            .where((name) => name.toLowerCase() != _playerName!.toLowerCase())
-            .take(_minFriends));
+        ..addAll(
+          ['Alex', 'Sam', 'Jordan', 'Taylor', 'Casey']
+              .where((name) => name.toLowerCase() != _playerName!.toLowerCase())
+              .take(_minFriends),
+        );
     });
     await _continue();
   }
 
   Widget _exampleButton() => OutlinedButton.icon(
-        onPressed: _saving ? null : _tryExamples,
-        style: OutlinedButton.styleFrom(foregroundColor: Colors.white,
-          side: const BorderSide(color: Colors.white70),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14)),
-        icon: const Icon(Icons.play_circle_outline),
-        label: const Text('Try with example names'),
-      );
+    onPressed: _saving ? null : _tryExamples,
+    style: OutlinedButton.styleFrom(
+      foregroundColor: Colors.white,
+      side: const BorderSide(color: Colors.white70),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+    ),
+    icon: const Icon(Icons.play_circle_outline),
+    label: const Text('Try with example names'),
+  );
 
   IsoCode _defaultRegion() {
-    final code = WidgetsBinding
-        .instance.platformDispatcher.locale.countryCode
+    final code = WidgetsBinding.instance.platformDispatcher.locale.countryCode
         ?.toUpperCase();
     if (code == null || code.isEmpty) return IsoCode.US;
     try {
@@ -197,13 +208,16 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
 
   Future<void> _pickFromContacts() async {
     if (_saving) return;
+    FocusManager.instance.primaryFocus?.unfocus();
     final picker = ContactPickerService.instance;
     if (!picker.isAvailable) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text(
-                'Contacts aren’t available here — type the names instead.')),
+          content: Text(
+            'Contacts aren’t available here — type the names instead.',
+          ),
+        ),
       );
       return;
     }
@@ -212,7 +226,9 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
       ..._friends.map((n) => n.toLowerCase()),
     }..remove('');
     final picked = await picker.pickEntries(
-        maxNames: _maxPickedContacts, excludeLower: exclude);
+      maxNames: _maxPickedContacts,
+      excludeLower: exclude,
+    );
     if (!mounted || picked.isEmpty) return;
     setState(() {
       _friends.addAll(picked.map((e) => e.name));
@@ -272,25 +288,31 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
   }
 
   Widget _contactsButton() => OutlinedButton.icon(
-        onPressed: _saving ? null : _pickFromContacts,
-        style: OutlinedButton.styleFrom(foregroundColor: Colors.white,
-          side: const BorderSide(color: Colors.white70),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14)),
-        icon: const Icon(Icons.contacts_outlined),
-        label: const Text('Choose from contacts'),
-      );
+    onPressed: _saving ? null : _pickFromContacts,
+    style: OutlinedButton.styleFrom(
+      foregroundColor: Colors.white,
+      side: const BorderSide(color: Colors.white70),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+    ),
+    icon: const Icon(Icons.contacts_outlined),
+    label: const Text('Choose from contacts'),
+  );
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _primaryBlue,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
-          child: switch (_step) {
-            0 => _buildPlayerStep(),
-            _ => _buildFriendsStep(),
-          },
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+            child: switch (_step) {
+              0 => _buildPlayerStep(),
+              _ => _buildFriendsStep(),
+            },
+          ),
         ),
       ),
     );
@@ -318,7 +340,6 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
         TextField(
           controller: _playerController,
           focusNode: _playerFocus,
-          autofocus: true,
           textInputAction: TextInputAction.done,
           onChanged: (_) => setState(() {}),
           onSubmitted: (_) => _goToFriendsStep(),
@@ -327,8 +348,10 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
             hintText: 'Your nickname',
             filled: true,
             fillColor: Colors.white,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
               borderSide: BorderSide.none,
@@ -362,263 +385,151 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
   }
 
   Widget _buildFriendsStep() {
-    final canContinue = _friends.length >= _minFriends && !_saving;
     final enough = _friends.length >= _minFriends;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            IconButton(
-              onPressed: () {
-                setState(() => _step = 0);
-                _refocus(_playerFocus);
-              },
-              icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-            ),
-            Expanded(
-              child: Text(
-                'Hi, ${_playerName ?? ''}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-                overflow: TextOverflow.ellipsis,
+    return SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              IconButton(
+                onPressed: () {
+                  setState(() => _step = 0);
+                  _refocus(_playerFocus);
+                },
+                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Choose your friends',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Text(
-          'Nicknames or fictional names are welcome, or pick real first '
-          'names from your contacts. Only the names you choose are used, '
-          'and they stay on this device. No invitations needed.',
-          style: TextStyle(color: Colors.white70, fontSize: 15, height: 1.4),
-        ),
-        const SizedBox(height: 12),
-        if (!enough)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white38),
-            ),
-            child: Text(
-              'Add at least $_minFriends participants. '
-              'You have ${_friends.length}. '
-              '${_minFriends - _friends.length} more to go.',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                height: 1.35,
+              Expanded(
+                child: Text(
+                  'Hi, ${_playerName ?? ''}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-          )
-        else
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFB9F6CA).withValues(alpha: 0.28),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF69F0AE)),
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Four is enough',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    height: 1.25,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Continue, or add more names for the quiz cards.',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    height: 1.35,
-                  ),
-                ),
-              ],
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Choose your friends',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
             ),
           ),
-        const SizedBox(height: 16),
-        _matchesBanner(),
-        Expanded(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _friendController,
-                        focusNode: _friendFocus,
-                        autofocus: true,
-                        textInputAction: TextInputAction.done,
-                        onSubmitted: (_) => _addFriend(),
-                        style: const TextStyle(fontSize: 16),
-                        decoration: InputDecoration(
-                          hintText: 'Participant name',
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 14,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(14),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    SizedBox(
-                      height: 52,
-                      width: 52,
-                      child: ElevatedButton(
-                        onPressed: _addFriend,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: _primaryBlue,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          padding: EdgeInsets.zero,
-                          elevation: 0,
-                        ),
-                        child: const Icon(Icons.add_rounded, size: 26),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    Chip(
-                      avatar: const Icon(
-                        Icons.person,
-                        size: 18,
-                        color: Colors.white,
-                      ),
-                      label: Text(
-                        _playerName ?? '',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      backgroundColor: const Color(0xFF2F4FD6),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 6,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                    ..._friends.map(
-                      (name) => Chip(
-                        label: Text(
-                          name,
-                          style: const TextStyle(
-                            color: _primaryBlue,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        backgroundColor: Colors.white,
-                        deleteIcon: const Icon(
-                          Icons.close_rounded,
-                          size: 18,
-                          color: _primaryBlue,
-                        ),
-                        onDeleted: () => _removeFriend(name),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 6,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (_friends.isEmpty) ...[
-                  const SizedBox(height: 24),
-                  Center(
-                    child: Text(
-                      'Add at least $_minFriends participants',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.6),
-                        fontSize: 15,
-                      ),
-                    ),
-                  ),
-                ],
-                if (enough) ...[
-                  const SizedBox(height: 20),
-                  const Text(
-                    'They will not get a notification. These names are only on your quiz cards.',
-                    style: TextStyle(
-                        color: Colors.white70, fontSize: 13, height: 1.4),
-                  ),
-                ],
-              ],
-            ),
+          const SizedBox(height: 8),
+          const Text(
+            'Add nicknames or choose contacts for your quiz cards.',
+            style: TextStyle(color: Colors.white70, fontSize: 15, height: 1.4),
           ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: canContinue ? _continue : null,
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _friendController,
+                  focusNode: _friendFocus,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _addFriend(keepKeyboard: false),
+                  style: const TextStyle(fontSize: 16),
+                  decoration: InputDecoration(
+                    hintText: 'Participant name',
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              SizedBox(
+                height: 52,
+                width: 52,
+                child: ElevatedButton(
+                  onPressed: _addFriend,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: _primaryBlue,
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.add_rounded,
+                    semanticLabel: 'Add participant',
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            enough
+                ? '${_friends.length} participants · Ready to play'
+                : '${_friends.length} / $_minFriends participants · Add ${_minFriends - _friends.length} more',
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              Chip(
+                avatar: const Icon(Icons.person, size: 18),
+                label: Text(_playerName ?? ''),
+              ),
+              ..._friends.map(
+                (name) => Chip(
+                  label: Text(name),
+                  onDeleted: () => _removeFriend(name),
+                ),
+              ),
+            ],
+          ),
+          _matchesBanner(),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: enough && !_saving ? _continue : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.white,
               foregroundColor: _primaryBlue,
               disabledBackgroundColor: Colors.white.withValues(alpha: 0.4),
               padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-              elevation: 0,
             ),
-            child: Text(
-              enough
-                  ? 'Continue'
-                  : 'At least $_minFriends participants '
-                      '(${_minFriends - _friends.length} more)',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-            ),
+            child: const Text('Continue'),
           ),
-        ),
-        if (ContentService.instance.flag('contacts_enabled'))
-          _contactsButton(),
-        _exampleButton(),
-      ],
+          if (ContentService.instance.flag('contacts_enabled')) ...[
+            const SizedBox(height: 12),
+            _contactsButton(),
+            const SizedBox(height: 8),
+            const Text(
+              'Only contacts you select are used. If signed in, selected '
+              'names and hashed phone numbers are sent to Flyprox to find friends. '
+              'Your full address book and raw contact numbers are never uploaded. '
+              'No invitations are sent.',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 13,
+                height: 1.4,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          _exampleButton(),
+        ],
+      ),
     );
   }
 }

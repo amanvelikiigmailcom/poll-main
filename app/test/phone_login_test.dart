@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +12,7 @@ import 'package:flyprox_app/providers/service_providers.dart';
 import 'package:flyprox_app/router/app_router.dart';
 import 'package:flyprox_app/services/api_service.dart';
 import 'package:flyprox_app/services/phone_auth_service.dart';
+import 'package:flyprox_app/services/phone_auth_driver.dart';
 import 'package:flyprox_app/services/storage_service.dart';
 import 'fakes/fake_phone_auth_driver.dart';
 import 'fakes/fake_secure_storage.dart';
@@ -81,6 +84,7 @@ void main() {
         ));
     await enterNickAndContinue(tester, 'Captain');
     expect(find.text('Log in with phone'), findsOneWidget);
+    await tester.ensureVisible(find.text('Continue without login'));
     await tester.tap(find.text('Continue without login'));
     await tester.pumpAndSettle();
     expect(find.text('Choose your friends'), findsOneWidget);
@@ -100,9 +104,68 @@ void main() {
     final send = tester.widget<ElevatedButton>(
         find.widgetWithText(ElevatedButton, 'Send code'));
     expect(send.onPressed, isNull);
+    await tester.ensureVisible(find.text('Continue without login'));
     await tester.tap(find.text('Continue without login'));
     await tester.pumpAndSettle();
     expect(find.text('Choose your friends'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('pending code request keeps guest exit and hides unavailable notice',
+      (tester) async {
+    final pending = Completer<CodeSent>();
+    final driver = FakePhoneAuthDriver()
+      ..sendHandler = (_) => pending.future;
+    await mountNames(tester,
+        phoneAuth: makeService(
+          driver: driver,
+          api: MockApiService(),
+          storage: MockStorageService(),
+        ));
+    await enterNickAndContinue(tester, 'Captain');
+    await tester.enterText(find.byType(TextField), '6505551234');
+    await tester.pump();
+    await tester.ensureVisible(find.text('Send code'));
+    await tester.tap(find.text('Send code'));
+    await tester.pump();
+    expect(find.text('Sending…'), findsOneWidget);
+    expect(find.textContaining('isn’t available in this build'), findsNothing);
+    expect(tester.testTextInput.isVisible, isFalse);
+    await tester.ensureVisible(find.text('Continue without login'));
+    await tester.tap(find.text('Continue without login'));
+    await pumpRoute(tester);
+    expect(find.text('Choose your friends'), findsOneWidget);
+    pending.complete(const CodeSent(verificationId: 'late-code'));
+    await tester.pumpAndSettle();
+    expect(find.text('Enter the code'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('code timeout restores send button instead of leaving it stuck',
+      (tester) async {
+    final pending = Completer<CodeSent>();
+    final driver = FakePhoneAuthDriver()
+      ..sendHandler = (_) => pending.future;
+    await mountNames(tester,
+        phoneAuth: makeService(
+          driver: driver,
+          api: MockApiService(),
+          storage: MockStorageService(),
+        ));
+    await enterNickAndContinue(tester, 'Captain');
+    await tester.enterText(find.byType(TextField), '6505551234');
+    await tester.pump();
+    await tester.ensureVisible(find.text('Send code'));
+    await tester.tap(find.text('Send code'));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 91));
+    await tester.pump();
+    expect(find.text('Sending…'), findsNothing);
+    expect(find.textContaining('request timed out'), findsOneWidget);
+    final send = tester.widget<ElevatedButton>(
+        find.widgetWithText(ElevatedButton, 'Send code'));
+    expect(send.onPressed, isNotNull);
+    pending.complete(const CodeSent());
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -124,11 +187,12 @@ void main() {
         phoneAuth:
             PhoneAuthService(api: api, storage: storage, driver: driver));
     await enterNickAndContinue(tester, 'Captain');
-    await tester.enterText(find.byType(TextField), '7071234567');
+    await tester.enterText(find.byType(TextField), '6505551234');
+    await tester.pump();
     await tester.pump();
     await tester.tap(find.text('Send code'));
     await pumpRoute(tester);
-    expect(driver.lastPhone, '+77071234567');
+    expect(driver.lastPhone, '+16505551234');
     expect(find.text('Enter the code'), findsOneWidget);
 
     // Pinput's center doesn't hit-test, so tap() would miss: set its

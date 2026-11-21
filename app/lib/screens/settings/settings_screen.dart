@@ -98,8 +98,10 @@ class SettingsScreen extends ConsumerWidget {
               }),
           ]),
           const Padding(padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            child: Text('Your profile, photo and latest round choices stay on this device. '
-              'Use nicknames or example names. Reset game removes this local game data. '
+            child: Text('Guest game data and your local photo stay on this device. '
+              'When signed in, Flyprox stores your phone number, selected contact matches, '
+              'online votes and push token to provide online features. '
+              'Reset game clears local data and attempts server account deletion. '
               'Opening email, sharing or visiting external pages uses the service you choose.')),
           const _SectionHeader(title: 'APP'),
           _SettingsCard(children: [
