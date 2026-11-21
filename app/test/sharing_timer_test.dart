@@ -127,7 +127,7 @@ void main() {
       (tester) async {
     final game = LocalGameService.instance;
     await game.savePlayerAndFriends(
-        playerName: 'Player', friends: ['Alex', 'Sam', 'Jordan']);
+        playerName: 'Player', friends: ['Alex', 'Sam', 'Jordan', 'Taylor']);
     final router = makeRouter('/play');
     addTearDown(router.dispose);
     await tester.pumpWidget(MaterialApp.router(routerConfig: router));
@@ -137,9 +137,15 @@ void main() {
       await tester.tap(find.text('Shuffle'));
       await tester.pump();
       expect(find.text('Question 1 of 12'), findsOneWidget);
-      for (final name in ['Player', 'Alex', 'Sam', 'Jordan']) {
-        expect(find.text(name), findsOneWidget);
+      // The player is always an option; exactly 3 of the 4 friends are shown.
+      expect(find.text('Player'), findsOneWidget);
+      var shown = 0;
+      for (final name in ['Alex', 'Sam', 'Jordan', 'Taylor']) {
+        final count = find.text(name).evaluate().length;
+        expect(count, lessThanOrEqualTo(1));
+        shown += count;
       }
+      expect(shown, 3);
     }
     for (var i = 1; i <= 12; i++) {
       expect(find.text('Question $i of 12'), findsOneWidget);

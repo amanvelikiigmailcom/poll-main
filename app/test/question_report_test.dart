@@ -50,7 +50,8 @@ void main() {
       'PlayerSecret',
       'AliceSecret',
       'BobSecret',
-      'CamSecret'
+      'CamSecret',
+      'DanSecret'
     ];
     await LocalGameService.instance.savePlayerAndFriends(
       playerName: privateNames.first,

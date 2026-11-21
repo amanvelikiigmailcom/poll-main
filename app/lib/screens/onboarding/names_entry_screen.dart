@@ -3,12 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../router/app_router.dart';
 import '../../providers/user_provider.dart';
+import '../../services/contact_picker_service.dart';
 import '../../services/local_game_service.dart';
 
 const Color _primaryBlue = Color(0xFF4B6EF5);
 const int _minFriends = LocalGameService.minFriends;
 
-/// Local quiz setup: a display name or nickname and at least 3 participants.
+/// Upper bound for one contacts-picking round: plenty for quiz variety
+/// without stuffing the friends list from a large multi-select.
+const int _maxPickedContacts = 10;
+
+/// Local quiz setup: a display name or nickname and at least 4 participants.
 class NamesEntryScreen extends ConsumerStatefulWidget {
   const NamesEntryScreen({super.key});
 
@@ -145,7 +150,7 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
           : _playerController.text.trim();
       _friends
         ..clear()
-        ..addAll(['Alex', 'Sam', 'Jordan', 'Taylor']
+        ..addAll(['Alex', 'Sam', 'Jordan', 'Taylor', 'Casey']
             .where((name) => name.toLowerCase() != _playerName!.toLowerCase())
             .take(_minFriends));
     });
@@ -159,6 +164,37 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14)),
         icon: const Icon(Icons.play_circle_outline),
         label: const Text('Try with example names'),
+      );
+
+  Future<void> _pickFromContacts() async {
+    if (_saving) return;
+    final svc = ContactPickerService.instance;
+    if (!svc.isAvailable) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                'Contacts aren’t available here — type the names instead.')),
+      );
+      return;
+    }
+    final exclude = <String>{
+      (_playerName ?? '').trim().toLowerCase(),
+      ..._friends.map((n) => n.toLowerCase()),
+    }..remove('');
+    final picked =
+        await svc.pickNames(maxNames: _maxPickedContacts, excludeLower: exclude);
+    if (!mounted || picked.isEmpty) return;
+    setState(() => _friends.addAll(picked));
+  }
+
+  Widget _contactsButton() => OutlinedButton.icon(
+        onPressed: _saving ? null : _pickFromContacts,
+        style: OutlinedButton.styleFrom(foregroundColor: Colors.white,
+          side: const BorderSide(color: Colors.white70),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14)),
+        icon: const Icon(Icons.contacts_outlined),
+        label: const Text('Choose from contacts'),
       );
 
   @override
@@ -272,7 +308,7 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
         ),
         const SizedBox(height: 8),
         const Text(
-          'Add 3 participants',
+          'Choose your friends',
           style: TextStyle(
             color: Colors.white,
             fontSize: 26,
@@ -280,11 +316,11 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        Text(
-          'Nicknames or fictional names are welcome. No invitations needed. '
-          'You will answer “who among these” questions about this group.',
-          style:
-              const TextStyle(color: Colors.white70, fontSize: 15, height: 1.4),
+        const Text(
+          'Nicknames or fictional names are welcome, or pick real first '
+          'names from your contacts. Only the names you choose are used, '
+          'and they stay on this device. No invitations needed.',
+          style: TextStyle(color: Colors.white70, fontSize: 15, height: 1.4),
         ),
         const SizedBox(height: 12),
         if (!enough)
@@ -321,7 +357,7 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Three is enough',
+                  'Four is enough',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 15,
@@ -495,6 +531,7 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
             ),
           ),
         ),
+        _contactsButton(),
         _exampleButton(),
       ],
     );

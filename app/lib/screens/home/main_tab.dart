@@ -77,7 +77,7 @@ class _MainTabState extends ConsumerState<MainTab> {
     return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
-  /// Start the game after a nickname and at least 3 participants are ready.
+  /// Start the game after a nickname and at least 4 participants are ready.
   Future<void> _startVote() async {
     final ready = await LocalGameService.instance.hasEnoughNames();
     if (!mounted) return;
@@ -89,7 +89,7 @@ class _MainTabState extends ConsumerState<MainTab> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
-          'Choose a nickname and 3 participants, or use example names to start the game.',
+          'Choose a nickname and 4 participants, or use example names to start the game.',
         ),
         behavior: SnackBarBehavior.floating,
       ),

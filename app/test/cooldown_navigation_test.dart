@@ -36,7 +36,7 @@ void main() {
     await SubscriptionService.instance.resetForTest();
     SubscriptionService.instance.debugGateway(FakeGateway());
     await LocalGameService.instance.savePlayerAndFriends(
-        playerName: 'Player', friends: ['Alex', 'Sam', 'Jordan']);
+        playerName: 'Player', friends: ['Alex', 'Sam', 'Jordan', 'Taylor']);
   });
 
   testWidgets('settings is a fourth tab and remains selected on help pages',

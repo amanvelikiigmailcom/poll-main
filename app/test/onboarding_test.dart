@@ -73,7 +73,7 @@ void main() {
     await LocalGameService.instance.savePlayerAndFriends(
         username: 'alex_01',
         playerName: 'Alex',
-        friends: ['Sam', 'Jamie', 'Taylor']);
+        friends: ['Sam', 'Jamie', 'Taylor', 'Robin']);
     await mountApp(tester);
     expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
     appRouter.push(AppRoutes.onboarding);
@@ -81,8 +81,8 @@ void main() {
     await tester.tap(find.text('Skip'));
     await tester.pumpAndSettle();
     expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
-    expect(
-        await LocalGameService.instance.getNames(), ['Sam', 'Jamie', 'Taylor']);
+    expect(await LocalGameService.instance.getNames(),
+        ['Sam', 'Jamie', 'Taylor', 'Robin']);
   });
 
   testWidgets('examples start a normal quiz without login and survive restart',
@@ -98,7 +98,7 @@ void main() {
     expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
     expect(await game.getUsername(), isNull);
     expect(await game.getPlayerName(), 'Player');
-    expect(await game.getNames(), ['Alex', 'Sam', 'Jordan']);
+    expect(await game.getNames(), ['Alex', 'Sam', 'Jordan', 'Taylor']);
     expect((await game.generateRound(languageCode: 'en')).length, 12);
     await tester.pumpWidget(const SizedBox());
     await mountApp(tester);
@@ -114,8 +114,8 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
-    expect(find.text('Add 3 participants'), findsOneWidget);
-    for (final name in ['Moon', 'Sun', 'Star']) {
+    expect(find.text('Choose your friends'), findsOneWidget);
+    for (final name in ['Moon', 'Sun', 'Star', 'Sky']) {
       await tester.enterText(find.byType(TextField), name);
       await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pumpAndSettle();
@@ -125,7 +125,8 @@ void main() {
     expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
     expect(await LocalGameService.instance.getUsername(), isNull);
     expect(await LocalGameService.instance.getPlayerName(), 'Captain');
-    expect(await LocalGameService.instance.getNames(), ['Moon', 'Sun', 'Star']);
+    expect(await LocalGameService.instance.getNames(),
+        ['Moon', 'Sun', 'Star', 'Sky']);
   });
 
   testWidgets('examples do not duplicate the chosen nickname', (tester) async {
@@ -140,7 +141,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(await LocalGameService.instance.getPlayerName(), 'Alex');
     expect(await LocalGameService.instance.getNames(),
-        ['Sam', 'Jordan', 'Taylor']);
+        ['Sam', 'Jordan', 'Taylor', 'Casey']);
   });
 
   for (final scale in [1.0, 2.0]) {

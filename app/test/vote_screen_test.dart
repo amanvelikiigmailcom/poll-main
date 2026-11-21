@@ -12,7 +12,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     await LocalGameService.instance.savePlayerAndFriends(
       playerName: 'Аман',
-      friends: ['Али', 'Маша', 'Даня'],
+      friends: ['Али', 'Маша', 'Даня', 'Саша'],
     );
 
     await tester.pumpWidget(const MaterialApp(home: VoteScreen()));

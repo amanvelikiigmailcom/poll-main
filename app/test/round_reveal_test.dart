@@ -15,6 +15,21 @@ import 'package:flyprox_app/widgets/common/round_reveal.dart';
 import 'package:flyprox_app/screens/voting/vote_screen.dart';
 import 'package:flyprox_app/screens/voting/star_received_screen.dart';
 
+/// Taps the first visible friend option and returns its name.
+///
+/// Each question shows the player plus 3 of the 4 friends, so a fixed name
+/// is not always on screen.
+Future<String> tapFirstVisibleFriend(WidgetTester tester) async {
+  for (final name in ['Alex', 'Sam', 'Jordan', 'Taylor']) {
+    final found = find.text(name);
+    if (found.evaluate().isNotEmpty) {
+      await tester.tap(found.first);
+      return name;
+    }
+  }
+  throw StateError('no voting option visible');
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() async {
@@ -109,7 +124,7 @@ void main() {
     await GameSettings.instance.setOption('sound', false);
     final game = LocalGameService.instance;
     await game.savePlayerAndFriends(
-        playerName: 'Player', friends: ['Alex', 'Sam', 'Jordan']);
+        playerName: 'Player', friends: ['Alex', 'Sam', 'Jordan', 'Taylor']);
     final router = GoRouter(initialLocation: '/vote', routes: [
       GoRoute(path: '/vote', builder: (_, __) => const VoteScreen()),
       GoRoute(
@@ -119,10 +134,11 @@ void main() {
     addTearDown(router.dispose);
     await tester.pumpWidget(MaterialApp.router(routerConfig: router));
     await tester.pumpAndSettle();
+    final voted = <String>[];
     for (var i = 0; i < 12; i++) {
       expect(find.text('Reveal'), findsNothing);
       expect(find.text('Question ${i + 1} of 12'), findsOneWidget);
-      await tester.tap(find.text('Alex'));
+      voted.add(await tapFirstVisibleFriend(tester));
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
@@ -133,7 +149,7 @@ void main() {
     await tester.tap(find.text('Reveal'));
     await tester.pumpAndSettle();
     expect(find.text('Your round revealed'), findsOneWidget);
-    expect(find.text('You → Alex'), findsWidgets);
+    expect(find.text('You → ${voted.first}'), findsAtLeast(1));
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
@@ -201,7 +217,7 @@ void main() {
     await GameSettings.instance.setOption('sound', false);
     final game = LocalGameService.instance;
     await game.savePlayerAndFriends(
-        playerName: 'Player', friends: ['Alex', 'Sam', 'Jordan']);
+        playerName: 'Player', friends: ['Alex', 'Sam', 'Jordan', 'Taylor']);
     await SubscriptionService.instance.setPro(true);
     final router = GoRouter(initialLocation: '/vote', routes: [
       GoRoute(path: '/vote', builder: (_, __) => const VoteScreen()),
@@ -213,7 +229,7 @@ void main() {
     await tester.pumpWidget(MaterialApp.router(routerConfig: router));
     await tester.pumpAndSettle();
     for (var i = 0; i < 12; i++) {
-      await tester.tap(find.text('Alex'));
+      await tapFirstVisibleFriend(tester);
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();

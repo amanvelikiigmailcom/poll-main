@@ -84,7 +84,7 @@ class LocalGameService {
 
   /// Always 4 cards: self + 3 others (Gas-style).
   static const int optionsPerQuestion = 4;
-  static const int minFriends = 3;
+  static const int minFriends = 4;
   static const int minUsernameLength = 3;
   static const List<String> _categoryOrder = ['sympathy', 'normal', 'humor'];
   static final RegExp usernamePattern = RegExp(r'^[a-zA-Z0-9_]+$');

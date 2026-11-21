@@ -25,7 +25,7 @@ void main() {
     expect(LocalGameService.validateUsername('aman_07'), isNull);
   });
 
-  test('hasEnoughNames requires player + 3 participants without a username',
+  test('hasEnoughNames requires player + 4 participants without a username',
       () async {
     final svc = LocalGameService.instance;
     expect(await svc.hasEnoughNames(), isFalse);
@@ -34,6 +34,9 @@ void main() {
     expect(await svc.hasEnoughNames(), isFalse);
 
     await svc.saveNames(['Али', 'Маша', 'Даня']);
+    expect(await svc.hasEnoughNames(), isFalse);
+
+    await svc.saveNames(['Али', 'Маша', 'Даня', 'Саша']);
     expect(await svc.hasEnoughNames(), isTrue);
     expect(await svc.getUsername(), isNull);
   });
