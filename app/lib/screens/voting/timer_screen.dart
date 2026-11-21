@@ -6,6 +6,7 @@ import '../../services/local_game_service.dart';
 import '../../services/game_settings.dart';
 import '../../services/subscription_service.dart';
 import '../../router/app_router.dart';
+import '../../services/content_service.dart';
 
 const Color _primaryBlue = Color(0xFF4B6EF5);
 const Color _accentRed = Color(0xFFFF3B5C);
@@ -431,7 +432,7 @@ class _TimerScreenState extends State<TimerScreen>
         OutlinedButton.icon(
           onPressed: () => context.push(AppRoutes.premium),
           icon: const Icon(Icons.workspace_premium_outlined),
-          label: const Text('Go Premium — never wait'),
+          label: Text(ContentService.instance.text('upsell_timer_button')),
           style: OutlinedButton.styleFrom(
             foregroundColor: _primaryBlue,
             side: const BorderSide(color: Color(0xFFDDE4FF), width: 1.5),

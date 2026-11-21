@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../utils/constants.dart';
+import '../../services/content_service.dart';
 
 class ForParentsScreen extends ConsumerWidget {
   const ForParentsScreen({super.key});
@@ -12,7 +12,7 @@ class ForParentsScreen extends ConsumerWidget {
   Future<void> _sendEmail(BuildContext context) async {
     final uri = Uri(
       scheme: 'mailto',
-      path: AppConstants.supportEmail,
+      path: ContentService.instance.text('support_email'),
       queryParameters: const {'subject': 'Flyprox parent or guardian question'},
     );
     try {
@@ -22,9 +22,9 @@ class ForParentsScreen extends ConsumerWidget {
       if (!context.mounted) return;
     }
     if (context.mounted) {
+      final email = ContentService.instance.text('support_email');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Please email ${AppConstants.supportEmail}')),
+        SnackBar(content: Text('Please email $email')),
       );
     }
   }
@@ -83,8 +83,8 @@ class ForParentsScreen extends ConsumerWidget {
                       style:
                           TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
                   const SizedBox(height: 8),
-                  const Text(AppConstants.supportEmail,
-                      style: TextStyle(color: Colors.grey)),
+                  Text(ContentService.instance.text('support_email'),
+                      style: const TextStyle(color: Colors.grey)),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
                     onPressed: () => _sendEmail(context),

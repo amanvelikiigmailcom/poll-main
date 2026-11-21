@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'content_service.dart';
+
 /// Shares a short, text-only invite. No website or referral link is required.
 /// Instagram opens its recipient picker with a short greeting and no URL.
 class InviteShareService {
@@ -9,8 +11,8 @@ class InviteShareService {
   static final InviteShareService instance = InviteShareService._();
 
   Future<InvitePayload> buildPayload() async {
-    return const InvitePayload(
-      message: 'Try Flyprox. Fun quizzes about people you know!',
+    return InvitePayload(
+      message: ContentService.instance.text('invite_message'),
     );
   }
 

@@ -9,6 +9,7 @@ import '../../providers/user_provider.dart';
 import '../../services/contact_picker_service.dart';
 import '../../services/contact_sync_service.dart';
 import '../../services/local_game_service.dart';
+import '../../services/content_service.dart';
 
 const Color _primaryBlue = Color(0xFF4B6EF5);
 const int _minFriends = LocalGameService.minFriends;
@@ -614,7 +615,8 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
             ),
           ),
         ),
-        _contactsButton(),
+        if (ContentService.instance.flag('contacts_enabled'))
+          _contactsButton(),
         _exampleButton(),
       ],
     );

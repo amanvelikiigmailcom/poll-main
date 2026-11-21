@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../router/app_router.dart';
 import '../../services/external_link_service.dart';
-import '../../utils/constants.dart';
+import '../../services/content_service.dart';
 import '../../theme/app_colors.dart';
 import '../../services/game_settings.dart';
 import '../../services/subscription_service.dart';
@@ -138,13 +138,15 @@ class SettingsScreen extends ConsumerWidget {
             _ArrowTile(
               icon: Icons.article_outlined,
               title: 'Terms of Use',
-              onTap: () => openExternalLink(context, AppConstants.termsUrl),
+              onTap: () => openExternalLink(
+                  context, ContentService.instance.text('url_terms')),
             ),
             const Divider(height: 1),
             _ArrowTile(
               icon: Icons.privacy_tip_outlined,
               title: 'Privacy Policy',
-              onTap: () => openExternalLink(context, AppConstants.privacyUrl),
+              onTap: () => openExternalLink(
+                  context, ContentService.instance.text('url_privacy')),
             ),
           ]),
           const SizedBox(height: 40),

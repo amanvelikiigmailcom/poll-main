@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
 import 'theme/navigation_icons.dart';
+import 'services/api_service.dart';
+import 'services/content_service.dart';
 import 'services/game_settings.dart';
 import 'providers/service_providers.dart';
 import 'services/storage_service.dart';
@@ -37,6 +39,9 @@ Future<void> main() async {
   final storageService = StorageService();
   await storageService.init();
   await GameSettings.instance.load();
+  await ContentService.instance.load();
+  // Refresh server texts in the background; defaults cover the first paint.
+  unawaited(ContentService.instance.refresh(ApiService(storageService)));
 
   // ── Firebase (phone login) ──────────────────────────────────────────────
   // Optional at runtime: without GoogleService-Info.plist the app still runs,

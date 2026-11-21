@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../services/content_service.dart';
 import '../../services/external_link_service.dart';
 import '../../services/subscription_service.dart';
 import '../../utils/constants.dart';
@@ -9,6 +10,8 @@ import '../../utils/constants.dart';
 /// Our own paywall UI; billing runs through Superwall (see
 /// [SubscriptionService]). Unlocks honest local benefits only: the full
 /// round Reveal, no 40-minute wait, double stars and a profile badge.
+/// Title, subtitle, product card and CTA come from [ContentService]; the legal
+/// block stays in code so review-required wording cannot drift.
 class PremiumScreen extends StatefulWidget {
   const PremiumScreen({super.key});
 
@@ -104,9 +107,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
                             const SizedBox(height: 8),
                             const Text('👑', style: TextStyle(fontSize: 48)),
                             const SizedBox(height: 8),
-                            const Text(
-                              'Premium',
-                              style: TextStyle(
+                            Text(
+                              ContentService.instance.text('paywall_title'),
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
@@ -114,9 +117,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            const Text(
-                              'Unlock your full round',
-                              style: TextStyle(
+                            Text(
+                              ContentService.instance.text('paywall_subtitle'),
+                              style: const TextStyle(
                                 color: Colors.white60,
                                 fontSize: 14,
                               ),
@@ -156,6 +159,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
   }
 
   Widget _buildProCard(String priceLabel) {
+    final features = ContentService.instance.stringList('paywall_features');
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.08),
@@ -168,9 +172,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
         children: [
           Row(
             children: [
-              const Text(
-                'Premium Weekly',
-                style: TextStyle(
+              Text(
+                ContentService.instance.text('paywall_product_name'),
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -200,7 +204,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            '$priceLabel / week · 1-week auto-renewing subscription',
+            ContentService.instance
+                .template('paywall_term', {'price': priceLabel}),
             style: const TextStyle(
               color: Colors.white54,
               fontSize: 13,
@@ -209,19 +214,19 @@ class _PremiumScreenState extends State<PremiumScreen> {
           const SizedBox(height: 16),
           _buildFeature(
             icon: Icons.visibility_outlined,
-            text: 'Full Reveal — all 12 answers every round',
+            text: features[0],
           ),
           _buildFeature(
             icon: Icons.timer_off_outlined,
-            text: 'No 40-minute wait between rounds',
+            text: features[1],
           ),
           _buildFeature(
             icon: Icons.star_outline,
-            text: 'Stars ×2 for every completed round',
+            text: features[2],
           ),
           _buildFeature(
             icon: Icons.verified_outlined,
-            text: '✓ badge in your profile',
+            text: features[3],
           ),
           const SizedBox(height: 20),
           SizedBox(
@@ -240,7 +245,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 child: Text(
-                  'Get Premium · $priceLabel',
+                  ContentService.instance
+                      .template('paywall_cta', {'price': priceLabel}),
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -300,8 +306,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             TextButton(
-              onPressed: () =>
-                  openExternalLink(context, AppConstants.termsUrl),
+              onPressed: () => openExternalLink(
+                  context, ContentService.instance.text('url_terms')),
               child: const Text(
                 'Terms of Use',
                 style: TextStyle(color: Colors.white38, fontSize: 11),
@@ -312,8 +318,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
               style: TextStyle(color: Colors.white24, fontSize: 11),
             ),
             TextButton(
-              onPressed: () =>
-                  openExternalLink(context, AppConstants.privacyUrl),
+              onPressed: () => openExternalLink(
+                  context, ContentService.instance.text('url_privacy')),
               child: const Text(
                 'Privacy Policy',
                 style: TextStyle(color: Colors.white38, fontSize: 11),

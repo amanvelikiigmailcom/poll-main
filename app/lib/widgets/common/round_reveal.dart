@@ -4,6 +4,7 @@ import '../../router/app_router.dart';
 import '../../services/local_game_service.dart';
 import '../../services/game_settings.dart';
 import '../../services/subscription_service.dart';
+import '../../services/content_service.dart';
 
 /// Shows the locally saved round. Premium members see every answer;
 /// everyone else sees the first three with an upsell to Premium.
@@ -39,7 +40,10 @@ Future<void> showRoundReveal(BuildContext context) async {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Text(pro
                 ? 'Your choices on this device. These are not votes from other people.'
-                : 'First 3 of ${answers.length} shown. Go Premium to reveal the whole round.')),
+                : ContentService.instance.template('upsell_reveal_note', {
+                      'shown': visible.length.toString(),
+                      'total': answers.length.toString(),
+                    }))),
         const SizedBox(height: 12),
         Expanded(
             child: answers.isEmpty

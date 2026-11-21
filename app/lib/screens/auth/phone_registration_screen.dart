@@ -6,6 +6,7 @@ import 'package:intl_phone_field/phone_number.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../router/app_router.dart';
+import '../../services/content_service.dart';
 
 /// Phone login, step 1: the number. Firebase sends the SMS code; our backend
 /// owns the session afterwards. Guests can skip into the local game.
@@ -153,17 +154,19 @@ class _PhoneRegistrationScreenState
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
-              OutlinedButton(
-                onPressed: _sending ? null : () => context.pop(),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Colors.white70),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              if (ContentService.instance.flag('guest_enabled')) ...[
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  onPressed: _sending ? null : () => context.pop(),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    side: const BorderSide(color: Colors.white70),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 14),
+                  ),
+                  child: const Text('Continue without login'),
                 ),
-                child: const Text('Continue without login'),
-              ),
+              ],
             ],
           ),
         ),

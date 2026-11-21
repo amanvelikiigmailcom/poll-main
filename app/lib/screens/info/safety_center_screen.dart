@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../utils/constants.dart';
+import '../../services/content_service.dart';
 
 class SafetyCenterScreen extends StatelessWidget {
   const SafetyCenterScreen({super.key});
@@ -11,7 +11,7 @@ class SafetyCenterScreen extends StatelessWidget {
   Future<void> _mail(BuildContext context) async {
     final uri = Uri(
       scheme: 'mailto',
-      path: AppConstants.supportEmail,
+      path: ContentService.instance.text('support_email'),
       queryParameters: const {'subject': 'Flyprox game support'},
     );
     try {
@@ -21,9 +21,9 @@ class SafetyCenterScreen extends StatelessWidget {
       if (!context.mounted) return;
     }
     if (context.mounted) {
+      final email = ContentService.instance.text('support_email');
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Please email ${AppConstants.supportEmail}')),
+        SnackBar(content: Text('Please email $email')),
       );
     }
   }
@@ -84,7 +84,8 @@ class SafetyCenterScreen extends StatelessWidget {
           const SizedBox(height: 8),
           TextButton(
             onPressed: () => _mail(context),
-            child: const Text('Email ${AppConstants.supportEmail}'),
+            child: Text(
+                'Email ${ContentService.instance.text('support_email')}'),
           ),
         ],
       ),

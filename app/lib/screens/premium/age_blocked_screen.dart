@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../router/app_router.dart';
+import '../../services/content_service.dart';
 
 /// Dead end for underage users. There is intentionally no path back to the
 /// age wheel: only For Parents (information) and Close.
@@ -39,9 +40,9 @@ class AgeBlockedScreen extends StatelessWidget {
                   child: Text('🔒', style: TextStyle(fontSize: 64)),
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  'Not available for your age',
-                  style: TextStyle(
+                Text(
+                  ContentService.instance.text('blocked_title'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
@@ -49,11 +50,9 @@ class AgeBlockedScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'Flyprox is for ages 13 and up. This game isn’t available '
-                  'for your age yet. Ask a parent or guardian if you have '
-                  'questions.',
-                  style: TextStyle(
+                Text(
+                  ContentService.instance.text('blocked_body'),
+                  style: const TextStyle(
                       color: Colors.white70, fontSize: 15, height: 1.45),
                   textAlign: TextAlign.center,
                 ),
