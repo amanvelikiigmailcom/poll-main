@@ -13,8 +13,8 @@ class ApiException implements Exception {
 }
 
 class ApiService {
-  static const String _baseUrl =
-      String.fromEnvironment('API_BASE_URL', defaultValue: 'https://api.hidavo.app');
+  static const String _baseUrl = String.fromEnvironment(
+      'API_BASE_URL', defaultValue: 'https://api.flyprox.com');
 
   late final Dio _dio;
   final StorageService _storageService;
