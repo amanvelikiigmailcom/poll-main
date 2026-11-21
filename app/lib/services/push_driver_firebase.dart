@@ -43,7 +43,14 @@ class FirebasePushDriver implements PushDriver {
   Future<String?> getDeviceToken() async {
     try {
       final token = await _msg.getAPNSToken();
-      return (token == null || token.isEmpty) ? null : token;
+      if (token != null && token.isNotEmpty) return token;
+      // APNs registration can finish after the permission dialog closes.
+      for (var attempt = 0; attempt < 5; attempt++) {
+        await Future<void>.delayed(const Duration(milliseconds: 250));
+        final ready = await _msg.getAPNSToken();
+        if (ready != null && ready.isNotEmpty) return ready;
+      }
+      return null;
     } catch (_) {
       return null;
     }

@@ -17,16 +17,26 @@ class PushListener extends ConsumerStatefulWidget {
   ConsumerState<PushListener> createState() => _PushListenerState();
 }
 
-class _PushListenerState extends ConsumerState<PushListener> {
+class _PushListenerState extends ConsumerState<PushListener>
+    with WidgetsBindingObserver {
   StreamSubscription? _messages;
   StreamSubscription? _refresh;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final push = ref.read(pushServiceProvider);
     _refresh = push.startTokenRefreshSync();
     _messages = push.foregroundMessages.listen(_show);
+    unawaited(push.syncToken());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(ref.read(pushServiceProvider).syncToken());
+    }
   }
 
   void _show(PushMessage message) {
@@ -48,6 +58,7 @@ class _PushListenerState extends ConsumerState<PushListener> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _messages?.cancel();
     _refresh?.cancel();
     super.dispose();
