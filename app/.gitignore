@@ -44,6 +44,8 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Firebase config: owner-placed, never committed.
-ios/Runner/GoogleService-Info.plist
+# Firebase iOS config IS committed (owner-approved): the plist key is a public
+# client identifier per Firebase docs, and Xcode Cloud cannot receive files
+# any other way. Restrict the key to our Bundle ID in Cloud Console.
+# Android config stays local until the Android track opens.
 android/app/google-services.json

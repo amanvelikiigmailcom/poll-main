@@ -4,9 +4,11 @@
 *.p12
 *.mobileprovision
 *.cer
-GoogleService-Info.plist
 google-services.json
 *firebase*cicd*.json
+# Исключение (одобрено владельцем): GoogleService-Info.plist для iOS зашит
+# в сборку, его ключ — публичный идентификатор по докам Firebase, а Xcode
+# Cloud иначе файл получить не может.
 
 # Мусор
 .DS_Store
