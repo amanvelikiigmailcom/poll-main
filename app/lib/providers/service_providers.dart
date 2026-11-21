@@ -4,6 +4,8 @@ import '../services/auth_service.dart';
 import '../services/contact_sync_service.dart';
 import '../services/phone_auth_driver_firebase.dart';
 import '../services/phone_auth_service.dart';
+import '../services/push_driver_firebase.dart';
+import '../services/push_service.dart';
 import '../services/quiz_service.dart';
 import '../services/storage_service.dart';
 import '../services/user_service.dart';
@@ -49,4 +51,11 @@ final phoneAuthServiceProvider = Provider<PhoneAuthService>((ref) {
 
 final contactSyncServiceProvider = Provider<ContactSyncService>((ref) {
   return ContactSyncService(ref.watch(apiServiceProvider));
+});
+
+final pushServiceProvider = Provider<PushService>((ref) {
+  return PushService(
+    driver: FirebasePushDriver(),
+    api: ref.watch(apiServiceProvider),
+  );
 });

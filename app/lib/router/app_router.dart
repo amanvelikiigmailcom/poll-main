@@ -6,6 +6,7 @@ import '../screens/onboarding/names_entry_screen.dart';
 import '../screens/onboarding/onboarding_screen.dart';
 import '../screens/auth/phone_registration_screen.dart';
 import '../screens/auth/otp_verification_screen.dart';
+import '../screens/onboarding/push_prompt_screen.dart';
 import '../providers/service_providers.dart';
 import '../screens/voting/vote_screen.dart';
 import '../screens/voting/star_received_screen.dart';
@@ -22,6 +23,7 @@ import '../screens/info/terms_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../services/local_game_service.dart';
 import '../widgets/common/app_shell.dart';
+import '../widgets/common/push_listener.dart';
 import '../widgets/common/startup_intro.dart';
 
 import '../screens/info/faq_screen.dart';
@@ -66,6 +68,7 @@ abstract final class AppRoutes {
 
   static const phone = '/phone';
   static const otp = '/otp';
+  static const pushPrompt = '/push-prompt';
 
   // Kept so leftover screens still compile. Not registered on the router.
   static const register = '/register';
@@ -177,8 +180,13 @@ final GoRouter appRouter = GoRouter(
             phone: phone, verificationId: verificationId);
       },
     ),
+    GoRoute(
+      path: AppRoutes.pushPrompt,
+      builder: (_, __) => const PushPromptScreen(),
+    ),
     ShellRoute(
-      builder: (context, state, child) => AppShell(child: child),
+      builder: (context, state, child) =>
+          AppShell(child: PushListener(child: child)),
       routes: [
         GoRoute(
           path: AppRoutes.home,

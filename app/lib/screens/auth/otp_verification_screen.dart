@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:pinput/pinput.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../providers/service_providers.dart';
+import '../../router/app_router.dart';
 
 /// Phone login, step 2: the SMS code. On success the backend session is
 /// stored and the game setup continues at the friends step.
@@ -51,14 +53,31 @@ class _OTPVerificationScreenState
     if (!mounted) return;
     setState(() => _verifying = false);
     if (result.success) {
-      // Back through the phone screen to the friends step underneath.
-      context.pop();
-      context.pop();
+      await _afterLogin();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(result.message ?? 'Wrong code. Try again.')),
       );
     }
+  }
+
+  /// After login: push prompt on first login, else back to friends with a
+  /// silent token sync.
+  Future<void> _afterLogin() async {
+    final push = ref.read(pushServiceProvider);
+    if (await push.needsPrompt()) {
+      if (!mounted) return;
+      context.pushReplacement(AppRoutes.pushPrompt);
+      return;
+    }
+    await push.syncToken();
+    if (!mounted) return;
+    _backToFriends();
+  }
+
+  void _backToFriends() {
+    if (context.canPop()) context.pop();
+    if (context.canPop()) context.pop();
   }
 
   Future<void> _resend() async {
@@ -70,8 +89,7 @@ class _OTPVerificationScreenState
     if (!mounted) return;
     setState(() => _resending = false);
     if (result.autoIdToken != null && result.success) {
-      context.pop();
-      context.pop();
+      await _afterLogin();
       return;
     }
     if (result.success && result.verificationId != null) {
@@ -181,12 +199,7 @@ class _OTPVerificationScreenState
               ),
               const SizedBox(height: 8),
               OutlinedButton(
-                onPressed: _verifying
-                    ? null
-                    : () {
-                        context.pop();
-                        context.pop();
-                      },
+                onPressed: _verifying ? null : _backToFriends,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white,
                   side: const BorderSide(color: Colors.white70),
