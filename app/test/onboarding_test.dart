@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flyprox_app/providers/service_providers.dart';
 import 'package:flyprox_app/router/app_router.dart';
 import 'package:flyprox_app/screens/onboarding/onboarding_screen.dart';
+import 'package:flyprox_app/services/content_service.dart';
 import 'package:flyprox_app/services/local_game_service.dart';
 import 'package:flyprox_app/services/storage_service.dart';
 import 'package:flyprox_app/theme/app_theme.dart';
@@ -30,7 +33,10 @@ void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     useFakeSecureStorage();
+    ContentService.instance.debugClear();
   });
+
+  tearDown(() => ContentService.instance.debugClear());
 
   testWidgets(
       'first launch opens intro; Skip persists across a fresh app mount',
@@ -186,4 +192,37 @@ void main() {
       }
     });
   }
+
+  testWidgets('server pages replace the intro without code changes',
+      (tester) async {
+    final pages = List.generate(
+        5,
+        (i) => {
+              'emoji': '⭐',
+              'title': 'Server page ${i + 1}',
+              'subtitle': 'Server subtitle ${i + 1}',
+            });
+    ContentService.instance
+        .debugSetOverrides({'onboarding_pages': jsonEncode(pages)});
+    final storage = StorageService();
+    await storage.init();
+    await tester.pumpWidget(ProviderScope(
+      overrides: [storageServiceProvider.overrideWithValue(storage)],
+      child: MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: const OnboardingScreen(),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('Server page 1'), findsOneWidget);
+    expect(find.text('Who’s most\nlikely to…?'), findsNothing);
+    for (var i = 0; i < 4; i++) {
+      await tester.tap(find.text('Next'));
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('Server page 5'), findsOneWidget);
+    expect(find.text('5 / 5'), findsOneWidget);
+    expect(find.text('Next'), findsNothing);
+    expect(find.text('Get started'), findsOneWidget);
+  });
 }

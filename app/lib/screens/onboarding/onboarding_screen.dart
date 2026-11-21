@@ -7,29 +7,69 @@ import 'package:go_router/go_router.dart';
 
 import '../../providers/service_providers.dart';
 import '../../router/app_router.dart';
+import '../../services/content_service.dart';
 import '../../services/local_game_service.dart';
 import '../../theme/app_colors.dart';
 
-const _slides = [
-  (
+/// One onboarding page. Texts come from the `onboarding_pages` content key
+/// (`[{emoji|eyebrow, title, subtitle|description}]`); illustrations stay local
+/// and cycle when the server sends more pages than artwork exists.
+class OnboardingSlide {
+  const OnboardingSlide({
+    required this.eyebrow,
+    required this.title,
+    required this.description,
+  });
+
+  final String eyebrow;
+  final String title;
+  final String description;
+}
+
+const _fallbackSlides = [
+  OnboardingSlide(
     eyebrow: 'A NEW WAY TO PLAY',
     title: 'Who’s most\nlikely to…?',
     description:
         'Light up the room? Make everyone laugh?\nPick the person who fits best.',
   ),
-  (
+  OnboardingSlide(
     eyebrow: 'BETTER WITH YOUR PEOPLE',
     title: 'Make it\nyour circle.',
     description:
         'Choose a nickname and three participants.\nUse your own names or try our examples.',
   ),
-  (
+  OnboardingSlide(
     eyebrow: 'A LITTLE PLAY. A LITTLE JOY.',
     title: 'Play. Collect.\nRepeat.',
     description:
         'Answer 12 questions, collect your stars,\nand come back for a fresh round.',
   ),
 ];
+
+/// Parses server pages; falls back to [_fallbackSlides] when the key is
+/// missing, malformed or carries no titled page.
+List<OnboardingSlide> resolveOnboardingSlides(dynamic json) {
+  try {
+    if (json is List) {
+      final slides = <OnboardingSlide>[];
+      for (final item in json) {
+        if (item is! Map) continue;
+        final title = (item['title'] ?? '').toString();
+        if (title.isEmpty) continue;
+        final eyebrow = (item['emoji'] ?? item['eyebrow'] ?? '').toString();
+        final description =
+            (item['subtitle'] ?? item['description'] ?? '').toString();
+        slides.add(OnboardingSlide(
+            eyebrow: eyebrow, title: title, description: description));
+      }
+      if (slides.isNotEmpty) return slides;
+    }
+  } catch (_) {
+    // Fall through to the baked-in pages.
+  }
+  return _fallbackSlides;
+}
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -42,6 +82,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _controller = PageController();
   int _page = 0;
   bool _saving = false;
+  late final List<OnboardingSlide> _slides;
+
+  @override
+  void initState() {
+    super.initState();
+    _slides =
+        resolveOnboardingSlides(ContentService.instance.json('onboarding_pages'));
+  }
 
   @override
   void dispose() {
@@ -137,7 +185,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     controller: _controller,
                     itemCount: _slides.length,
                     onPageChanged: (page) => setState(() => _page = page),
-                    itemBuilder: (_, index) => _IntroPage(index: index),
+                    itemBuilder: (_, index) => _IntroPage(
+                          slide: _slides[index], artIndex: index),
                   )),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(28, 4, 28, 20),
@@ -181,7 +230,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         )),
                         SizedBox(
                             width: 48,
-                            child: Text('${_page + 1} / 3',
+                            child: Text('${_page + 1} / ${_slides.length}',
                                 textAlign: TextAlign.right,
                                 style: const TextStyle(
                                     color: Colors.white70, fontSize: 12))),
@@ -234,12 +283,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 }
 
 class _IntroPage extends StatelessWidget {
-  const _IntroPage({required this.index});
-  final int index;
+  const _IntroPage({required this.slide, required this.artIndex});
+  final OnboardingSlide slide;
+  final int artIndex;
 
   @override
   Widget build(BuildContext context) {
-    final slide = _slides[index];
     return LayoutBuilder(builder: (context, constraints) {
       final compact = constraints.maxHeight < 490;
       return SingleChildScrollView(
@@ -257,7 +306,7 @@ class _IntroPage extends StatelessWidget {
                 child: SizedBox(
                     width: 340,
                     height: 300,
-                    child: switch (index) {
+                    child: switch (artIndex % 3) {
                       0 => const _QuizIllustration(),
                       1 => const _CircleIllustration(),
                       _ => const _StarsIllustration(),
