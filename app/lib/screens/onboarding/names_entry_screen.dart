@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:phone_numbers_parser/phone_numbers_parser.dart';
+
 import '../../router/app_router.dart';
+import '../../providers/service_providers.dart';
 import '../../providers/user_provider.dart';
 import '../../services/contact_picker_service.dart';
+import '../../services/contact_sync_service.dart';
 import '../../services/local_game_service.dart';
 
 const Color _primaryBlue = Color(0xFF4B6EF5);
@@ -33,6 +37,8 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
   String? _playerName;
   final List<String> _friends = [];
   bool _saving = false;
+  bool _syncing = false;
+  List<ContactMatch> _matches = [];
 
   @override
   void initState() {
@@ -76,14 +82,24 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
     super.dispose();
   }
 
-  void _goToFriendsStep() {
+  Future<void> _goToFriendsStep() async {
     final name = _playerController.text.trim();
     if (name.isEmpty) return;
+    // Move to the friends step first: the phone screens sit on top, and
+    // popping back must reveal this step (go() would reuse this same state).
     setState(() {
       _playerName = name;
       _step = 1;
     });
-    _refocus(_friendFocus);
+    await LocalGameService.instance.savePlayerName(name);
+    if (!mounted) return;
+    final loggedIn = await ref.read(authServiceProvider).isLoggedIn();
+    if (!mounted) return;
+    if (loggedIn) {
+      _refocus(_friendFocus);
+    } else {
+      context.push(AppRoutes.phone);
+    }
   }
 
   void _addFriend() {
@@ -166,10 +182,22 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
         label: const Text('Try with example names'),
       );
 
+  IsoCode _defaultRegion() {
+    final code = WidgetsBinding
+        .instance.platformDispatcher.locale.countryCode
+        ?.toUpperCase();
+    if (code == null || code.isEmpty) return IsoCode.US;
+    try {
+      return IsoCode.fromJson(code);
+    } catch (_) {
+      return IsoCode.US;
+    }
+  }
+
   Future<void> _pickFromContacts() async {
     if (_saving) return;
-    final svc = ContactPickerService.instance;
-    if (!svc.isAvailable) {
+    final picker = ContactPickerService.instance;
+    if (!picker.isAvailable) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -182,10 +210,64 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
       (_playerName ?? '').trim().toLowerCase(),
       ..._friends.map((n) => n.toLowerCase()),
     }..remove('');
-    final picked =
-        await svc.pickNames(maxNames: _maxPickedContacts, excludeLower: exclude);
+    final picked = await picker.pickEntries(
+        maxNames: _maxPickedContacts, excludeLower: exclude);
     if (!mounted || picked.isEmpty) return;
-    setState(() => _friends.addAll(picked));
+    setState(() {
+      _friends.addAll(picked.map((e) => e.name));
+      _matches = [];
+    });
+    await _syncMatches(picked);
+  }
+
+  /// Uploads hashes of picked numbers (logged-in users only) and shows which
+  /// friends already play. Guests keep the local names with no upload.
+  Future<void> _syncMatches(List<PickedContact> picked) async {
+    final loggedIn = await ref.read(authServiceProvider).isLoggedIn();
+    if (!mounted || !loggedIn) return;
+    setState(() => _syncing = true);
+    final matches = await ref
+        .read(contactSyncServiceProvider)
+        .syncContacts(picked, defaultRegion: _defaultRegion());
+    if (!mounted) return;
+    setState(() {
+      _syncing = false;
+      _matches = matches;
+    });
+  }
+
+  Widget _matchesBanner() {
+    if (_syncing) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 12),
+        child: Text(
+          'Finding friends…',
+          style: TextStyle(color: Colors.white70, fontSize: 14),
+        ),
+      );
+    }
+    if (_matches.isEmpty) return const SizedBox.shrink();
+    final names = _matches.map((m) => m.displayName).join(', ');
+    final verb = _matches.length == 1 ? 'plays' : 'play';
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFD700).withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFD700)),
+      ),
+      child: Text(
+        '⭐ $names already $verb Flyprox',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          height: 1.35,
+        ),
+      ),
+    );
   }
 
   Widget _contactsButton() => OutlinedButton.icon(
@@ -379,6 +461,7 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
             ),
           ),
         const SizedBox(height: 16),
+        _matchesBanner(),
         Expanded(
           child: SingleChildScrollView(
             child: Column(

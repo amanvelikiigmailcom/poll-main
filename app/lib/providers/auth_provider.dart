@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/legacy.dart';
 import '../services/auth_service.dart';
+import '../services/phone_auth_service.dart';
 import 'service_providers.dart';
 
 // ── State ────────────────────────────────────────────────────────────────────
@@ -36,8 +37,11 @@ class AuthState {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthService _authService;
+  final PhoneAuthService? _phoneAuth;
 
-  AuthNotifier(this._authService) : super(const AuthState()) {
+  AuthNotifier(this._authService, {PhoneAuthService? phoneAuth})
+      : _phoneAuth = phoneAuth,
+        super(const AuthState()) {
     _init();
   }
 
@@ -88,6 +92,76 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 
+  bool get isPhoneLoginAvailable => _phoneAuth?.isAvailable ?? false;
+
+  /// Sends an SMS code via Firebase. Returns the raw result; when the number
+  /// verifies instantly ([PhoneCodeResult.autoIdToken]), login completes here.
+  Future<PhoneCodeResult> sendFirebaseCode(String phone) async {
+    final svc = _phoneAuth;
+    if (svc == null || !svc.isAvailable) {
+      return const PhoneCodeResult(
+        success: false,
+        message: 'Phone login isn’t available in this build.',
+      );
+    }
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    final sent = await svc.sendCode(phone);
+    if (sent.autoIdToken != null) {
+      final login = await svc.loginWithIdToken(sent.autoIdToken!, phone: phone);
+      state = state.copyWith(
+        isLoading: false,
+        status:
+            login.success ? AuthStatus.authenticated : state.status,
+        errorMessage: login.success ? null : login.message,
+      );
+      return PhoneCodeResult(
+        success: login.success,
+        autoIdToken: sent.autoIdToken,
+        message: login.message,
+      );
+    }
+    state = state.copyWith(
+      isLoading: false,
+      errorMessage: sent.success ? null : sent.message,
+    );
+    return sent;
+  }
+
+  /// Verifies an SMS [code] and signs into the backend. Updates auth status.
+  Future<OtpVerifyResult> verifyFirebaseCode({
+    required String verificationId,
+    required String code,
+    String? phone,
+  }) async {
+    final svc = _phoneAuth;
+    if (svc == null || !svc.isAvailable) {
+      return const OtpVerifyResult(
+        success: false,
+        isNewUser: false,
+        message: 'Phone login isn’t available in this build.',
+      );
+    }
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    final result = await svc.verifyCode(
+        verificationId: verificationId, code: code, phone: phone);
+    if (result.success) {
+      state = state.copyWith(
+        isLoading: false,
+        status: AuthStatus.authenticated,
+      );
+    } else {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: result.message,
+      );
+    }
+    return OtpVerifyResult(
+      success: result.success,
+      isNewUser: result.isNewUser,
+      message: result.message,
+    );
+  }
+
   void clearError() {
     state = state.copyWith(errorMessage: null);
   }
@@ -110,5 +184,8 @@ class OtpVerifyResult {
 
 final authNotifierProvider =
     StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier(ref.watch(authServiceProvider));
+  return AuthNotifier(
+    ref.watch(authServiceProvider),
+    phoneAuth: ref.watch(phoneAuthServiceProvider),
+  );
 });

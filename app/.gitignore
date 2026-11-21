@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Firebase config: owner-placed, never committed.
+ios/Runner/GoogleService-Info.plist
+android/app/google-services.json

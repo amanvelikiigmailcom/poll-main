@@ -10,6 +10,8 @@ import 'package:flyprox_app/services/local_game_service.dart';
 import 'package:flyprox_app/services/storage_service.dart';
 import 'package:flyprox_app/theme/app_theme.dart';
 
+import 'fakes/fake_secure_storage.dart';
+
 Future<StorageService> mountApp(WidgetTester tester) async {
   final storage = StorageService();
   await storage.init();
@@ -25,7 +27,10 @@ Future<StorageService> mountApp(WidgetTester tester) async {
 }
 
 void main() {
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    useFakeSecureStorage();
+  });
 
   testWidgets(
       'first launch opens intro; Skip persists across a fresh app mount',
@@ -113,6 +118,10 @@ void main() {
     await tester.enterText(find.byType(TextField), 'Captain');
     await tester.pump();
     await tester.tap(find.text('Continue'));
+    await tester.pump();
+    await tester.pumpAndSettle();
+    expect(find.text('Log in with phone'), findsOneWidget);
+    await tester.tap(find.text('Continue without login'));
     await tester.pumpAndSettle();
     expect(find.text('Choose your friends'), findsOneWidget);
     for (final name in ['Moon', 'Sun', 'Star', 'Sky']) {
@@ -136,6 +145,9 @@ void main() {
     await tester.enterText(find.byType(TextField), 'Alex');
     await tester.pump();
     await tester.tap(find.text('Continue'));
+    await tester.pump();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue without login'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Try with example names'));
     await tester.pumpAndSettle();

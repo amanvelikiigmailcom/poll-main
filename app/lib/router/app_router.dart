@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../screens/onboarding/names_entry_screen.dart';
 import '../screens/onboarding/onboarding_screen.dart';
+import '../screens/auth/phone_registration_screen.dart';
+import '../screens/auth/otp_verification_screen.dart';
 import '../providers/service_providers.dart';
 import '../screens/voting/vote_screen.dart';
 import '../screens/voting/star_received_screen.dart';
@@ -62,9 +64,10 @@ abstract final class AppRoutes {
   static const privacy = '/privacy';
   static const terms = '/terms';
 
-  // Kept so leftover screens still compile. Not registered on the router.
   static const phone = '/phone';
   static const otp = '/otp';
+
+  // Kept so leftover screens still compile. Not registered on the router.
   static const register = '/register';
   static const location = '/location';
   static const school = '/school';
@@ -158,6 +161,21 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.namesEntry,
       builder: (_, __) => const NamesEntryScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.phone,
+      builder: (_, __) => const PhoneRegistrationScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.otp,
+      builder: (_, state) {
+        final extra = state.extra;
+        final phone = extra is Map ? extra['phone'] as String? ?? '' : '';
+        final verificationId =
+            extra is Map ? extra['verificationId'] as String? : null;
+        return OTPVerificationScreen(
+            phone: phone, verificationId: verificationId);
+      },
     ),
     ShellRoute(
       builder: (context, state, child) => AppShell(child: child),

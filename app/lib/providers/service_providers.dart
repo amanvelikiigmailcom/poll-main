@@ -1,6 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../services/contact_sync_service.dart';
+import '../services/phone_auth_driver_firebase.dart';
+import '../services/phone_auth_service.dart';
 import '../services/quiz_service.dart';
 import '../services/storage_service.dart';
 import '../services/user_service.dart';
@@ -34,4 +37,16 @@ final userServiceProvider = Provider<UserService>((ref) {
 
 final quizServiceProvider = Provider<QuizService>((ref) {
   return QuizService(ref.watch(apiServiceProvider));
+});
+
+final phoneAuthServiceProvider = Provider<PhoneAuthService>((ref) {
+  return PhoneAuthService(
+    api: ref.watch(apiServiceProvider),
+    storage: ref.watch(storageServiceProvider),
+    driver: FirebasePhoneAuthDriver(),
+  );
+});
+
+final contactSyncServiceProvider = Provider<ContactSyncService>((ref) {
+  return ContactSyncService(ref.watch(apiServiceProvider));
 });

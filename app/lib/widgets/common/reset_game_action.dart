@@ -8,6 +8,29 @@ import '../../router/app_router.dart';
 import '../../services/local_game_service.dart';
 import '../../services/subscription_service.dart';
 
+/// Best-effort server erasure for logged-in users. Drops the backend account
+/// (profile, hashes, rounds, votes) and the local token plus cached matches.
+/// Local wipe proceeds regardless of the outcome.
+Future<void> _wipeServerData(WidgetRef ref) async {
+  try {
+    final storage = ref.read(storageServiceProvider);
+    final token = await storage.getToken();
+    if (token != null && token.isNotEmpty) {
+      final api = ref.read(apiServiceProvider);
+      await api
+          .delete('/api/users/me')
+          .timeout(const Duration(seconds: 5));
+    }
+  } catch (_) {
+    // Best effort: local wipe proceeds regardless.
+  } finally {
+    try {
+      await ref.read(storageServiceProvider).clearToken();
+      await ref.read(contactSyncServiceProvider).clearMatches();
+    } catch (_) {}
+  }
+}
+
 /// One confirmation shared by every entry point to local game deletion.
 /// Callers may override the wording (e.g. the Delete account screen).
 Future<void> showResetGameDialog(
@@ -38,6 +61,7 @@ Future<void> showResetGameDialog(
   if (confirmed != true || !context.mounted) return;
 
   try {
+    await _wipeServerData(ref);
     await LocalGameService.instance.clearAll();
     await SubscriptionService.instance.resetUser();
     await ref.read(storageServiceProvider).clearUser();

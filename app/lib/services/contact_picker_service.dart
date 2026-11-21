@@ -5,6 +5,15 @@ import 'contact_picker_driver.dart';
 import 'contact_picker_driver_stub.dart'
     if (dart.library.io) 'contact_picker_driver_io.dart' as driver_impl;
 
+/// One picked contact: display name plus the first phone number when the
+/// contact has one. Phones stay on the device unless the user syncs them.
+class PickedContact {
+  final String name;
+  final String? phone;
+
+  const PickedContact({required this.name, this.phone});
+}
+
 /// Participant names from the OS contact picker.
 ///
 /// The user selects contacts in system UI; the app receives only that final
@@ -31,33 +40,73 @@ class ContactPickerService {
     required int maxNames,
     Set<String> excludeLower = const {},
   }) async {
+    final raw = await _pickRaw(maxNames: maxNames, excludeLower: excludeLower);
+    return raw.map((c) => c.fullName!.trim()).toList();
+  }
+
+  /// Same as [pickNames] but keeps each contact's first phone number for
+  /// optional server syncing. Phones are returned, never stored here.
+  Future<List<PickedContact>> pickEntries({
+    required int maxNames,
+    Set<String> excludeLower = const {},
+  }) async {
+    final raw = await _pickRaw(maxNames: maxNames, excludeLower: excludeLower);
+    return raw.map((c) {
+      String? phone;
+      for (final p in c.phoneNumbers ?? const <String>[]) {
+        final trimmed = p.trim();
+        if (trimmed.isNotEmpty) {
+          phone = trimmed;
+          break;
+        }
+      }
+      return PickedContact(name: c.fullName!.trim(), phone: phone);
+    }).toList();
+  }
+
+  Future<List<Contact>> _pickRaw({
+    required int maxNames,
+    Set<String> excludeLower = const {},
+  }) async {
     if (maxNames <= 0) return [];
     try {
       if (_driver.supportsMultiPick) {
         final picked = await _driver.pickMany();
         if (picked == null) return [];
-        return namesFromContacts(picked, excludeLower: excludeLower)
-            .take(maxNames)
-            .toList();
+        return _dedupe(picked, excludeLower).take(maxNames).toList();
       }
-      final names = <String>[];
+      final out = <Contact>[];
       final seen = <String>{...excludeLower};
       // Each round trips through visible system UI where the user can cancel;
       // the attempt cap only guards against a misbehaving driver.
       var attempts = 0;
-      while (names.length < maxNames && attempts < maxNames + 10) {
+      while (out.length < maxNames && attempts < maxNames + 10) {
         attempts++;
         final one = await _driver.pickOne();
         if (one == null) break;
-        final mapped = namesFromContacts([one], excludeLower: seen);
-        if (mapped.isEmpty) continue;
-        names.addAll(mapped);
-        seen.addAll(mapped.map((n) => n.toLowerCase()));
+        final name = (one.fullName ?? '').trim();
+        final key = name.toLowerCase();
+        if (name.isEmpty || seen.contains(key)) continue;
+        seen.add(key);
+        out.add(one);
       }
-      return names;
+      return out;
     } catch (_) {
       return [];
     }
+  }
+
+  List<Contact> _dedupe(Iterable<Contact> contacts, Set<String> excludeLower) {
+    final out = <Contact>[];
+    final seen = <String>{...excludeLower};
+    for (final c in contacts) {
+      final name = (c.fullName ?? '').trim();
+      final key = name.toLowerCase();
+      if (name.isEmpty || seen.contains(key)) continue;
+      seen.add(key);
+      out.add(c);
+    }
+    return out;
   }
 
   /// Maps picked contacts to participant names: trimmed, non-empty,

@@ -92,8 +92,13 @@ class AuthService {
   }
 
   /// Returns true when a non-empty auth token is stored locally.
+  /// Never throws: storage errors (or missing test bindings) mean logged out.
   Future<bool> isLoggedIn() async {
-    final token = await _storage.getToken();
-    return token != null && token.isNotEmpty;
+    try {
+      final token = await _storage.getToken();
+      return token != null && token.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
   }
 }

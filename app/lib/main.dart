@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -36,6 +37,15 @@ Future<void> main() async {
   final storageService = StorageService();
   await storageService.init();
   await GameSettings.instance.load();
+
+  // ── Firebase (phone login) ──────────────────────────────────────────────
+  // Optional at runtime: without GoogleService-Info.plist the app still runs,
+  // only phone login reports itself unavailable (guest mode).
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    debugPrint('Firebase unavailable, phone login disabled: $e');
+  }
   // Age-gate status for the /premium route; never blocks launch.
   await AgeGateService.instance.load();
 

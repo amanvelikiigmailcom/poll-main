@@ -10,6 +10,8 @@ import 'package:flyprox_app/router/app_router.dart';
 import 'package:flyprox_app/services/local_game_service.dart';
 import 'package:flyprox_app/services/storage_service.dart';
 
+import 'fakes/fake_secure_storage.dart';
+
 Future<ProviderContainer> mountResetApp(
     WidgetTester tester, String route) async {
   final storage = StorageService();
@@ -66,7 +68,10 @@ Future<void> checkClearedGame(ProviderContainer container) async {
 }
 
 void main() {
-  setUp(seedGame);
+  setUp(() async {
+    useFakeSecureStorage();
+    await seedGame();
+  });
 
   for (final route in [
     AppRoutes.settings,
