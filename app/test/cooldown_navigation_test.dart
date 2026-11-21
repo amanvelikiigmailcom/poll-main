@@ -13,6 +13,7 @@ import 'package:flyprox_app/utils/constants.dart';
 
 import 'fakes/fake_age_gate_store.dart';
 import 'fakes/fake_gateway.dart';
+import 'fakes/fake_secure_storage.dart';
 import 'package:flyprox_app/widgets/common/bottom_nav_bar.dart';
 
 Future<void> pumpRoute(WidgetTester tester) async {
@@ -35,6 +36,7 @@ Future<void> mount(WidgetTester tester, String route) async {
 void main() {
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
+    useFakeSecureStorage();
     await SubscriptionService.instance.resetForTest();
     SubscriptionService.instance.debugGateway(FakeGateway());
     await LocalGameService.instance.savePlayerAndFriends(

@@ -4,12 +4,14 @@ import 'api_service.dart';
 class QuizQuestion {
   final String id;
   final String text;
+  final String emoji;
   final String category; // humor | normal | sympathy
   final List<QuizCandidate> candidates;
 
   const QuizQuestion({
     required this.id,
     required this.text,
+    this.emoji = '',
     required this.category,
     required this.candidates,
   });
@@ -18,6 +20,7 @@ class QuizQuestion {
     return QuizQuestion(
       id: json['id'] as String,
       text: json['text'] as String,
+      emoji: json['emoji'] as String? ?? '',
       category: json['category'] as String? ?? 'normal',
       candidates: (json['candidates'] as List<dynamic>? ?? [])
           .map((e) => QuizCandidate.fromJson(e as Map<String, dynamic>))

@@ -9,6 +9,9 @@ import '../../services/local_game_service.dart';
 import '../../services/question_report_service.dart';
 import '../../services/subscription_service.dart';
 import '../../widgets/common/question_report_dialog.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/service_providers.dart';
+import '../../services/server_round_source.dart';
 
 // ---------------------------------------------------------------------------
 // Data models
@@ -50,9 +53,14 @@ class QuizQuestion {
 
 class VoteScreen extends StatefulWidget {
   const VoteScreen(
-      {super.key, this.reportService = const QuestionReportService()});
+      {super.key,
+      this.reportService = const QuestionReportService(),
+      this.serverSource});
 
   final QuestionReportService reportService;
+
+  /// Server branch override (tests). Production resolves providers lazily.
+  final ServerRoundSource? serverSource;
 
   @override
   State<VoteScreen> createState() => _VoteScreenState();
@@ -61,6 +69,23 @@ class VoteScreen extends StatefulWidget {
 class _VoteScreenState extends State<VoteScreen>
     with SingleTickerProviderStateMixin {
   static const int _totalQuestions = 12;
+
+  /// Null without providers, offline, logged out or on server failure.
+  ServerRoundSource? _source;
+  bool _serverRound = false;
+
+  ServerRoundSource? _resolveSource() {
+    if (widget.serverSource != null) return widget.serverSource;
+    try {
+      final container = ProviderScope.containerOf(context);
+      return ServerRoundSource(
+        container.read(quizServiceProvider),
+        isLoggedIn: container.read(authServiceProvider).isLoggedIn,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
 
   List<QuizQuestion> _questions = [];
   bool _loading = true;
@@ -120,6 +145,50 @@ class _VoteScreenState extends State<VoteScreen>
     if (!mounted) return;
     if (remaining > 0) {
       context.go(AppRoutes.timer);
+      return;
+    }
+
+    // Server branch: logged in + online → shared questions, votes also land
+    // server-side (and trigger pushes). Anything else keeps the local game.
+    _source = _resolveSource();
+    final serverSession = await _source?.tryLoadSession();
+    if (!mounted) return;
+    if (serverSession != null &&
+        serverSession.questions.length >= _totalQuestions) {
+      final svc = LocalGameService.instance;
+      final completed = await svc.getCompletedRounds();
+      if (!mounted) return;
+      final questions = serverSession.questions
+          .map(
+            (q) => QuizQuestion(
+              id: q.id,
+              question: q.text,
+              emoji: q.emoji,
+              category: q.category,
+              options: q.candidates.map((c) {
+                final name = c.fullName.isEmpty ? 'Friend' : c.fullName;
+                return QuizOption(
+                    id: c.id, name: name, grade: '', avatarUrl: c.avatarUrl);
+              }).toList(),
+            ),
+          )
+          .toList();
+      await svc.beginRoundAnswers();
+      await svc.saveRoundProgress(
+        round: completed,
+        questionIndex: 0,
+        questionIds: questions.map((q) => q.id).toList(),
+      );
+      if (!mounted) return;
+      setState(() {
+        _questions = questions;
+        _currentIndex = 0;
+        _roundNumber = completed;
+        _serverRound = true;
+        _shuffledOptions =
+            questions.isNotEmpty ? List.from(questions[0].options) : [];
+        _loading = false;
+      });
       return;
     }
 
@@ -219,6 +288,10 @@ class _VoteScreenState extends State<VoteScreen>
         choice: selected == null ? null :
           question.options.firstWhere((o) => o.id == selected).name,
       ));
+      if (_serverRound && selected != null) {
+        await _source?.trySubmitVote(
+            quizId: question.id, winnerId: selected);
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() { _isAdvancing = false; _selectedOptionId = null; });
@@ -391,7 +464,7 @@ class _VoteScreenState extends State<VoteScreen>
 
   Widget _buildQuestion() {
     return Text(
-      '${_currentQuestion.emoji} ${_currentQuestion.question}',
+      '${_currentQuestion.emoji} ${_currentQuestion.question}'.trim(),
       style: const TextStyle(
         fontSize: 26,
         fontWeight: FontWeight.bold,
