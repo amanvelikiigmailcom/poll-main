@@ -7,8 +7,9 @@
 - [x] Исходный код проверен:196 Flutter tests, analyze22 info без errors/warnings.
 - [x] Номер повышен до1.0.2+12; Flutter3.44.4, Dart3.12.2.
 - [x] pub get / pod install успешны, Podfile.lock==Pods/Manifest.lock; локальный billing key отличается от Git placeholder, значение не выводилось.
-- [ ] Archive/export12 и проверка подписанного IPA (production APNs, no debug, billing key, Firebase callback, no photo permission).
-- [ ] Upload и Apple VALID; внутренняя группа, beta notes и конечный статус.
+- [x] Archive12 (221.2с), source b988c32. Стандартный Flutter export: No Accounts/No Distribution; xcodebuild export с ASC API auth успешен. IPA: codesign deep/strict, production APNs, get-task-allow=false, encryption=false, billing key/Firebase callback/username screen подтверждены boolean-проверкой, photo permission отсутствует.
+- [x] Upload12 успешен (altool exit0/UPLOAD SUCCEEDED), delivery39956a67-21fd-445f-981d-ad44659db223.
+- [x] Apple VALID / IN_BETA_TESTING; build39956a67-21fd-445f-981d-ad44659db223. Внутренняя группа060e4223-2034-457e-aa16-859c63c582f4 содержит12, en-US What to Test записан и перечитан. Upload завершился23.11.2026 00:24:11 Asia/Bangkok; VALID подтверждён~00:26:50. Новый бинарник готов для внутренних тестировщиков. Публичный submit не выполнялся.
 
 ## Активно: проверка пуша, только чужие контакты и изоляция тестов (23.11.2026)
 

@@ -2,9 +2,17 @@
 
 Корень: `/Users/amanyessen/NEW/poll-main`. Flutter-приложение — `app/`, пакет `flyprox_app`. Локальный гостевой режим + серверная ветка с Firebase SMS-входом, Appwrite-бэкендом и APNs; подписка через Superwall. `AGENTS.md` — единственный источник инструкций; `CLAUDE.md` ссылается на него. Поведение сверять с кодом, устаревшие инструкции исправлять вместе с изменениями.
 
-## Текущие изменения — 23.11.2026, после build 11 (пока только код)
+## TestFlight 1.0.2(12) — доступен 23.11.2026
 
-Этот раздел имеет приоритет над историческими правилами ниже. Владелец отменил self + 3 friends и автоматическое имя Michael. Новый бинарник ещё не собирался/не загружался: установленный TestFlight остаётся 1.0.2(11).
+Последняя команда владельца «делай билд» выполнена. Build **39956a67-21fd-445f-981d-ad44659db223**: **VALID / IN_BETA_TESTING**, внутренняя группа060e4223-2034-457e-aa16-859c63c582f4 проверена, en-US What to Test записан и перечитан. Source **b988c32** (исправления54214ff + version bump). Upload завершился23.11 в00:24:11 Asia/Bangkok, VALID подтверждён~00:26:50.
+
+- Archive221.2с; штатный Flutter export снова No Accounts/No Distribution, экспорт через xcodebuild с ASC API auth успешен. IPA проверен: Bundle/version12, codesign deep/strict, production APNs, get-task-allow=false, encryption=false, настоящий billing key и Firebase callback присутствуют; photo permission отсутствует; Choose your username подтверждён в AOT.
+- Build12 включает только выбранные контакты в голосовании, random userNNNNNN вместо автоматического Michael, новый редактируемый ник после контактов и перед optional push, сохранение pending-шага через restart;196 Flutter tests passed, analyze22 info без errors/warnings. Пол не добавлялся.
+- Публичный App Store submit не выполнен. Черновик1.0.2 пока остаётся с build11; в рамках команды обновлялись только TestFlight build12/What to Test/group. Native QA нового экрана на iPhone ещё требуется. GET /builds/{id}/betaGroups не поддерживается (403 GET_RELATED); membership читать через GET /betaGroups/{groupId}/builds.
+
+## Изменения 23.11.2026, включены в build12
+
+Этот раздел имеет приоритет над историческими правилами ниже. Владелец отменил self + 3 friends и автоматическое имя Michael. Изменения включены в доступный TestFlight1.0.2(12).
 
 - Голосование показывает четыре выбранных контакта, без автоматически добавленного игрока: LocalGameService.selectedOptions/generateRound/restoreRound и серверная ветка VoteScreen. Серверный self candidate не используется как получатель голоса; совпадение имени игрока с контактом не превращает контакт в self. Настоящий выбранный контакт Michael не фильтруется.
 - Новый onboarding: телефон/guest → возраст → контакты/примеры → **Choose your username** → optional push prompt для signed-in → Home. Поле ника предзаполнено userNNNNNN; можно изменить. Латинские буквы/цифры/underscore, минимум3. Сохраняются local_username и local_player_name; ник не входит в карточки. Это локальный профильный ник, не новый способ авторизации и не обещание глобальной уникальности. Старый неиспользуемый UsernameScreen с фиктивной проверкой availability заменён рабочим экраном.
