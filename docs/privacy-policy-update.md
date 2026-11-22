@@ -6,11 +6,11 @@ This Privacy Policy explains how TOO Hidavo, Kazakhstan (“we”, “us” or �
 
 Flyprox offers a name-based game with optional phone sign-in and online features in version 1.0.2 and later, including TestFlight releases. Earlier versions may offer only local play. The processing below depends on the version and features you use.
 
-You can play as a guest with nicknames, fictional names or examples. Phone sign-in, selecting contacts, profile images, notifications, external sharing and Premium are optional. Declining notifications or not selecting contacts does not prevent guest play.
+You can play as a guest without phone sign-in. In version 1.0.2 build 10 and later, setup uses at least four selected contacts or ready-made example names; manual nickname and participant-name entry has been removed from onboarding. The example path does not require Contacts access. Phone sign-in, profile images, notifications, external sharing and Premium are optional. Earlier builds may also support manually entered names.
 
 ## 2. Information on your device
 
-The app stores your nickname, participant labels, optional profile fields such as university/year, local profile image, star balance, answers, round progress, question history, timer and settings. Downloaded questions and screen text may be cached for offline use.
+The app stores your player label, participant labels, optional profile fields such as university/year, local profile image, star balance, answers, round progress, question history, timer and settings. Downloaded questions and screen text may be cached for offline use.
 
 Guest answers and manually entered participant labels stay on your device. Your local profile image is selected through the system image picker; the current local profile flow does not upload it to our backend. Local data may be included in operating-system backups depending on your settings.
 
@@ -66,7 +66,7 @@ Resetting the app does not cancel an Apple subscription, delete messages in exte
 
 ## 10. Age, rights and contact
 
-Flyprox is intended for people aged 13 and over, subject to higher local age or parental-permission requirements. It is not intended for children under 13. The Premium age check is not a guarantee that every user has been independently age-verified.
+Flyprox is intended for people aged 13 and over, subject to higher local age or parental-permission requirements. It is not intended for children under 13. In version 1.0.2 build 10 and later, optional phone verification comes before a declared-age question, followed by contact selection and gameplay for eligible users. Firebase and backend phone/account processing therefore takes place before the age response. The exact selected age is not retained or uploaded by this question; a local eligibility outcome and check time are stored. An under-13 response blocks contacts, gameplay and subscriptions for that run. The question may be presented again on a later launch. Superwall subscription initialization starts only after an eligible response. Earlier builds may apply the age question only to Premium. This is self-declared age, not independent age verification.
 
 Depending on your location, you may have rights to access, correct, delete or otherwise control personal information. Contact us for assistance. You can also use guest play, avoid optional data, decline notifications and manage device permissions.
 

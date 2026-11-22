@@ -13,8 +13,8 @@
 - [x] IMG_1320: свежая проверка подписки/понятный status; временная ошибка не стирает известную подписку. Версия из Bundle, hardcoded build3 удалён.
 - [x] Firebase/phone picker/App Store только US,GB,CA,NZ,SG,HK; US default. Флаг future new territories у Apple пока true, см. docs/phone-regions-and-storefront-plan.md.
 - [x] Flutter 174/174; analyze 22 прежних info, без errors/warnings. Backend 22/22. Native typecheck прошлых изменений пройден; Archive проверит итоговую компиляцию.
-- [ ] Commit/push и Archive 1.0.2(10), export, IPA checks, upload, VALID/IN_BETA_TESTING, группа и What to Test.
-- [ ] Обновить публичные Notion-описания после доступности нового бинарника; финальный отчёт с ограничениями физического QA.
+- [x] Source eceda21 запушен. Archive 1.0.2(10), export через ASC signing auth после штатного No Accounts, codesign/production APNs/Firebase callback/billing key проверены. В IPA подтверждены новые ключи/экран/Michael. Upload успешен; build f45c9353-4fa3-4c1b-867c-b0ec22addc8d = VALID/IN_BETA_TESTING, внутренняя группа и What to Test проверены, beta review notes записаны.
+- [x] После доступности build 10 обновлены Notion Privacy/Terms/Support/marketing и локальная политика. Нативные Contacts UI, реальный SMS/StoreKit и фактическое появление push на iPhone требуют проверки владельцем; не выдавать SDK/widget/серверные статусы за физический QA.
 
 ## Новая задача: контакты iOS 18+, build 9
 
