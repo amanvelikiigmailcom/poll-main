@@ -22,12 +22,14 @@ class QuizOption {
   final String name;
   final String grade;
   final String? avatarUrl;
+  final String? serverUserId;
 
   const QuizOption({
     required this.id,
     required this.name,
     required this.grade,
     this.avatarUrl,
+    this.serverUserId,
   });
 }
 
@@ -52,10 +54,11 @@ class QuizQuestion {
 // ---------------------------------------------------------------------------
 
 class VoteScreen extends StatefulWidget {
-  const VoteScreen(
-      {super.key,
-      this.reportService = const QuestionReportService(),
-      this.serverSource});
+  const VoteScreen({
+    super.key,
+    this.reportService = const QuestionReportService(),
+    this.serverSource,
+  });
 
   final QuestionReportService reportService;
 
@@ -114,8 +117,10 @@ class _VoteScreenState extends State<VoteScreen>
       begin: const Offset(1.0, 0.0),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOut));
-    _fadeAnim =
-        CurvedAnimation(parent: _slideController, curve: Curves.easeOut);
+    _fadeAnim = CurvedAnimation(
+      parent: _slideController,
+      curve: Curves.easeOut,
+    );
     _slideController.value = 1.0; // start visible
   }
 
@@ -158,21 +163,44 @@ class _VoteScreenState extends State<VoteScreen>
       final svc = LocalGameService.instance;
       final completed = await svc.getCompletedRounds();
       if (!mounted) return;
-      final questions = serverSession.questions
-          .map(
-            (q) => QuizQuestion(
-              id: q.id,
-              question: q.text,
-              emoji: q.emoji,
-              category: q.category,
-              options: q.candidates.map((c) {
-                final name = c.fullName.isEmpty ? 'Friend' : c.fullName;
-                return QuizOption(
-                    id: c.id, name: name, grade: '', avatarUrl: c.avatarUrl);
-              }).toList(),
+      final questions = <QuizQuestion>[];
+      for (final q in serverSession.questions.take(_totalQuestions)) {
+        final names = await svc.selectedOptions();
+        final options = <QuizOption>[];
+        for (final (index, name) in names.indexed) {
+          // Labels, not strangers' profile names. Ambiguous matches stay local.
+          final matches = q.candidates
+              .where(
+                (c) =>
+                    !c.isSelf &&
+                    c.fullName.trim().toLowerCase() ==
+                        name.trim().toLowerCase(),
+              )
+              .toList();
+          final self = q.candidates.where((c) => c.isSelf).toList();
+          final player = await svc.getPlayerName();
+          final userId = name == player
+              ? (self.length == 1 ? self.single.id : null)
+              : (matches.length == 1 ? matches.single.id : null);
+          options.add(
+            QuizOption(
+              id: '${q.id}_$index',
+              name: name,
+              grade: '',
+              serverUserId: userId,
             ),
-          )
-          .toList();
+          );
+        }
+        questions.add(
+          QuizQuestion(
+            id: q.id,
+            question: q.text,
+            emoji: q.emoji,
+            category: q.category,
+            options: options,
+          ),
+        );
+      }
       await svc.beginRoundAnswers();
       await svc.saveRoundProgress(
         round: completed,
@@ -185,8 +213,9 @@ class _VoteScreenState extends State<VoteScreen>
         _currentIndex = 0;
         _roundNumber = completed;
         _serverRound = true;
-        _shuffledOptions =
-            questions.isNotEmpty ? List.from(questions[0].options) : [];
+        _shuffledOptions = questions.isNotEmpty
+            ? List.from(questions[0].options)
+            : [];
         _loading = false;
       });
       return;
@@ -237,8 +266,13 @@ class _VoteScreenState extends State<VoteScreen>
             options: g.optionNames
                 .asMap()
                 .entries
-                .map((e) => QuizOption(
-                    id: '${g.id}_${e.key}', name: e.value, grade: ''))
+                .map(
+                  (e) => QuizOption(
+                    id: '${g.id}_${e.key}',
+                    name: e.value,
+                    grade: '',
+                  ),
+                )
                 .toList(),
           ),
         )
@@ -256,8 +290,9 @@ class _VoteScreenState extends State<VoteScreen>
       _questions = questions;
       _currentIndex = startIndex;
       _roundNumber = completed;
-      _shuffledOptions =
-          questions.isNotEmpty ? List.from(questions[startIndex].options) : [];
+      _shuffledOptions = questions.isNotEmpty
+          ? List.from(questions[startIndex].options)
+          : [];
       _loading = false;
     });
   }
@@ -282,26 +317,39 @@ class _VoteScreenState extends State<VoteScreen>
     try {
       final question = _currentQuestion;
       final selected = _selectedOptionId;
-      await LocalGameService.instance.recordAnswer(RoundAnswer(
-        questionId: question.id, question: question.question,
-        voter: await LocalGameService.instance.getPlayerName() ?? 'You',
-        choice: selected == null ? null :
-          question.options.firstWhere((o) => o.id == selected).name,
-      ));
-      if (_serverRound && selected != null) {
-        await _source?.trySubmitVote(
-            quizId: question.id, winnerId: selected);
+      await LocalGameService.instance.recordAnswer(
+        RoundAnswer(
+          questionId: question.id,
+          question: question.question,
+          voter: await LocalGameService.instance.getPlayerName() ?? 'You',
+          choice: selected == null
+              ? null
+              : question.options.firstWhere((o) => o.id == selected).name,
+        ),
+      );
+      if (_serverRound) {
+        final winner = selected == null
+            ? null
+            : question.options.firstWhere((o) => o.id == selected).serverUserId;
+        await _source?.trySubmitVote(quizId: question.id, winnerId: winner);
       }
     } catch (_) {
       if (!mounted) return;
-      setState(() { _isAdvancing = false; _selectedOptionId = null; });
+      setState(() {
+        _isAdvancing = false;
+        _selectedOptionId = null;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Couldn’t save your choice. Please try again.')));
+        const SnackBar(
+          content: Text('Couldn’t save your choice. Please try again.'),
+        ),
+      );
       return;
     }
     if (!mounted) return;
     _slideController.duration = GameSettings.instance.effectiveReduceMotion
-      ? Duration.zero : const Duration(milliseconds: 350);
+        ? Duration.zero
+        : const Duration(milliseconds: 350);
     // Brief pause to show selection highlight
     await Future.delayed(const Duration(milliseconds: 650));
     if (!mounted) return;
@@ -311,8 +359,9 @@ class _VoteScreenState extends State<VoteScreen>
     if (_currentIndex >= _totalQuestions - 1) {
       await LocalGameService.instance.completeRound();
       if (await SubscriptionService.instance.isPro()) {
-        await LocalGameService.instance
-            .addStars(LocalGameService.starsPerRound);
+        await LocalGameService.instance.addStars(
+          LocalGameService.starsPerRound,
+        );
       }
       if (!mounted) return;
       context.go(AppRoutes.starReceived);
@@ -513,8 +562,10 @@ class _VoteScreenState extends State<VoteScreen>
           label: const Text('Shuffle'),
           style: TextButton.styleFrom(
             foregroundColor: AppColors.textSecondary,
-            textStyle:
-                const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            textStyle: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
         OutlinedButton(
@@ -526,8 +577,10 @@ class _VoteScreenState extends State<VoteScreen>
             ),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             foregroundColor: AppColors.textSecondary,
-            textStyle:
-                const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            textStyle: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             visualDensity: VisualDensity.compact,
           ),
@@ -569,8 +622,8 @@ class _OptionCard extends StatelessWidget {
         color: isSelected
             ? AppColors.primaryBlue.withValues(alpha: 0.09)
             : isDisabled
-                ? AppColors.surface
-                : AppColors.white,
+            ? AppColors.surface
+            : AppColors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: isSelected ? AppColors.primaryBlue : AppColors.border,
@@ -620,15 +673,15 @@ class _OptionCard extends StatelessWidget {
                       ),
                       child: CircleAvatar(
                         radius: 36,
-                        backgroundColor:
-                            generateAvatarColor(option.name).withValues(
-                          alpha: isDisabled ? 0.45 : 1.0,
-                        ),
+                        backgroundColor: generateAvatarColor(
+                          option.name,
+                        ).withValues(alpha: isDisabled ? 0.45 : 1.0),
                         child: Text(
                           getInitials(option.name),
                           style: TextStyle(
-                            color: Colors.white
-                                .withValues(alpha: isDisabled ? 0.6 : 1.0),
+                            color: Colors.white.withValues(
+                              alpha: isDisabled ? 0.6 : 1.0,
+                            ),
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
                           ),
@@ -667,8 +720,9 @@ class _OptionCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color:
-                        isDisabled ? AppColors.textHint : AppColors.textPrimary,
+                    color: isDisabled
+                        ? AppColors.textHint
+                        : AppColors.textPrimary,
                     height: 1.3,
                   ),
                 ),

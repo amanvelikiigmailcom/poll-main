@@ -34,6 +34,7 @@ class ServerRoundSource {
       fallback?.cancel();
       result.complete(value);
     }
+
     fallback = Timer(const Duration(seconds: 3), () => settle(false));
     try {
       _isLoggedIn().then(settle, onError: (_) => settle(false));
@@ -46,7 +47,7 @@ class ServerRoundSource {
   /// Submits one server vote; failures stay silent (the local record keeps UX).
   Future<void> trySubmitVote({
     required String quizId,
-    required String winnerId,
+    required String? winnerId,
   }) async {
     try {
       await _quiz.submitVote(quizId: quizId, winnerId: winnerId);

@@ -10,33 +10,46 @@ import 'package:flyprox_app/services/server_round_source.dart';
 class MockQuizService extends Mock implements server.QuizService {}
 
 server.QuizSession _serverSession() => server.QuizSession(
-      sessionId: 'srv1',
-      totalQuestions: 12,
-      questions: List.generate(
-        12,
-        (i) => server.QuizQuestion(
-          id: 'sq$i',
-          text: 'Server question $i',
-          category: 'humor',
-          candidates: [
-            server.QuizCandidate(
-                id: 'w$i', firstName: 'Winner', lastName: '$i', grade: 8),
-            server.QuizCandidate(
-                id: 'o${i}a', firstName: 'Other', lastName: 'A', grade: 8),
-            server.QuizCandidate(
-                id: 'o${i}b', firstName: 'Other', lastName: 'B', grade: 8),
-            server.QuizCandidate(
-                id: 'o${i}c', firstName: 'Other', lastName: 'C', grade: 8),
-          ],
+  sessionId: 'srv1',
+  totalQuestions: 12,
+  questions: List.generate(
+    12,
+    (i) => server.QuizQuestion(
+      id: 'sq$i',
+      text: 'Server question $i',
+      category: 'humor',
+      candidates: [
+        const server.QuizCandidate(
+          id: 'self',
+          firstName: '',
+          lastName: '',
+          grade: 8,
+          isSelf: true,
         ),
-      ),
-    );
+        for (final name in ['Али', 'Маша', 'Даня', 'Саша'])
+          server.QuizCandidate(
+            id: 'user_$name',
+            firstName: name,
+            lastName: '',
+            grade: 8,
+          ),
+        const server.QuizCandidate(
+          id: 'stranger',
+          firstName: 'Stranger',
+          lastName: '',
+          grade: 8,
+        ),
+      ],
+    ),
+  ),
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('vote screen shows intro round 1 with no category names',
-      (tester) async {
+  testWidgets('vote screen shows intro round 1 with no category names', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({});
     await LocalGameService.instance.savePlayerAndFriends(
       playerName: 'Аман',
@@ -55,8 +68,9 @@ void main() {
     expect(find.textContaining('Обычное'), findsNothing);
   });
 
-  testWidgets('server branch renders server questions and submits votes',
-      (tester) async {
+  testWidgets('server branch renders server questions and submits votes', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({});
     await LocalGameService.instance.savePlayerAndFriends(
       playerName: 'Аман',
@@ -64,19 +78,57 @@ void main() {
     );
     final quiz = MockQuizService();
     when(() => quiz.getQuizzes()).thenAnswer((_) async => _serverSession());
-    when(() => quiz.submitVote(quizId: 'sq0', winnerId: 'w0')).thenAnswer(
-        (_) async => const server.VoteResult(success: true));
+    when(
+      () => quiz.submitVote(quizId: 'sq0', winnerId: 'self'),
+    ).thenAnswer((_) async => const server.VoteResult(success: true));
     final source = ServerRoundSource(quiz, isLoggedIn: () async => true);
 
-    await tester.pumpWidget(MaterialApp(home: VoteScreen(serverSource: source)));
+    await tester.pumpWidget(
+      MaterialApp(home: VoteScreen(serverSource: source)),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Server question 0'), findsOneWidget);
-    await tester.tap(find.text('Winner 0'));
+    expect(find.text('Stranger'), findsNothing);
+    await tester.tap(find.text('Аман'));
     await tester.pumpAndSettle();
-    verify(() => quiz.submitVote(quizId: 'sq0', winnerId: 'w0')).called(1);
+    verify(() => quiz.submitVote(quizId: 'sq0', winnerId: 'self')).called(1);
     expect(find.text('Question 2 of 12'), findsOneWidget);
   });
+
+  testWidgets(
+    'unmatched selected names stay on cards and never vote for strangers',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final friends = ['Local 1', 'Local 2', 'Local 3', 'Local 4'];
+      await LocalGameService.instance.savePlayerAndFriends(
+        playerName: 'Me',
+        friends: friends,
+      );
+      final quiz = MockQuizService();
+      when(() => quiz.getQuizzes()).thenAnswer((_) async => _serverSession());
+      when(
+        () => quiz.submitVote(quizId: 'sq0', winnerId: null),
+      ).thenAnswer((_) async => const server.VoteResult(success: true));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: VoteScreen(
+            serverSource: ServerRoundSource(quiz, isLoggedIn: () async => true),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Stranger'), findsNothing);
+      final visible = friends
+          .where((name) => find.text(name).evaluate().isNotEmpty)
+          .toList();
+      expect(visible.length, 3);
+      await tester.tap(find.text(visible.first));
+      await tester.pumpAndSettle();
+      verify(() => quiz.submitVote(quizId: 'sq0', winnerId: null)).called(1);
+      expect(find.text('Question 2 of 12'), findsOneWidget);
+    },
+  );
 
   testWidgets('server failure falls back to the local bank', (tester) async {
     SharedPreferences.setMockInitialValues({});
@@ -88,7 +140,9 @@ void main() {
     when(() => quiz.getQuizzes()).thenThrow(Exception('offline'));
     final source = ServerRoundSource(quiz, isLoggedIn: () async => true);
 
-    await tester.pumpWidget(MaterialApp(home: VoteScreen(serverSource: source)));
+    await tester.pumpWidget(
+      MaterialApp(home: VoteScreen(serverSource: source)),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Question 1 of 12'), findsOneWidget);

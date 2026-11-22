@@ -36,8 +36,10 @@ class ContactSyncService {
 
   /// Normalizes [raw] to E.164, using [defaultRegion] for local formats.
   /// Returns null when the number is not parseable or fails validation.
-  static String? normalizePhone(String raw,
-      {IsoCode defaultRegion = IsoCode.US}) {
+  static String? normalizePhone(
+    String raw, {
+    IsoCode defaultRegion = IsoCode.US,
+  }) {
     final attempts = <IsoCode?>[null, defaultRegion];
     for (final region in attempts) {
       try {
@@ -56,8 +58,10 @@ class ContactSyncService {
 
   /// Uploads [entries] and returns server matches. Never throws: network or
   /// server errors yield an empty list.
-  Future<List<ContactMatch>> syncContacts(List<PickedContact> entries,
-      {IsoCode defaultRegion = IsoCode.US}) async {
+  Future<List<ContactMatch>> syncContacts(
+    List<PickedContact> entries, {
+    IsoCode defaultRegion = IsoCode.US,
+  }) async {
     final payload = <Map<String, String>>[];
     final labelByHash = <String, String>{};
     for (final e in entries) {
@@ -74,7 +78,7 @@ class ContactSyncService {
     try {
       final response = await _api.post<Map<String, dynamic>>(
         '/api/contacts',
-        data: {'contacts': payload},
+        data: {'contacts': payload, 'append': true},
       );
       final matches = <ContactMatch>[];
       final list = response.data?['matches'];
@@ -103,10 +107,12 @@ class ContactSyncService {
     for (final line in raw) {
       final tab = line.indexOf('\t');
       if (tab <= 0) continue;
-      out.add(ContactMatch(
-        label: line.substring(0, tab),
-        displayName: line.substring(tab + 1),
-      ));
+      out.add(
+        ContactMatch(
+          label: line.substring(0, tab),
+          displayName: line.substring(tab + 1),
+        ),
+      );
     }
     return out;
   }

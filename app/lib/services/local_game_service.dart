@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../data/intro_questions.dart';
+import 'question_bank_service.dart';
 import '../data/quiz_questions.dart';
 
 /// A quiz question resolved against the locally-saved friend names,
@@ -39,17 +40,28 @@ class RoundProgress {
 
 /// One choice made on this device; a null choice represents a skip.
 class RoundAnswer {
-  const RoundAnswer({required this.questionId, required this.question,
-    required this.voter, this.choice});
+  const RoundAnswer({
+    required this.questionId,
+    required this.question,
+    required this.voter,
+    this.choice,
+  });
   final String questionId;
   final String question;
   final String voter;
   final String? choice;
-  Map<String, dynamic> toJson() => {'id': questionId, 'question': question,
-    'voter': voter, 'choice': choice};
+  Map<String, dynamic> toJson() => {
+    'id': questionId,
+    'question': question,
+    'voter': voter,
+    'choice': choice,
+  };
   factory RoundAnswer.fromJson(Map<String, dynamic> json) => RoundAnswer(
-    questionId: json['id'] as String, question: json['question'] as String,
-    voter: json['voter'] as String, choice: json['choice'] as String?);
+    questionId: json['id'] as String,
+    question: json['question'] as String,
+    voter: json['voter'] as String,
+    choice: json['choice'] as String?,
+  );
 }
 
 /// Fully local (no backend, no auth) game state: the player's own name,
@@ -98,12 +110,17 @@ class LocalGameService {
   static const _avatarKey = 'local_avatar';
 
   Future<List<RoundAnswer>> getRoundAnswers({bool completed = false}) async {
-    final raw = (await _prefs).getString(completed ? _lastAnswersKey : _answersKey);
+    final raw = (await _prefs).getString(
+      completed ? _lastAnswersKey : _answersKey,
+    );
     if (raw == null) return [];
     try {
-      return (jsonDecode(raw) as List).map((e) =>
-        RoundAnswer.fromJson(Map<String, dynamic>.from(e as Map))).toList();
-    } catch (_) { return []; }
+      return (jsonDecode(raw) as List)
+          .map((e) => RoundAnswer.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   Future<void> beginRoundAnswers() async => (await _prefs).remove(_answersKey);
@@ -111,29 +128,43 @@ class LocalGameService {
   Future<void> recordAnswer(RoundAnswer answer) async {
     final answers = await getRoundAnswers();
     final index = answers.indexWhere((a) => a.questionId == answer.questionId);
-    if (index < 0) { answers.add(answer); } else { answers[index] = answer; }
-    await (await _prefs).setString(_answersKey,
-      jsonEncode(answers.map((a) => a.toJson()).toList()));
+    if (index < 0) {
+      answers.add(answer);
+    } else {
+      answers[index] = answer;
+    }
+    await (await _prefs).setString(
+      _answersKey,
+      jsonEncode(answers.map((a) => a.toJson()).toList()),
+    );
   }
 
-  Future<String> exportLocalData() async => const JsonEncoder.withIndent('  ').convert({
-    'nickname': await getPlayerName(),
-    'handle': await getUsername(),
-    'participantNames': await getNames(),
-    'university': await getUniversity(),
-    'universityYear': await getUniversityYear(),
-    'avatarPngBase64': await getAvatar(),
-    'stars': await getStars(),
-    'completedRounds': await getCompletedRounds(),
-    'currentRound': (await getRoundAnswers()).map((a) => a.toJson()).toList(),
-    'lastRound': (await getRoundAnswers(completed: true)).map((a) => a.toJson()).toList(),
-  });
+  Future<String> exportLocalData() async =>
+      const JsonEncoder.withIndent('  ').convert({
+        'nickname': await getPlayerName(),
+        'handle': await getUsername(),
+        'participantNames': await getNames(),
+        'university': await getUniversity(),
+        'universityYear': await getUniversityYear(),
+        'avatarPngBase64': await getAvatar(),
+        'stars': await getStars(),
+        'completedRounds': await getCompletedRounds(),
+        'currentRound': (await getRoundAnswers())
+            .map((a) => a.toJson())
+            .toList(),
+        'lastRound': (await getRoundAnswers(
+          completed: true,
+        )).map((a) => a.toJson()).toList(),
+      });
 
   Future<String?> getAvatar() async => (await _prefs).getString(_avatarKey);
   Future<void> saveAvatar(String? encoded) async {
     final prefs = await _prefs;
-    if (encoded == null) { await prefs.remove(_avatarKey); }
-    else { await prefs.setString(_avatarKey, encoded); }
+    if (encoded == null) {
+      await prefs.remove(_avatarKey);
+    } else {
+      await prefs.setString(_avatarKey, encoded);
+    }
   }
 
   // ── Optional local profile handle ────────────────────────────────────
@@ -335,8 +366,10 @@ class LocalGameService {
   /// starts the 40-minute break before the next round unlocks.
   Future<int> completeRound() async {
     final answers = await getRoundAnswers();
-    await (await _prefs).setString(_lastAnswersKey,
-      jsonEncode(answers.map((a) => a.toJson()).toList()));
+    await (await _prefs).setString(
+      _lastAnswersKey,
+      jsonEncode(answers.map((a) => a.toJson()).toList()),
+    );
     await beginRoundAnswers();
     await _markRoundCompletedNow();
     final prefs = await _prefs;
@@ -376,11 +409,7 @@ class LocalGameService {
     final prefs = await _prefs;
     await prefs.setString(
       _roundProgressKey,
-      jsonEncode({
-        'round': round,
-        'index': questionIndex,
-        'ids': questionIds,
-      }),
+      jsonEncode({'round': round, 'index': questionIndex, 'ids': questionIds}),
     );
   }
 
@@ -395,7 +424,10 @@ class LocalGameService {
       final ids = (map['ids'] as List<dynamic>).cast<String>().toList();
       if (round < 0 || index < 0 || ids.isEmpty) return null;
       return RoundProgress(
-          round: round, questionIndex: index, questionIds: ids);
+        round: round,
+        questionIndex: index,
+        questionIds: ids,
+      );
     } catch (_) {
       return null;
     }
@@ -406,11 +438,27 @@ class LocalGameService {
     await prefs.remove(_roundProgressKey);
   }
 
+  List<QuizQuestionSeed> get _mainBank {
+    final remote = QuestionBankService.instance.seeds(intro: false);
+    return remote.isNotEmpty ? remote : quizQuestionSeeds;
+  }
+
+  List<QuizQuestionSeed> get _introBank {
+    final remote = QuestionBankService.instance.seeds(intro: true);
+    return QuestionBankService.instance.seeds(intro: false).isNotEmpty
+        ? remote
+        : introQuestionSeeds;
+  }
+
+  /// Build cards from selected local names, including unmatched contacts.
+  Future<List<String>> selectedOptions() async =>
+      _buildOptions(await getPlayerName() ?? 'You', await getNames());
+
   QuizQuestionSeed? _seedById(String id) {
-    for (final seed in introQuestionSeeds) {
+    for (final seed in _introBank) {
       if (seed.id == id) return seed;
     }
-    for (final seed in quizQuestionSeeds) {
+    for (final seed in _mainBank) {
       if (seed.id == id) return seed;
     }
     return null;
@@ -462,18 +510,19 @@ class LocalGameService {
     Set<String> used,
     int count,
   ) {
-    var pool = quizQuestionSeeds
+    var pool = _mainBank
         .where((q) => q.category == category && !used.contains(q.id))
         .toList();
     // Every question in this category has been used already — reset the
     // category's history so it can start recycling instead of repeating
     // the exact same handful every round.
     if (pool.length < count) {
-      used.removeWhere(
-        (id) =>
-            quizQuestionSeeds.any((q) => q.id == id && q.category == category),
-      );
-      pool = quizQuestionSeeds.where((q) => q.category == category).toList();
+      final categoryIds = _mainBank
+          .where((q) => q.category == category)
+          .map((q) => q.id)
+          .toSet();
+      used.removeWhere(categoryIds.contains);
+      pool = _mainBank.where((q) => q.category == category).toList();
     }
     pool.shuffle(_random);
     return pool.take(count).toList();
@@ -483,9 +532,7 @@ class LocalGameService {
   /// not always in the same card slot.
   List<String> _buildOptions(String playerName, List<String> friends) {
     final others = List<String>.from(friends)
-      ..removeWhere(
-        (n) => n.toLowerCase() == playerName.toLowerCase(),
-      )
+      ..removeWhere((n) => n.toLowerCase() == playerName.toLowerCase())
       ..shuffle(_random);
 
     final othersNeeded = optionsPerQuestion - 1; // 3
@@ -532,7 +579,7 @@ class LocalGameService {
 
     final completed = await getCompletedRounds();
     if (completed < introRounds) {
-      final seeds = introQuestionSeeds
+      final seeds = _introBank
           .skip(completed * roundLength)
           .take(roundLength)
           .toList();

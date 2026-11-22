@@ -32,12 +32,29 @@ void main() {
   group('pickNames', () {
     test('multi session maps and caps at maxNames', () async {
       final svc = ContactPickerService.instance
-        ..debugDriver(FakeContactPickerDriver(
-          manyResult: [_c('Sam'), _c('Jordan'), _c('Taylor'), _c('Casey')],
-        ));
+        ..debugDriver(
+          FakeContactPickerDriver(
+            manyResult: [_c('Sam'), _c('Jordan'), _c('Taylor'), _c('Casey')],
+          ),
+        );
       addTearDown(svc.resetDriverForTest);
       expect(await svc.pickNames(maxNames: 3), ['Sam', 'Jordan', 'Taylor']);
     });
+
+    test(
+      'single contact fallback uses single picker once, even on multi-pick iOS',
+      () async {
+        final fake = FakeContactPickerDriver(
+          oneResults: [_c('Found friend'), _c('Other')],
+        );
+        final svc = ContactPickerService.instance..debugDriver(fake);
+        addTearDown(svc.resetDriverForTest);
+        final picked = await svc.pickEntries(maxNames: 10, single: true);
+        expect(picked.map((c) => c.name), ['Found friend']);
+        expect(fake.pickOneCalls, 1);
+        expect(fake.pickManyCalls, 0);
+      },
+    );
 
     test('cancelled multi session yields empty', () async {
       final svc = ContactPickerService.instance
@@ -60,10 +77,12 @@ void main() {
 
     test('single sessions stop early when the user cancels', () async {
       final svc = ContactPickerService.instance
-        ..debugDriver(FakeContactPickerDriver(
-          multiPick: false,
-          oneResults: [_c('Sam'), null],
-        ));
+        ..debugDriver(
+          FakeContactPickerDriver(
+            multiPick: false,
+            oneResults: [_c('Sam'), null],
+          ),
+        );
       addTearDown(svc.resetDriverForTest);
       expect(await svc.pickNames(maxNames: 4), ['Sam']);
     });

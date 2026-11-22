@@ -3,7 +3,8 @@ import 'package:flutter_native_contact_picker/model/contact.dart';
 
 import 'contact_picker_driver.dart';
 import 'contact_picker_driver_stub.dart'
-    if (dart.library.io) 'contact_picker_driver_io.dart' as driver_impl;
+    if (dart.library.io) 'contact_picker_driver_io.dart'
+    as driver_impl;
 
 /// One picked contact: display name plus the first phone number when the
 /// contact has one. Phones stay on the device unless the user syncs them.
@@ -17,12 +18,12 @@ class PickedContact {
 /// Participant names from the OS contact picker.
 ///
 /// The user selects contacts in system UI; the app receives only that final
-/// selection (names are used, phone numbers are dropped immediately). All
+/// selection (names are used locally; selected phones can be hashed for matching). All
 /// entry points are total: cancel, unsupported platform, or a plugin error
 /// yields an empty list instead of throwing.
 class ContactPickerService {
   ContactPickerService._({ContactPickerDriver? driver})
-      : _driver = driver ?? driver_impl.createContactPickerDriver();
+    : _driver = driver ?? driver_impl.createContactPickerDriver();
 
   static final ContactPickerService instance = ContactPickerService._();
 
@@ -49,8 +50,13 @@ class ContactPickerService {
   Future<List<PickedContact>> pickEntries({
     required int maxNames,
     Set<String> excludeLower = const {},
+    bool single = false,
   }) async {
-    final raw = await _pickRaw(maxNames: maxNames, excludeLower: excludeLower);
+    final raw = await _pickRaw(
+      maxNames: maxNames,
+      excludeLower: excludeLower,
+      single: single,
+    );
     return raw.map((c) {
       String? phone;
       for (final p in c.phoneNumbers ?? const <String>[]) {
@@ -67,9 +73,14 @@ class ContactPickerService {
   Future<List<Contact>> _pickRaw({
     required int maxNames,
     Set<String> excludeLower = const {},
+    bool single = false,
   }) async {
     if (maxNames <= 0) return [];
     try {
+      if (single) {
+        final picked = await _driver.pickOne();
+        return picked == null ? [] : _dedupe([picked], excludeLower);
+      }
       if (_driver.supportsMultiPick) {
         final picked = await _driver.pickMany();
         if (picked == null) return [];

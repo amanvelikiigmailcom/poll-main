@@ -1,4 +1,7 @@
 import 'dart:convert';
+import 'package:flutter_native_contact_picker/model/contact.dart';
+import 'package:flyprox_app/services/contact_picker_service.dart';
+import 'fakes/fake_contact_picker_driver.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -123,7 +126,7 @@ void main() {
       expect(find.text('What should we call you?'), findsOneWidget);
       expect(find.text('Create username'), findsNothing);
       await tester.ensureVisible(find.text('Try with example names'));
-    await tester.tap(find.text('Try with example names'));
+      await tester.tap(find.text('Try with example names'));
       await tester.pumpAndSettle();
       final game = LocalGameService.instance;
       expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
@@ -170,6 +173,28 @@ void main() {
       'Sky',
     ]);
   });
+
+  testWidgets(
+    'Find one contact uses the single system picker and keeps the chosen label',
+    (tester) async {
+      final driver = FakeContactPickerDriver(
+        oneResults: [Contact(fullName: 'Selected friend')],
+      );
+      ContactPickerService.instance.debugDriver(driver);
+      addTearDown(ContactPickerService.instance.resetDriverForTest);
+      await LocalGameService.instance.savePlayerName('Me');
+      await mountApp(tester);
+      await tester.tap(find.text('Skip'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Find one contact'));
+      await tester.tap(find.text('Find one contact'));
+      await tester.pumpAndSettle();
+      expect(driver.pickOneCalls, 1);
+      expect(driver.pickManyCalls, 0);
+      expect(find.text('Selected friend'), findsOneWidget);
+      expect(tester.testTextInput.isVisible, isFalse);
+    },
+  );
 
   testWidgets('friends fit above keyboard and Done dismisses it', (
     tester,

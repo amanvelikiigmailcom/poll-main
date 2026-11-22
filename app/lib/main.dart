@@ -1,3 +1,4 @@
+import 'services/question_bank_service.dart';
 import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
@@ -40,6 +41,8 @@ Future<void> main() async {
   await storageService.init();
   await GameSettings.instance.load();
   await ContentService.instance.load();
+  await QuestionBankService.instance.load();
+  unawaited(QuestionBankService.instance.refresh());
   // Refresh server texts in the background; defaults cover the first paint.
   unawaited(ContentService.instance.refresh(ApiService(storageService)));
 
@@ -64,8 +67,10 @@ Future<void> main() async {
       debugPrint('Superwall configure failed: $e');
     }
   } else {
-    debugPrint('Superwall key missing: billing disabled. '
-        'See lib/config/superwall_keys.example.dart');
+    debugPrint(
+      'Superwall key missing: billing disabled. '
+      'See lib/config/superwall_keys.example.dart',
+    );
   }
   // Attach entitlement tracking early; never blocks launch.
   unawaited(SubscriptionService.instance.initialize());
@@ -73,9 +78,7 @@ Future<void> main() async {
   // ── Run ───────────────────────────────────────────────────────────────────
   runApp(
     ProviderScope(
-      overrides: [
-        storageServiceProvider.overrideWithValue(storageService),
-      ],
+      overrides: [storageServiceProvider.overrideWithValue(storageService)],
       child: const FlyproxApp(),
     ),
   );

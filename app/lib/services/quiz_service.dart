@@ -36,6 +36,7 @@ class QuizCandidate {
   final String? avatarUrl;
   final int grade;
   final String? gradeClass;
+  final bool isSelf;
 
   const QuizCandidate({
     required this.id,
@@ -44,6 +45,7 @@ class QuizCandidate {
     this.avatarUrl,
     required this.grade,
     this.gradeClass,
+    this.isSelf = false,
   });
 
   String get fullName => '$firstName $lastName'.trim();
@@ -56,6 +58,7 @@ class QuizCandidate {
       avatarUrl: json['avatarUrl'] as String?,
       grade: json['grade'] as int? ?? 8,
       gradeClass: json['gradeClass'] as String?,
+      isSelf: json['isSelf'] == true,
     );
   }
 }
@@ -142,20 +145,24 @@ class QuizService {
 
   /// Fetches the current quiz session (12 questions for this round).
   Future<QuizSession> getQuizzes() async {
-    final response = await _api.get<Map<String, dynamic>>('/api/quizzes/current');
+    final response = await _api.get<Map<String, dynamic>>(
+      '/api/quizzes/current',
+      queryParameters: {'lang': 'en'},
+    );
     return QuizSession.fromJson(response.data!);
   }
 
   /// Submits a vote: the user chose [winnerId] for [quizId].
   Future<VoteResult> submitVote({
     required String quizId,
-    required String winnerId,
+    required String? winnerId,
   }) async {
     final response = await _api.post<Map<String, dynamic>>(
       '/api/votes',
       data: {
         'quizId': quizId,
-        'winnerId': winnerId,
+        if (winnerId != null) 'winnerId': winnerId,
+        if (winnerId == null) 'skip': true,
       },
     );
     return VoteResult.fromJson(response.data ?? {});
@@ -163,8 +170,7 @@ class QuizService {
 
   /// Returns the current timer / round status.
   Future<TimerStatus> getTimerStatus() async {
-    final response =
-        await _api.get<Map<String, dynamic>>('/api/quizzes/timer');
+    final response = await _api.get<Map<String, dynamic>>('/api/quizzes/timer');
     return TimerStatus.fromJson(response.data!);
   }
 }

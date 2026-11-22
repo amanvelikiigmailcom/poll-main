@@ -49,8 +49,9 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
 
   void _refocus(FocusNode node) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _saving || ModalRoute.of(context)?.isCurrent == false)
+      if (!mounted || _saving || ModalRoute.of(context)?.isCurrent == false) {
         return;
+      }
       node.requestFocus();
     });
   }
@@ -206,7 +207,7 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
     }
   }
 
-  Future<void> _pickFromContacts() async {
+  Future<void> _pickFromContacts({bool single = false}) async {
     if (_saving) return;
     FocusManager.instance.primaryFocus?.unfocus();
     final picker = ContactPickerService.instance;
@@ -226,8 +227,9 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
       ..._friends.map((n) => n.toLowerCase()),
     }..remove('');
     final picked = await picker.pickEntries(
-      maxNames: _maxPickedContacts,
+      maxNames: single ? 1 : _maxPickedContacts,
       excludeLower: exclude,
+      single: single,
     );
     if (!mounted || picked.isEmpty) return;
     setState(() {
@@ -513,6 +515,12 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
           if (ContentService.instance.flag('contacts_enabled')) ...[
             const SizedBox(height: 12),
             _contactsButton(),
+            TextButton.icon(
+              onPressed: _saving ? null : () => _pickFromContacts(single: true),
+              style: TextButton.styleFrom(foregroundColor: Colors.white),
+              icon: const Icon(Icons.search),
+              label: const Text('Find one contact'),
+            ),
             const SizedBox(height: 8),
             const Text(
               'Only contacts you select are used. If signed in, selected '
