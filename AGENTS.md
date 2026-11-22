@@ -83,6 +83,13 @@ flutter test --no-pub
 - Дополнительный аудит Firebase API key остаётся отдельной проверкой: для reCAPTCHA Firebase требует unrestricted key либо allowlist своего firebaseapp.com handler. Не применять bundle-only restriction без проверки fallback. SMS region allowlist US и API-key restrictions — разные настройки; первое уже проверено, второе не объявлять выполненным.
 - Надёжное удаление аккаунта остаётся gap для public review: локальный best-effort wipe не подтверждает полного серверного/provider erasure. См. review notes; политика не обещает невозможного.
 
+### Контакты iOS 18+ — build 9 (22.11.2026)
+
+- Пользователь явно запросил переход на новый механизм с поиском. `app/ios/Runner/ContactAccessBridge.swift` зарегистрирован через `FlutterImplicitEngineBridge.pluginRegistry`; канал `flyprox/contact_access`, метод `pickContacts`, limit 1/10. Файл включён в Runner Sources. Не править pub-cache плагина.
+- На iOS 18+ first-use `CNContactStore.requestAccess`, затем limited `contactAccessPicker`/`ContactAccessButton` и SwiftUI searchable selection. Новая модель требует `NSContactsUsageDescription` (добавлен). Полный доступ человек может выбрать в системном запросе; приложение не должно автоматически перечислять всю книгу: только name predicate с максимумом 50 результатов. Телефоны читаются лишь по явно подтверждённым IDs. Limited mode читает имена только разрешённого подмножества. Не отправлять локальные идентификаторы/полную книгу на backend.
+- Отказ/отмена завершают выбор, не показывая другой picker. Только `unsupported_ios` включает legacy iOS 15–17. Settings/resume перепроверяет доступ; stale search results отбрасываются generation counter. Отозванные IDs не передаются в Dart. Системное разрешение не стирает старые игровые labels/hash автоматически.
+- Реальный вид поиска/системного запроса и lifecycle проверить на iPhone после TestFlight. Компилятор проверил native bridge вместе с AppDelegate, Flutter tests 156/156, analyzer 22 прежних info. Archive/доставка build 9 выполняется; финальный статус в PLAN.md.
+
 ## Правила работы
 
 - Сначала `git status`; сохранять чужие правки. Читать файлы точечно: без общего сканирования проекта, PDF, скриншотов, `app/build/`, `.dart_tool/` и сгенерированных локализаций, если задача этого не требует. `app/lib/data/quiz_questions.dart` — только для задач с вопросами.

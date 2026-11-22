@@ -16,7 +16,7 @@ This number is configured as a Firebase test phone number; no real SMS is sent. 
 Suggested path:
 1. Complete or skip the introduction, enter a nickname, then choose phone sign-in or “Continue without login”.
 2. For phone sign-in use the test number and code above. Notification permission is optional; decline/skip is supported.
-3. Add at least four participant nicknames, choose contacts, or use the built-in examples. Contact selection is initiated by the user through Apple's system picker. “Find one contact” is an alternative single-contact selection flow. Only selected labels and phone-number hashes are uploaded for matching when signed in; the full address book and raw selected-contact phone numbers are not uploaded.
+3. Add at least four participant nicknames, choose contacts, or use the built-in examples. Contact selection starts only when the user taps the contacts button. In build 9 on iOS 18+, iOS requests Contacts authorization; selected access is supported, with native contact-access controls and a searchable selection screen. If full access is granted, the app requires a name search and shows at most 50 matching names, rather than automatically listing the address book. Only confirmed entries become game participants. Denial/cancellation is supported. Older iOS uses the one-time picker. “Find one contact” limits game selection to one entry. Only selected labels and phone-number hashes are uploaded for matching when signed in; the full address book and raw selected-contact phone numbers are not uploaded.
 4. Open the Quiz tab and play 12 questions. Selected local labels remain the quiz options, including labels without an account. The end-of-round Reveal displays this device's saved answers; it does not identify other voters.
 5. A notification requires a selected contact matching a different registered account with a device registered for push and notifications enabled. Reusing the same test phone on two devices represents one account, not two players. Merely selecting a contact sends no invitation.
 6. Premium is optional. Open the Premium screen, pass the age check with an eligible age of 13+, and review the weekly subscription, Restore purchases, Terms and Privacy links. Use Apple sandbox purchasing in TestFlight; Premium does not promise other voters' identities.
@@ -39,7 +39,9 @@ Privacy and support information is available from the app's links. Settings incl
 
 ## Разрешения и момент запроса
 
-Контакты: системный `CNContactPickerViewController` открывается только после “Choose from contacts”. Это разовый выбор контактов; широкое разрешение на чтение всей книги не нужно. Перед кнопкой поясняется передача выбранных labels/hash при входе. Не заменять пикер массовым чтением адресной книги ради поиска.
+Контакты с build 9: на iOS 18+ после нажатия кнопки используется новый limited-access flow (`ContactAccessBridge.swift`, `contactAccessPicker` и `ContactAccessButton`). При первом открытии iOS показывает системное разрешение с возможностью выбранного/полного доступа или отказа. В limited режиме в список загружаются только разрешённые имена, а телефоны — только для подтверждённых в игру записей. В full режиме без поисковой строки нет чтения книги; выполняется только поиск по имени с максимумом 50 результатов. Поиск видим постоянно. После отказа можно открыть Settings или отменить и ввести никнеймы. Предоставленные через iOS контакты предварительно отмечаются, но их добавление в игру подтверждается Add; лимит 10 (Find one — 1). На iOS 15–17 сохранён разовый `CNContactPickerViewController`. Отмена/отказ не открывают старое окно автоматически. Изменение доступа в Settings проверяется при возврате; отзыв разрешения сам по себе не удаляет уже скопированные игровые labels/серверные hash — это отдельный reset/deletion.
+
+Проверка на устройстве: первый limited grant → выбранные имена → Add → карточки; повторный доступ → Choose more → поиск; Cancel и swipe-dismiss; Deny → имена вручную; Settings → limited/full/revoke → возврат; full access → пустая строка ничего не загружает → поиск → подтверждение; ограничение 10/1; предыдущий iOS fallback. Эти нативные действия не считать подтверждёнными одним Flutter widget-тестом.
 
 Пуши: системное окно появляется после явного “Enable notifications”, только если статус ещё позволяет запрос. Повторного системного окна после отказа iOS обычно не показывает — включение через Settings. Сейчас объясняющий экран стоит после входа и имеет Skip. Возможное улучшение: предложить уведомления после первого значимого действия/матчинга, когда понятна их польза.
 
@@ -51,6 +53,7 @@ ATT, геолокация, микрофон и камера для текуще�
 
 - [Apple App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/)
 - [Apple: in-app account deletion](https://developer.apple.com/news/?id=12m75xbj)
+- [Apple: limited contact access](https://developer.apple.com/documentation/contacts/accessing-the-contact-store)
 - [Apple: contact picker](https://developer.apple.com/documentation/contactsui/cncontactpickerviewcontroller)
 - [Apple: privacy design](https://developer.apple.com/design/human-interface-guidelines/privacy/)
 - [Apple: notification permission](https://developer.apple.com/documentation/usernotifications/asking-permission-to-use-notifications)

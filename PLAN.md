@@ -1,5 +1,14 @@
 # Flyprox — план работ (обновлено 2026-11-22)
 
+## Новая задача: контакты iOS 18+, build 9
+
+- [x] Пользователь попросил новый picker вместо старого без поиска. Официальная документация и SDK проверены: contactAccessPicker работает только при .limited, значит нужен Contacts permission flow.
+- [x] Native bridge: permission/limited/full/denied, настоящий contactAccessPicker и ContactAccessButton, постоянный поиск, name-only browsing, phone reads только по подтверждённым IDs, legacy fallback 15–17. Plugin cache и backend не менялись.
+- [x] Swift typecheck native bridge + AppDelegate; 156/156 Flutter tests, analyze 22 info без errors/warnings; Info.plist и Xcode project lint проходят.
+- [x] Source commit e8cc97b запушен. Privacy/Support в Notion и local review/privacy notes обновлены под новое разрешение.
+- [ ] Archive 1.0.2(9), export, IPA checks, upload, VALID/IN_BETA_TESTING и notes.
+- [ ] Зафиксировать финальный статус и docs. Нативный UI на реальном iPhone требует проверки владельцем после установки.
+
 ## Текущий выпуск: TestFlight 1.0.2 (обновлено 22.11.2026)
 
 Пользователь разрешил исправления, коммиты/push без force, деплой backend, Archive и загрузку в TestFlight. Публичный App Store submit отдельно не выполняем. Язык пока English, автопереключение по клавиатуре отменено пользователем.

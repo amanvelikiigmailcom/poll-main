@@ -22,7 +22,9 @@ Our backend stores your account phone number and account/session identifiers to 
 
 ## 4. Contacts you choose
 
-Tapping “Choose from contacts” opens Apple's contact picker. Flyprox receives only the entries you select, not a background copy of your entire address book.
+Starting with version 1.0.2 build 9, iOS 18 and later use a contact-access flow with search. On first use, iOS asks for Contacts access; you can choose access to selected contacts, grant full access, or decline. With selected access, the app reads names from the permitted subset to display a local selection list, and Apple's contact-access controls let you share additional contacts. If you grant full access, the app requires a name search and loads a limited set of matching names instead of automatically copying your address book. Phone-number fields are read for the entries you confirm for the game. Earlier iOS versions and earlier builds use the one-time system contact picker.
+
+You can change Contacts access in iPhone Settings. Revoking permission prevents future reads of contacts that are no longer available; it does not automatically remove previously saved participant labels or server matching records. Use Reset game or contact support for deletion assistance. Your full address book is not uploaded.
 
 Selected names are used as labels on your quiz cards. If signed in, the app normalizes selected phone numbers on your device and sends hashes of those numbers and the selected labels to our backend to find registered friends. Raw selected-contact phone numbers and your full address book are not uploaded. Hashes can be matched to accounts and are not anonymous data.
 
