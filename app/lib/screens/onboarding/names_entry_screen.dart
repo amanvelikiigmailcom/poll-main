@@ -171,9 +171,8 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
   Future<void> _tryExamples() async {
     if (_saving) return;
     setState(() {
-      _playerName = _playerController.text.trim().isEmpty
-          ? 'Player'
-          : _playerController.text.trim();
+      // Examples use their own sample player, not a previously typed nickname.
+      _playerName = 'Michael';
       _friends
         ..clear()
         ..addAll(

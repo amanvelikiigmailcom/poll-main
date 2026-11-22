@@ -157,10 +157,10 @@ void main() {
     await tester.pump();
     await tester.tap(find.text('Try with example names'));
     await tester.pumpAndSettle();
-    expect(container.read(localProfileProvider).playerName, 'New player');
+    expect(container.read(localProfileProvider).playerName, 'Michael');
     appRouter.go(AppRoutes.profile);
     await tester.pumpAndSettle();
-    expect(find.text('New player'), findsOneWidget);
+    expect(find.text('Michael'), findsOneWidget);
     expect(find.text('Old player'), findsNothing);
     expect(find.text('Old cache'), findsNothing);
     await tester.pumpWidget(const SizedBox());

@@ -92,6 +92,8 @@ flutter test --no-pub
 
 ### Текущая команда владельца: не собирать до отдельного сигнала
 
+**Новое уточнение плана:** номер → код → возраст → контакты (пока маршруты ещё не переделаны). Firebase тогда нужен до возраста, Superwall после 13+. Точный возраст не хранить; сохранять только outcome для допуска. Убрать ручной ввод ника/участников; минимум 4 контакта. Примеры сохранить с серверно управляемыми visibility/label. Sample player теперь Michael вместо ранее введённого wish; остальные примерные имена не заменять. Подробности и push test — PLAN.md.
+
 - После уже загруженного build 9 владелец запретил новые сборки/Archive/upload до явной команды. Продолжать правки и тесты, не запускать даже существующий Xcode Cloud Build через push приложения. Локальные commits допустимы.
 - Текущий пакет: global declared-age gate в конце intro, age options 12-or-younger/13…18+, unknown/blocked не проходят в auth/game. **Последняя команда меняет прежнее правило:** blocked действует только текущий run; cold launch читает marker, сбрасывает outcome к unknown и повторяет intro, чтобы человек мог выбрать возраст снова. Не выдавать это за надёжную age verification/гарантию COPPA. Exact age не хранится.
 - Firebase, Superwall и question refresh стартуют через AgeGatedStartup только после eligible answer. Публичный контент intro может обновляться до возраста через отдельный Dio без auth/идентификаторов; cache доступен сразу. API/sdk не удалять. Privacy/parents routes вне AppShell/PushListener и доступны без tabbar. Информация для родителей обновлена на 13+ и optional online.

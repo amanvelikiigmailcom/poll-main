@@ -133,7 +133,7 @@ void main() {
       final game = LocalGameService.instance;
       expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
       expect(await game.getUsername(), isNull);
-      expect(await game.getPlayerName(), 'Player');
+      expect(await game.getPlayerName(), 'Michael');
       expect(await game.getNames(), ['Alex', 'Sam', 'Jordan', 'Taylor']);
       expect((await game.generateRound(languageCode: 'en')).length, 12);
       await tester.pumpWidget(const SizedBox());
@@ -260,7 +260,7 @@ void main() {
     },
   );
 
-  testWidgets('examples do not duplicate the chosen nickname', (tester) async {
+  testWidgets('examples replace the typed nickname with a sample player', (tester) async {
     await mountApp(tester);
     await tester.tap(find.text('Skip'));
     await tester.pumpAndSettle();
@@ -274,12 +274,12 @@ void main() {
     await tester.ensureVisible(find.text('Try with example names'));
     await tester.tap(find.text('Try with example names'));
     await tester.pumpAndSettle();
-    expect(await LocalGameService.instance.getPlayerName(), 'Alex');
+    expect(await LocalGameService.instance.getPlayerName(), 'Michael');
     expect(await LocalGameService.instance.getNames(), [
+      'Alex',
       'Sam',
       'Jordan',
       'Taylor',
-      'Casey',
     ]);
   });
 
