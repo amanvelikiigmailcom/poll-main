@@ -12,8 +12,11 @@
 - [x] Home redesign blue/white завершён;320px/large text tests, cooldown preserved.
 - [x] ASC1.0.2 draft texts/App Information/review/demo fields записаны и перечитаны. Build пока unattached,9 screenshots требуют сверки, App Privacy UI не подтверждён.
 - [x] Account erasure pagination/provider cleanup и client false-success исправлены;33 backend tests. Реальных prod DELETE не делали.
-- [ ] Final tests/analyze/source commit, backend deploy, Archive/export/upload11, VALID/IN_BETA_TESTING.
-- [ ] Обновить Notion с учётом build11 после доступности, дописать финальные IDs/checks, связать финальный build с черновиком. Публичный review submit — только с честной проверкой обязательных полей/скриншотов.
+- [x] Final188 tests/analyze22info/Swift; source6ff59d3 pushed. Backendc102de6 deployed, active, health200.
+- [x] Archive/export/upload11 успешны; codesign/production APNs/billing/Firebase callback проверены, photo permission/image_picker отсутствуют в IPA. Deliveryd8bbdc46-b2a1-45d2-8b41-083f192839ac.
+- [x] Apple VALID/IN_BETA_TESTING; IDd8bbdc46-b2a1-45d2-8b41-083f192839ac, группа/notes проверены, draft1.0.2 build11 attach read-back.
+- [x] Notion Privacy/Terms/Support/marketing и local policy обновлены после доступности11; final IDs/checks записаны.
+- [ ] До публичного submit: App Privacy UI, актуальные screenshots, native iPhone contacts/SMS/StoreKit/push проверки. Публичный submit не выполнен.
 
 ## Текущий выпуск: новый onboarding → build 10
 

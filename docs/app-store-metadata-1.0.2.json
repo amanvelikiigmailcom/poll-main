@@ -44,5 +44,15 @@
     "appStoreAgeRating": "TWELVE_PLUS",
     "changedByThisTask": false,
     "note": "Existing content-frequency declarations were not audited against the full question bank."
+  },
+  "finalBuild": {
+    "version": "1.0.2",
+    "number": "11",
+    "id": "d8bbdc46-b2a1-45d2-8b41-083f192839ac",
+    "sourceCommit": "6ff59d3",
+    "processingState": "VALID",
+    "internalBuildState": "IN_BETA_TESTING",
+    "draftAttached": true,
+    "publicReviewSubmitted": false
   }
 }

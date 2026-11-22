@@ -6,13 +6,13 @@ This Privacy Policy explains how TOO Hidavo, Kazakhstan (“we”, “us” or �
 
 Flyprox offers a name-based game with optional phone sign-in and online features in version 1.0.2 and later, including TestFlight releases. Earlier versions may offer only local play. The processing below depends on the version and features you use.
 
-You can play as a guest without phone sign-in. In version 1.0.2 build 10 and later, setup uses at least four selected contacts or ready-made example names; manual nickname and participant-name entry has been removed from onboarding. The example path does not require Contacts access. Phone sign-in, profile images, notifications, external sharing and Premium are optional. Earlier builds may also support manually entered names.
+You can play as a guest without phone sign-in. In version 1.0.2 build 10 and later, setup uses at least four selected contacts or ready-made example names; manual nickname and participant-name entry has been removed from onboarding. The example path does not require Contacts access. Phone sign-in, notifications, external sharing and Premium are optional. Build 11 and later use a built-in smiley and do not offer profile photos; earlier builds may include an optional local image. Earlier builds may also support manually entered names.
 
 ## 2. Information on your device
 
-The app stores your player label, participant labels, optional profile fields such as university/year, local profile image, star balance, answers, round progress, question history, timer and settings. Downloaded questions and screen text may be cached for offline use.
+The app stores your player label, participant labels, optional profile fields such as university/year, star balance, answers, round progress, question history, timer and settings. Earlier builds may also store a local profile image. Downloaded questions and screen text may be cached for offline use.
 
-Guest answers and manually entered participant labels stay on your device. Your local profile image is selected through the system image picker; the current local profile flow does not upload it to our backend. Local data may be included in operating-system backups depending on your settings.
+Guest answers and manually entered participant labels stay on your device. Earlier builds allow a local profile image selected through the system image picker without uploading it through that flow. Build 11 removes this feature and clears the app-owned saved image on launch; original images in your photo library are not deleted. Local data may be included in operating-system backups depending on your settings.
 
 ## 3. Phone accounts and online rounds
 
@@ -22,7 +22,7 @@ Our backend stores your account phone number and account/session identifiers to 
 
 ## 4. Contacts you choose
 
-Starting with version 1.0.2 build 9, iOS 18 and later use a contact-access flow with search. On first use, iOS asks for Contacts access; you can choose access to selected contacts, grant full access, or decline. With selected access, the app reads names from the permitted subset to display a local selection list, and Apple's contact-access controls let you share additional contacts. If you grant full access, the app requires a name search and loads a limited set of matching names instead of automatically copying your address book. Phone-number fields are read for the entries you confirm for the game. Earlier iOS versions and earlier builds use the one-time system contact picker.
+Starting with version 1.0.2 build 9, iOS 18 and later use a contact-access flow with search. On first use, iOS asks for Contacts access; you can choose access to selected contacts, grant full access, or decline. With selected access, the app reads names from the permitted subset to display a local selection list, and Apple's contact-access controls let you share additional contacts. In build 11 and later, full access displays all authorized names in a local searchable list; selected access displays only the permitted subset. Browsing reads names locally. Builds 9–10 may require a name search before showing full-access results. Phone-number fields are read for the entries you confirm for the game. Earlier iOS versions and earlier builds use the one-time system contact picker.
 
 You can change Contacts access in iPhone Settings. Revoking permission prevents future reads of contacts that are no longer available; it does not automatically remove previously saved participant labels or server matching records. Use Reset game or contact support for deletion assistance. Your full address book is not uploaded.
 
@@ -60,7 +60,7 @@ Provider information: [Apple](https://www.apple.com/legal/privacy/), [Firebase](
 
 We retain account and online game information while needed to provide the features you use, handle support, prevent abuse and meet applicable obligations. Support correspondence is retained as needed to address requests and related recordkeeping. Different providers have their own retention rules.
 
-“Reset game” removes local game data and, when signed in and connected, attempts to request deletion of the Flyprox backend account data. A local reset alone is not proof that all server or provider records have been erased, particularly if the network request fails. Contact [support@flyprox.com](mailto:support@flyprox.com) to request account/provider-data deletion or confirmation; do not send a password or verification code. We may need to verify account ownership.
+In build 11 and later, Settings → Delete account requests deletion of the signed-in Flyprox account, associated Firebase authentication identity, selected-contact matching data, related rounds/votes, registered push targets and sessions. The app waits for server confirmation before clearing local game data and sign-in details. If the request fails, local progress and the credential needed to retry are retained. Guest deletion clears local game data. Earlier builds may label this action Reset game and attempt server deletion without waiting for confirmation. This action does not claim to erase every provider's independent records, purchase records, backups or support correspondence. Contact [support@flyprox.com](mailto:support@flyprox.com) for account/provider-data deletion assistance or confirmation; do not send a password or verification code. We may need to verify account ownership.
 
 Resetting the app does not cancel an Apple subscription, delete messages in external apps or remove device backups. Manage subscriptions in Apple Account settings and backups through your device settings.
 

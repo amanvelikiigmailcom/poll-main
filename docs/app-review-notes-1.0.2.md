@@ -4,7 +4,7 @@
 
 ## English text for App Review
 
-Этот блок уже сохранён и перечитан через API в App Store Connect → Flyprox → iOS 1.0.2 → App Review Information. Версия остаётся PREPARE_FOR_SUBMISSION, выпуск MANUAL. Финальная сборка не прикреплена: по последней команде владельца новые Archive/upload приостановлены до завершения исправлений. Тексты ниже описывают подготовленный исходный код следующего build 11, не старую сборку 10.
+Этот блок уже сохранён и перечитан через API в App Store Connect → Flyprox → iOS 1.0.2 → App Review Information. Версия остаётся PREPARE_FOR_SUBMISSION, выпуск MANUAL. Финальный build11 VALID/IN_BETA_TESTING прикреплён к draft1.0.2 и read-back проверен. Тексты ниже описывают доступный build11, source6ff59d3.
 
 REVIEW ACCESS
 Phone: +1 650-555-1234
@@ -75,14 +75,14 @@ The order is phone → code → declared age → contacts. Pending build 11 uses
 
 The example button and explanation can be hidden with content_items.example_names_enabled=false. Labels are example_names_button and example_names_description. Do not delete a key to hide it: a missing key falls back to the baked-in default. This controls availability of an example path, not arbitrary executable code.
 
-App Store future-new-territory automatic availability remains enabled and requires UI attention; current availability was verified for exactly six requested territories. Account deletion still needs the separate audit described above before public submission.
+App Store future-new-territory automatic availability remains enabled and requires UI attention; current availability was verified for exactly six requested territories. Account deletion now has paginated provider cleanup and failure/retry tests; physical-device verification and independent provider retention remain separate checks before public submission.
 
 
 ## Сохранённые тексты App Store Connect
 
 Точная копия публичных полей и review notes: `app-store-metadata-1.0.2.json`. Через API сохранены и read-back проверены Description, Promotional Text, Keywords, What’s New, Support URL, Marketing URL, copyright и App Review notes. В отдельном draft App Information сохранены Flyprox, subtitle «Quick quizzes with your people» и Privacy Policy URL. Данные постоянного Firebase demo-входа внесены в demo-поля и notes; sign-in отмечен как нужный для проверки всех optional online-функций, при этом гостевой сценарий явно описан. Контакты App Review сохранены из уже существующих полей, их личные значения в репозиторий не копировались.
 
-Это подготовка черновика, а не submit. Финальный build, актуальные screenshots, App Privacy и физическая проверка остаются отдельными условиями. В черновик унаследованы 9 старых screenshots в 3 наборах; это не доказательство их соответствия новому Home/contacts/профилю. Финальный build пока не прикреплён. Не прикреплять build 10 к этим текстам: в нём ещё есть старое поведение contacts/photo/age migration.
+Это подготовка черновика, а не submit. Финальный build, актуальные screenshots, App Privacy и физическая проверка остаются отдельными условиями. В черновик унаследованы 9 старых screenshots в 3 наборах; это не доказательство их соответствия новому Home/contacts/профилю. Build11 прикреплён; публичный review submit не выполнен. Не прикреплять build 10 к этим текстам: в нём ещё есть старое поведение contacts/photo/age migration.
 
 ## Основание для структуры notes
 
