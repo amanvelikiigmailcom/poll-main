@@ -1,27 +1,58 @@
 import 'dart:io';
+import 'package:flutter/services.dart';
 
 import 'package:flutter_native_contact_picker/flutter_native_contact_picker.dart';
 import 'package:flutter_native_contact_picker/model/contact.dart';
 
 import 'contact_picker_driver.dart';
 
-ContactPickerDriver createContactPickerDriver() =>
-    NativeContactPickerDriver();
+ContactPickerDriver createContactPickerDriver() => NativeContactPickerDriver();
 
-/// Production driver: the OS-native contact picker. No contacts permission
-/// is requested; the app receives only the user's final selection.
+/// iOS 18 uses ContactsUI limited access; older iOS uses the one-time picker.
 class NativeContactPickerDriver implements ContactPickerDriver {
+  NativeContactPickerDriver({bool? isIOS}) : _isIOS = isIOS ?? Platform.isIOS;
+
+  final bool _isIOS;
   final FlutterNativeContactPicker _picker = FlutterNativeContactPicker();
+  static const accessChannel = MethodChannel('flyprox/contact_access');
 
   @override
-  bool get isAvailable => Platform.isAndroid || Platform.isIOS;
+  bool get isAvailable => Platform.isAndroid || _isIOS;
 
   @override
-  bool get supportsMultiPick => Platform.isIOS;
+  bool get supportsMultiPick => _isIOS;
+
+  Future<List<Contact>?> _pick({required bool single}) async {
+    if (_isIOS) {
+      try {
+        final rows = await accessChannel.invokeListMethod<dynamic>(
+          'pickContacts',
+          {'limit': single ? 1 : 10},
+        );
+        return (rows ?? []).map((raw) {
+          final row = Map<String, dynamic>.from(raw as Map);
+          return Contact(
+            fullName: row['fullName'] as String?,
+            phoneNumbers: (row['phoneNumbers'] as List?)?.cast<String>(),
+          );
+        }).toList();
+      } on PlatformException catch (error) {
+        if (error.code != 'unsupported_ios') rethrow;
+      }
+    }
+    if (single) {
+      final contact = await _picker.selectContact();
+      return contact == null ? null : [contact];
+    }
+    return _picker.selectContacts();
+  }
 
   @override
-  Future<List<Contact>?> pickMany() => _picker.selectContacts();
+  Future<List<Contact>?> pickMany() => _pick(single: false);
 
   @override
-  Future<Contact?> pickOne() => _picker.selectContact();
+  Future<Contact?> pickOne() async {
+    final contacts = await _pick(single: true);
+    return contacts == null || contacts.isEmpty ? null : contacts.first;
+  }
 }

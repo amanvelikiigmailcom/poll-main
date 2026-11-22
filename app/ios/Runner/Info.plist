@@ -35,6 +35,8 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Choose contacts to add as game participants. Only names you confirm are added; if signed in, their names and phone-number hashes are sent to find friends.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Choose an optional profile photo to store on this device.</string>
 	<key>UIBackgroundModes</key>
