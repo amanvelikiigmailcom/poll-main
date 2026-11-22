@@ -8,12 +8,14 @@
 - [x] Билд 6 загружен, VALID/IN_BETA_TESTING. Билд 5 expired из-за исправленного Firebase callback crash.
 - [x] Билд 7 (commit 90a02b1): исправлены клавиатура/переполнение friends, ввод телефона, выход из зависшего входа. 146 тестов. Archive/IPA подписан, проверен и загружен. Delivery/build `ec5f9730-e806-4596-9a13-2d2499c8d66f`, VALID и IN_BETA_TESTING подтверждены.
 - [x] Firebase: тестовый номер +16505551234 / 123456 реально настроен. SMS allowlist — только US по явному выбору пользователя. Гостевой режим доступен без SMS.
-- [x] Backend на `s-prod`: questions API с cursor pages, нет first-500 cutoff; candidates ограничены self/выбранными matched contacts, чужой winner запрещён. Skip не создаёт ложный голос/пуш. Тест на 10000 вопросов, JSON import с валидацией/dry-run. Коммиты 788465a, 3796004, 06dd37e, 3d8603a, deploy выполняется.
+- [x] Backend на `s-prod`: questions API с cursor pages, нет first-500 cutoff; candidates ограничены self/выбранными matched contacts, чужой winner запрещён. Skip не создаёт ложный голос/пуш. Тест на 10000 вопросов, JSON import с валидацией/dry-run. Коммиты до 3d8603a включительно задеплоены; /health и /api/questions — 200. Полный живой банк: 536 вопросов (512 main + 24 intro), 3 cursor pages; проверен Dart User-Agent.
 - [x] Приложение build 8: выбранные локальные имена на карточках, сопоставление account ID отдельно; backend bank для гостя с полным offline cache; встроенный резерв только для первого offline запуска. Добавлен single-contact fallback Find one contact, ранее выбранные контакты не затираются при добавлении следующих.
-- [ ] Финальная проверка build 8, commit/push, Archive, export, upload, VALID и internal group.
+- [x] Финальный build 8 (source e748467): 152/152 Flutter tests, анализ 22 info без errors/warnings; backend 22/22. Archive 200.5с, API-auth export успешен, IPA codesign/APNs/billing/Firebase callback/encryption flag проверены. Delivery/build c9636727-9c80-4eb0-a762-e24292fc799c: VALID и IN_BETA_TESTING, 22.11.2026. Билд 8 доступен для установки.
 - [x] В Notion обновлены Privacy, Terms, Support, marketing. Доступ уже авторизован: дополнительный MCP/SSE/OAuth не требовался. Политика явно разделяет предыдущие local-only версии и online 1.0.2/TestFlight; child pages и Tally embed сохранены.
 - [x] Созданы `docs/app-review-notes-1.0.2.md`, `docs/app-privacy-checklist-1.0.2.md`, `docs/server-controlled-features.md`; обновлён `docs/privacy-policy-update.md`. Backend AGENTS.md создан, с env/deploy/Firebase/правилами данных.
-- [ ] Зафиксировать финальный статус и все свои docs в Git после проверки сборки.
+- [x] Финальный статус, инструкции и документы сохранены; commit/push завершает этот этап. Билды 6/7 оставлены для сравнения, 5 expired. App Privacy публично не публиковалась, App Store submit не выполнялся.
+
+Проверка push infrastructure: device_tokens=1, выбранных contact_hashes=4, APNs target соответствует provider/token (1/1). Это подтверждает регистрацию и связь, не фактическую доставку на экран iPhone. Beta What to Test для 7 и 8 обновлено по API.
 
 ### Что нельзя выдавать за завершённое
 
