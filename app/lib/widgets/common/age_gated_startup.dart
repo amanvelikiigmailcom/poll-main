@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../services/age_gate_service.dart';
 
-/// Do not configure authentication/billing/analytics before an eligible answer.
+/// Billing/analytics wait for an eligible answer. Phone auth is initialized
+/// separately because verification precedes the declared-age step.
 class AgeGatedStartup extends StatefulWidget {
   const AgeGatedStartup({
     super.key,

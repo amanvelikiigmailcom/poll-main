@@ -37,10 +37,13 @@ npm run questions:import -- /path/questions.json --apply
 | `paywall_title`, `paywall_subtitle`, `paywall_product_name`, `paywall_term`, `paywall_cta` | Заголовки/подписи пейвола; не менять ими реальную цену Apple |
 | `paywall_features` | JSON-массив преимуществ |
 | `upsell_timer_button`, `upsell_reveal_note` | Подписи предложений Premium |
-| `blocked_title`, `blocked_body` | Текст возрастного ограничения |
+| `blocked_title`, `blocked_body` | Legacy-текст; новый глобальный экран ограничения использует фиксированную копию в коде |
 | `onboarding_pages` | JSON-массив объектов: `emoji`, `title`, `subtitle` |
 | `url_support`, `url_terms`, `url_privacy`, `url_marketing`, `support_email` | Публичные ссылки и support email |
 | `guest_enabled`, `contacts_enabled` | Строка `true` или `false`, показ соответствующих элементов |
+| `example_names_enabled` | `false` скрывает кнопку примеров вместе с пояснением (начиная со следующей сборки после 9) |
+| `example_names_button` | Надпись кнопки примеров |
+| `example_names_description` | Пояснение рядом с кнопкой примеров |
 
 Кэш текстов — 12 часов; обновление происходит в фоне при запуске. Ошибка сервера/невалидное значение возвращает зашитый дефолт. Не обещать мгновенную смену экрана у уже открытого приложения. `guest_enabled` скрывает гостевую кнопку на телефоне, но не является глобальным запретом гостевой игры: примеры/офлайн остаются. `contacts_enabled` управляет кнопкой, а не правами iOS и не стирает уже выбранные имена.
 
@@ -60,7 +63,7 @@ npm run questions:import -- /path/questions.json --apply
 
 | Что | Где менять | Новая iOS-сборка |
 |---|---|---|
-| Разрешённые SMS-страны/тестовые номера | Firebase Identity Toolkit configuration; сейчас только US, тест +16505551234/123456 | Нет |
+| Разрешённые SMS-страны/тестовые номера | Firebase Identity Toolkit configuration; сейчас US,GB,CA,NZ,SG,HK; тест +16505551234/123456 | Нет |
 | SMS-проверка, серверные проверки/лимиты, подбор вопросов, matching | Код Node API + тесты + деплой | Обычно нет, если контракт прежний |
 | APNs ключ/production provider | Appwrite Messaging | Нет при прежнем bundle/topic |
 | Системный текст разрешения, callback URL scheme, capability, новый SDK | iOS/Flutter | Да |

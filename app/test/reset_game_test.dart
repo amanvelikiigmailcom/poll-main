@@ -117,7 +117,7 @@ void main() {
       await tester.pumpAndSettle();
       await checkClearedGame(container);
       expect(appRouter.routeInformationProvider.value.uri.path,
-          AppRoutes.namesEntry);
+          AppRoutes.phone);
       await tester.pumpWidget(const SizedBox());
       appRouter.go(AppRoutes.splash);
       await tester.pumpWidget(UncontrolledProviderScope(
@@ -126,7 +126,7 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
       expect(appRouter.routeInformationProvider.value.uri.path,
-          AppRoutes.namesEntry);
+          AppRoutes.phone);
       expect(find.text('Old player'), findsNothing);
       await tester.pumpWidget(const SizedBox());
     });
@@ -153,8 +153,9 @@ void main() {
         of: find.byType(AlertDialog),
         matching: find.widgetWithText(FilledButton, 'Reset game')));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'New player');
-    await tester.pump();
+    await tester.tap(find.text('Continue without login'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Try with example names'));
     await tester.tap(find.text('Try with example names'));
     await tester.pumpAndSettle();
     expect(container.read(localProfileProvider).playerName, 'Michael');

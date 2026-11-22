@@ -57,13 +57,13 @@ void main() {
       expect(storage.isOnboardingDone(), isTrue);
       expect(
         appRouter.routeInformationProvider.value.uri.path,
-        AppRoutes.namesEntry,
+        AppRoutes.phone,
       );
       await tester.pumpWidget(const SizedBox());
       await mountApp(tester);
       expect(
         appRouter.routeInformationProvider.value.uri.path,
-        AppRoutes.namesEntry,
+        AppRoutes.phone,
       );
       expect(find.byType(OnboardingScreen), findsNothing);
     },
@@ -90,10 +90,7 @@ void main() {
     await tester.tap(find.text('Get started'));
     await tester.pumpAndSettle();
     expect(storage.isOnboardingDone(), isTrue);
-    expect(
-      appRouter.routeInformationProvider.value.uri.path,
-      AppRoutes.namesEntry,
-    );
+    expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.phone);
   });
 
   testWidgets('existing players bypass intro; replay keeps their game data', (
@@ -125,7 +122,10 @@ void main() {
       await mountApp(tester);
       await tester.tap(find.text('Skip'));
       await tester.pumpAndSettle();
-      expect(find.text('What should we call you?'), findsOneWidget);
+      expect(find.text('Log in with phone'), findsOneWidget);
+      await tester.tap(find.text('Continue without login'));
+      await tester.pumpAndSettle();
+      expect(find.text('Add your contacts'), findsOneWidget);
       expect(find.text('Create username'), findsNothing);
       await tester.ensureVisible(find.text('Try with example names'));
       await tester.tap(find.text('Try with example names'));
@@ -142,146 +142,181 @@ void main() {
     },
   );
 
-  testWidgets('manual nicknames start the game without a login', (
-    tester,
-  ) async {
+  Future<void> openContacts(WidgetTester tester) async {
     await mountApp(tester);
     await tester.tap(find.text('Skip'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'Captain');
-    await tester.pump();
-    await tester.tap(find.text('Continue'));
-    await tester.pump();
-    await tester.pumpAndSettle();
-    expect(find.text('Log in with phone'), findsOneWidget);
+    await tester.ensureVisible(find.text('Continue without login'));
     await tester.tap(find.text('Continue without login'));
     await tester.pumpAndSettle();
-    expect(find.text('Choose your friends'), findsOneWidget);
-    for (final name in ['Moon', 'Sun', 'Star', 'Sky']) {
-      await tester.enterText(find.byType(TextField), name);
-      await tester.testTextInput.receiveAction(TextInputAction.done);
+  }
+
+  testWidgets(
+    'four contacts enable Continue; three do not; manual fields are removed',
+    (tester) async {
+      final driver = FakeContactPickerDriver(
+        manyResult: [
+          Contact(fullName: 'Moon'),
+          Contact(fullName: 'Sun'),
+          Contact(fullName: 'Star'),
+        ],
+        oneResults: [Contact(fullName: 'Sky')],
+      );
+      ContactPickerService.instance.debugDriver(driver);
+      addTearDown(ContactPickerService.instance.resetDriverForTest);
+      await openContacts(tester);
+      expect(find.byType(TextField), findsNothing);
+      expect(find.text('What should we call you?'), findsNothing);
+      expect(find.text('Choose your friends'), findsNothing);
+      expect(
+        find.text('Choose at least 4 contacts to start your quiz.'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Choose from contacts'));
       await tester.pumpAndSettle();
-    }
-    await tester.tap(find.text('Continue'));
+      expect(find.text('3 / 4 contacts · Add 1 more'), findsOneWidget);
+      expect(
+        tester
+            .widget<ElevatedButton>(
+              find.widgetWithText(ElevatedButton, 'Continue'),
+            )
+            .onPressed,
+        isNull,
+      );
+      await tester.tap(find.text('Find one contact'));
+      await tester.pumpAndSettle();
+      expect(find.text('4 contacts selected · Ready to play'), findsOneWidget);
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+      expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
+      expect(await LocalGameService.instance.getNames(), [
+        'Moon',
+        'Sun',
+        'Star',
+        'Sky',
+      ]);
+      expect(tester.testTextInput.isVisible, isFalse);
+    },
+  );
+
+  testWidgets('cancelled contacts leave the count unchanged', (tester) async {
+    final driver = FakeContactPickerDriver();
+    ContactPickerService.instance.debugDriver(driver);
+    addTearDown(ContactPickerService.instance.resetDriverForTest);
+    await openContacts(tester);
+    await tester.tap(find.text('Choose from contacts'));
     await tester.pumpAndSettle();
-    expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
-    expect(tester.testTextInput.isVisible, isFalse);
-    expect(await LocalGameService.instance.getUsername(), isNull);
-    expect(await LocalGameService.instance.getPlayerName(), 'Captain');
-    expect(await LocalGameService.instance.getNames(), [
-      'Moon',
-      'Sun',
-      'Star',
-      'Sky',
-    ]);
+    expect(find.text('0 / 4 contacts · Add 4 more'), findsOneWidget);
+    expect(
+      tester
+          .widget<ElevatedButton>(
+            find.widgetWithText(ElevatedButton, 'Continue'),
+          )
+          .onPressed,
+      isNull,
+    );
   });
 
   testWidgets(
-    'Find one contact uses the single system picker and keeps the chosen label',
+    'Find one contact uses single picker and keeps the selected label',
     (tester) async {
       final driver = FakeContactPickerDriver(
         oneResults: [Contact(fullName: 'Selected friend')],
       );
       ContactPickerService.instance.debugDriver(driver);
       addTearDown(ContactPickerService.instance.resetDriverForTest);
-      await LocalGameService.instance.savePlayerName('Me');
-      await mountApp(tester);
-      await tester.tap(find.text('Skip'));
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Find one contact'));
+      await openContacts(tester);
       await tester.tap(find.text('Find one contact'));
       await tester.pumpAndSettle();
       expect(driver.pickOneCalls, 1);
       expect(driver.pickManyCalls, 0);
       expect(find.text('Selected friend'), findsOneWidget);
-      expect(tester.testTextInput.isVisible, isFalse);
     },
   );
-
-  testWidgets('friends fit above keyboard and Done dismisses it', (
-    tester,
-  ) async {
-    await LocalGameService.instance.savePlayerName('Captain');
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    tester.view.viewInsets = const FakeViewPadding(bottom: 340);
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetViewInsets);
-    await mountApp(tester);
-    await tester.tap(find.text('Skip'));
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-    final input = find.byType(TextField);
-    await tester.ensureVisible(input);
-    await tester.enterText(input, 'Moon');
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pumpAndSettle();
-    expect(tester.testTextInput.isVisible, isFalse);
-    expect(find.text('Moon'), findsOneWidget);
-    await tester.showKeyboard(input);
-    await tester.ensureVisible(find.text('Choose your friends'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Choose your friends'));
-    await tester.pumpAndSettle();
-    expect(tester.testTextInput.isVisible, isFalse);
-  });
 
   testWidgets(
-    'nickname screen keeps input and spaced actions visible above keyboard',
+    'server changes example label and description; disabling removes both immediately',
     (tester) async {
-      tester.view.physicalSize = const Size(390, 844);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      addTearDown(tester.view.resetViewInsets);
-      await mountApp(tester);
-      await tester.tap(find.text('Skip'));
+      await openContacts(tester);
+      ContentService.instance.debugSetOverrides({
+        'example_names_button': 'Try a demo',
+        'example_names_description': 'Demo copy from server',
+      });
       await tester.pumpAndSettle();
-      expect(tester.testTextInput.isVisible, isFalse);
-      tester.view.viewInsets = const FakeViewPadding(bottom: 340);
-      await tester.enterText(find.byType(TextField), 'Nickname');
+      expect(find.text('Try a demo'), findsOneWidget);
+      expect(find.text('Demo copy from server'), findsOneWidget);
+      ContentService.instance.debugSetOverrides({
+        'example_names_enabled': 'false',
+      });
       await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
-      final primary = find.widgetWithText(ElevatedButton, 'Continue');
-      final secondary = find.widgetWithText(
-        OutlinedButton,
-        'Try with example names',
-      );
-      await tester.ensureVisible(secondary);
-      await tester.pumpAndSettle();
-      expect(primary.hitTestable(), findsOneWidget);
-      expect(secondary.hitTestable(), findsOneWidget);
+      expect(find.byIcon(Icons.play_circle_outline), findsNothing);
+      expect(find.text('Demo copy from server'), findsNothing);
       expect(
-        tester.getTopLeft(secondary).dy - tester.getBottomLeft(primary).dy,
-        greaterThanOrEqualTo(12),
+        find.text(
+          'Want to try first? Use example names without sharing contacts.',
+        ),
+        findsNothing,
       );
-      expect(tester.testTextInput.isVisible, isTrue);
+      expect(find.text('Choose from contacts'), findsOneWidget);
     },
   );
 
-  testWidgets('examples replace the typed nickname with a sample player', (tester) async {
-    await mountApp(tester);
-    await tester.tap(find.text('Skip'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'Alex');
-    await tester.pump();
-    await tester.tap(find.text('Continue'));
-    await tester.pump();
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Continue without login'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Try with example names'));
-    await tester.tap(find.text('Try with example names'));
-    await tester.pumpAndSettle();
-    expect(await LocalGameService.instance.getPlayerName(), 'Michael');
-    expect(await LocalGameService.instance.getNames(), [
-      'Alex',
-      'Sam',
-      'Jordan',
-      'Taylor',
-    ]);
-  });
+  testWidgets(
+    'examples replace an old wish nickname with Michael and preserve sample friends',
+    (tester) async {
+      await LocalGameService.instance.savePlayerName('wish');
+      await openContacts(tester);
+      await tester.ensureVisible(find.text('Try with example names'));
+      await tester.tap(find.text('Try with example names'));
+      await tester.pumpAndSettle();
+      expect(await LocalGameService.instance.getPlayerName(), 'Michael');
+      expect(await LocalGameService.instance.getNames(), [
+        'Alex',
+        'Sam',
+        'Jordan',
+        'Taylor',
+      ]);
+    },
+  );
+
+  for (final scale in [1.0, 2.0]) {
+    testWidgets(
+      'contacts fit a small viewport at text scale $scale without keyboard',
+      (tester) async {
+        tester.view.physicalSize = const Size(320, 568);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final storage = StorageService();
+        await storage.init();
+        appRouter.go(AppRoutes.namesEntry);
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [storageServiceProvider.overrideWithValue(storage)],
+            child: MaterialApp.router(
+              routerConfig: appRouter,
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: TextScaler.linear(scale)),
+                child: child!,
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(find.byType(TextField), findsNothing);
+        await tester.ensureVisible(find.text('Try with example names'));
+        await tester.pumpAndSettle();
+        expect(
+          find.text('Try with example names').hitTestable(),
+          findsOneWidget,
+        );
+        expect(tester.testTextInput.isVisible, isFalse);
+      },
+    );
+  }
 
   for (final scale in [1.0, 2.0]) {
     testWidgets('all pages fit a small screen at text scale $scale', (

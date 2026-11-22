@@ -11,6 +11,8 @@ import 'package:phone_numbers_parser/phone_numbers_parser.dart' show IsoCode;
 import '../../providers/auth_provider.dart';
 import '../../router/app_router.dart';
 import '../../services/content_service.dart';
+import '../../services/age_gate_service.dart';
+import '../../services/onboarding_flow.dart';
 
 /// Phone login, step 1: the number. Firebase sends the SMS code; our backend
 /// owns the session afterwards. Guests can skip into the local game.
@@ -48,6 +50,13 @@ class _PhoneRegistrationScreenState
         '+$dialCode$national';
   }
 
+  void _next() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    OnboardingFlow.instance.completePhoneStep();
+    context.go(AgeGateService.instance.status == AgeGateStatus.verified
+        ? AppRoutes.namesEntry : AppRoutes.age);
+  }
+
   bool _sending = false;
 
   Future<void> _submit() async {
@@ -59,7 +68,7 @@ class _PhoneRegistrationScreenState
     if (!mounted) return;
     setState(() => _sending = false);
     if (result.autoIdToken != null && result.success) {
-      context.pop();
+      _next();
       return;
     }
     if (result.success && result.verificationId != null) {
@@ -101,7 +110,9 @@ class _PhoneRegistrationScreenState
                       Align(
                         alignment: Alignment.centerLeft,
                         child: IconButton(
-                          onPressed: () => context.pop(),
+                          onPressed: () => context.canPop()
+                              ? context.pop()
+                              : context.go(AppRoutes.onboarding),
                           icon: const Icon(
                             Icons.arrow_back_rounded,
                             color: Colors.white,
@@ -227,10 +238,7 @@ class _PhoneRegistrationScreenState
                       if (ContentService.instance.flag('guest_enabled')) ...[
                         const SizedBox(height: 8),
                         OutlinedButton(
-                          onPressed: () {
-                            FocusManager.instance.primaryFocus?.unfocus();
-                            context.pop();
-                          },
+                          onPressed: _next,
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white,
                             side: const BorderSide(color: Colors.white70),

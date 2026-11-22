@@ -23,8 +23,8 @@ void main() {
 
   tearDown(() => ContentService.instance.debugClear());
 
-  test('defaults carry all 19 wave-1 keys non-empty', () {
-    expect(ContentService.defaults.length, 19);
+  test('defaults carry all 22 content keys non-empty', () {
+    expect(ContentService.defaults.length, 22);
     for (final entry in ContentService.defaults.entries) {
       expect(entry.value, isNotEmpty, reason: entry.key);
     }

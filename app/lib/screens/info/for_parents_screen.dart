@@ -45,7 +45,7 @@ class ForParentsScreen extends ConsumerWidget {
             _section(
               Icons.info_rounded,
               'How the game works',
-              'Flyprox is a name-based quiz game played on one device. Players choose a nickname and participant names, or use ready-made examples, then play 12-question rounds.',
+              'Flyprox is a name-based quiz game played on one device. Players select at least four contacts or use ready-made examples, then play 12-question rounds.',
             ),
             _section(
               Icons.lock_rounded,
@@ -60,12 +60,12 @@ class ForParentsScreen extends ConsumerWidget {
             _section(
               Icons.privacy_tip_rounded,
               'Game data and privacy',
-              'The game profile, participant names and progress are stored locally. Guest play needs no account. Signed-in online rounds use account identifiers, selected-contact hashes and votes. Underage answers block the current run before phone sign-in and subscription services start. Read the Privacy Policy for details.',
+              'The game profile, participant names and progress are stored locally. Guest play needs no account. Signed-in online rounds use account identifiers, selected-contact hashes and votes. Optional phone sign-in is offered before the age question. Underage answers block contacts, gameplay and subscription access for the current run. Read the Privacy Policy for details.',
             ),
             _section(
               Icons.supervisor_account_rounded,
               'Helping a player',
-              'Explore the game together, choose fictional names if preferred, and discuss the prompts. Report a concerning question using Report a question or email support. Choose Reset game in Settings to delete local game data.',
+              'Explore the game together, use example names if preferred, and discuss the prompts. Report a concerning question using Report a question or email support. Choose Reset game in Settings to delete local game data.',
             ),
             const SizedBox(height: 16),
             Container(

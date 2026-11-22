@@ -68,7 +68,7 @@ Future<void> showResetGameDialog(
     if (!context.mounted) return;
     ref.read(userNotifierProvider.notifier).clearUser();
     ref.read(localProfileProvider.notifier).clear();
-    context.go(AppRoutes.namesEntry);
+    context.go(AppRoutes.phone);
   } catch (_) {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(

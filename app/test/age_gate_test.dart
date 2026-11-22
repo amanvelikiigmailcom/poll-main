@@ -10,11 +10,13 @@ import 'package:flyprox_app/services/age_gate_service.dart';
 import 'package:flyprox_app/services/storage_service.dart';
 import 'package:flyprox_app/widgets/common/bottom_nav_bar.dart';
 import 'fakes/fake_age_gate_store.dart';
+import 'package:flyprox_app/services/onboarding_flow.dart';
 import 'fakes/fake_secure_storage.dart';
 
 Future<void> mountAgeRoute(WidgetTester tester, String route) async {
   final storage = StorageService();
   await storage.init();
+  if (route == AppRoutes.age) OnboardingFlow.instance.completePhoneStep();
   appRouter.go(route);
   await tester.pumpWidget(
     ProviderScope(
@@ -37,6 +39,7 @@ Future<void> pickAge(WidgetTester tester, String label) async {
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    OnboardingFlow.instance.restart();
     useFakeSecureStorage();
     AgeGateService.instance.debugStore(InMemoryAgeGateStore());
     AgeGateService.instance.statusListenable.value = AgeGateStatus.unknown;
@@ -44,26 +47,31 @@ void main() {
   });
   tearDown(() => AgeGateService.instance.resetForTest());
 
-  testWidgets('intro finishes at age selection, no answer is preselected', (
-    tester,
-  ) async {
-    await mountAgeRoute(tester, AppRoutes.onboarding);
-    await tester.tap(find.text('Skip'));
-    await tester.pumpAndSettle();
-    expect(find.text('How old are you?'), findsOneWidget);
-    expect(find.text('12 or younger'), findsOneWidget);
-    expect(find.text('13'), findsOneWidget);
-    expect(
-      tester
-          .widget<ElevatedButton>(
-            find.widgetWithText(ElevatedButton, 'Continue'),
-          )
-          .onPressed,
-      isNull,
-    );
-    expect(find.byType(AppBottomNavBar), findsNothing);
-    expect(find.text('Log in with phone'), findsNothing);
-  });
+  testWidgets(
+    'intro opens phone; guest choice then opens an unselected age question',
+    (tester) async {
+      await mountAgeRoute(tester, AppRoutes.onboarding);
+      await tester.tap(find.text('Skip'));
+      await tester.pumpAndSettle();
+      expect(find.text('Log in with phone'), findsOneWidget);
+      await tester.ensureVisible(find.text('Continue without login'));
+      await tester.tap(find.text('Continue without login'));
+      await tester.pumpAndSettle();
+      expect(find.text('How old are you?'), findsOneWidget);
+      expect(find.text('12 or younger'), findsOneWidget);
+      expect(find.text('13'), findsOneWidget);
+      expect(
+        tester
+            .widget<ElevatedButton>(
+              find.widgetWithText(ElevatedButton, 'Continue'),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(find.byType(AppBottomNavBar), findsNothing);
+      expect(find.text('Log in with phone'), findsNothing);
+    },
+  );
 
   testWidgets('under 13 blocks all protected routes in this run', (
     tester,
@@ -106,8 +114,11 @@ void main() {
       expect(find.text('Who’s most\nlikely to…?'), findsOneWidget);
       await tester.tap(find.text('Skip'));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Continue without login'));
+      await tester.tap(find.text('Continue without login'));
+      await tester.pumpAndSettle();
       await pickAge(tester, '13');
-      expect(find.text('What should we call you?'), findsOneWidget);
+      expect(find.text('Add your contacts'), findsOneWidget);
       expect(AgeGateService.instance.status, AgeGateStatus.verified);
     },
   );
@@ -119,6 +130,7 @@ void main() {
       await storage.init();
       final ready = Completer<void>();
       var initialized = 0;
+      OnboardingFlow.instance.completePhoneStep();
       appRouter.go(AppRoutes.age);
       await tester.pumpWidget(
         ProviderScope(
@@ -143,16 +155,20 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       ready.complete();
       await tester.pumpAndSettle();
-      expect(find.text('What should we call you?'), findsOneWidget);
+      expect(find.text('Add your contacts'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );
 
-  testWidgets('direct phone entry cannot bypass an unknown age', (
-    tester,
-  ) async {
-    await mountAgeRoute(tester, AppRoutes.phone);
-    expect(find.text('How old are you?'), findsOneWidget);
-    expect(find.text('Log in with phone'), findsNothing);
-  });
+  testWidgets(
+    'direct game or age entry starts at phone until that step completes',
+    (tester) async {
+      await mountAgeRoute(tester, AppRoutes.home);
+      expect(find.text('Log in with phone'), findsOneWidget);
+      appRouter.go(AppRoutes.age);
+      await tester.pumpAndSettle();
+      expect(find.text('How old are you?'), findsNothing);
+      expect(find.text('Log in with phone'), findsOneWidget);
+    },
+  );
 }

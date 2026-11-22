@@ -48,6 +48,7 @@ import '../screens/premium/premium_screen.dart';
 import '../screens/premium/age_picker_screen.dart';
 import '../screens/premium/age_blocked_screen.dart';
 import '../services/age_gate_service.dart';
+import '../services/onboarding_flow.dart';
 
 abstract final class AppRoutes {
   static const splash = '/';
@@ -128,11 +129,19 @@ FutureOr<String?> _ageRedirect(BuildContext context, GoRouterState state) {
     if ({
       AppRoutes.splash,
       AppRoutes.onboarding,
-      AppRoutes.age,
+      AppRoutes.phone,
+      AppRoutes.otp,
     }.contains(path)) {
       return null;
     }
-    return age.replayIntroOnLaunch ? AppRoutes.onboarding : AppRoutes.age;
+    if (path == AppRoutes.age && OnboardingFlow.instance.phoneComplete) {
+      return null;
+    }
+    return age.replayIntroOnLaunch
+        ? AppRoutes.onboarding
+        : OnboardingFlow.instance.phoneComplete
+        ? AppRoutes.age
+        : AppRoutes.phone;
   }
   if (path == AppRoutes.age || path == AppRoutes.ageBlocked) {
     return LocalGameService.instance.hasEnoughNames().then(
@@ -155,7 +164,7 @@ class _SplashRedirectState extends ConsumerState<_SplashRedirect> {
       hasNames
           ? AppRoutes.home
           : introDone
-          ? AppRoutes.namesEntry
+          ? AppRoutes.phone
           : AppRoutes.onboarding,
     );
   }
@@ -167,7 +176,10 @@ class _SplashRedirectState extends ConsumerState<_SplashRedirect> {
 final GoRouter appRouter = GoRouter(
   initialLocation: AppRoutes.splash,
   debugLogDiagnostics: false,
-  refreshListenable: AgeGateService.instance.statusListenable,
+  refreshListenable: Listenable.merge([
+    AgeGateService.instance.statusListenable,
+    OnboardingFlow.instance,
+  ]),
   redirect: _ageRedirect,
   routes: [
     GoRoute(path: AppRoutes.age, builder: (_, __) => const AgePickerScreen()),

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'onboarding_flow.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Age-gate outcome persisted on this device.
@@ -62,6 +63,7 @@ class AgeGateService {
 
   /// Loads the persisted status. Call once at startup; never throws.
   Future<void> load() async {
+    OnboardingFlow.instance.restart();
     try {
       final saved = _parse(await _store.read(_statusKey));
       // A refusal blocks this run. A fresh launch replays onboarding and asks

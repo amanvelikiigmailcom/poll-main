@@ -38,7 +38,7 @@ const _fallbackSlides = [
     eyebrow: 'BETTER WITH YOUR PEOPLE',
     title: 'Make it\nyour circle.',
     description:
-        'Choose a nickname and four participants.\nUse your own names or try our examples.',
+        'Choose at least four contacts.\nOr try our example names.',
   ),
   OnboardingSlide(
     eyebrow: 'A LITTLE PLAY. A LITTLE JOY.',
@@ -108,8 +108,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       AgeGateService.instance.introFinished();
       if (!mounted) return;
       context.go(AgeGateService.instance.status == AgeGateStatus.verified
-          ? (hasNames ? AppRoutes.home : AppRoutes.namesEntry)
-          : AppRoutes.age);
+          ? (hasNames ? AppRoutes.home : AppRoutes.phone)
+          : AppRoutes.phone);
     } catch (_) {
       if (!mounted) return;
       setState(() => _saving = false);

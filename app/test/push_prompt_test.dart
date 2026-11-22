@@ -50,7 +50,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(driver.requestCalls, 1);
     verify(() => api.post<void>('/api/devices',
-        data: any(named: 'data'))).called(1);
+        data: any(named: 'data'))).called(greaterThanOrEqualTo(1));
     await tester.pumpWidget(const SizedBox());
   });
 

@@ -46,6 +46,8 @@ Future<void> main() async {
   // Public screen copy only: no token, user ID, Firebase or Superwall.
   unawaited(ContentService.instance.refreshPublic());
 
+  await _initializePhoneAuth();
+
   // ── Run ───────────────────────────────────────────────────────────────────
   runApp(
     ProviderScope(
@@ -61,16 +63,19 @@ Future<void> main() async {
   );
 }
 
-Future<void> _initializeEligibleServices() async {
+Future<void> _initializePhoneAuth() async {
   // ── Firebase (phone login) ──────────────────────────────────────────────
   // Optional at runtime: without GoogleService-Info.plist the app still runs,
   // only phone login reports itself unavailable (guest mode).
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp().timeout(const Duration(seconds: 10));
   } catch (e) {
     debugPrint('Firebase unavailable, phone login disabled: $e');
   }
 
+}
+
+Future<void> _initializeEligibleServices() async {
   // ── Subscriptions (Superwall) ───────────────────────────────────────────
   // Public SDK key from lib/config/superwall_keys.dart (placeholder in git,
   // real value local-only).

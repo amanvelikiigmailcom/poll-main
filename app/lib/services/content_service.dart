@@ -11,7 +11,7 @@ import 'api_service.dart';
 /// Defaults are baked in (mirrored by `flyprox_backend/src/content.js`); the
 /// server only carries overrides. Every read is synchronous and never throws:
 /// with no network the app runs on defaults (or the 12-hour cache).
-class ContentService {
+class ContentService extends ChangeNotifier {
   ContentService._();
   static final ContentService instance = ContentService._();
 
@@ -36,7 +36,7 @@ class ContentService {
     'blocked_body':
         'Flyprox is for ages 13 and up. This game isn’t available for your age yet. Ask a parent or guardian if you have questions.',
     'onboarding_pages':
-        '[{"eyebrow":"A NEW WAY TO PLAY","title":"Who’s most\\nlikely to…?","subtitle":"Light up the room? Make everyone laugh?\\nPick the person who fits best."},{"eyebrow":"BETTER WITH YOUR PEOPLE","title":"Make it\\nyour circle.","subtitle":"Choose a nickname and four participants.\\nUse your own names or try our examples."},{"eyebrow":"A LITTLE PLAY. A LITTLE JOY.","title":"Play. Collect.\\nRepeat.","subtitle":"Answer 12 questions, collect your stars,\\nand come back for a fresh round."}]',
+        '[{"eyebrow":"A NEW WAY TO PLAY","title":"Who’s most\\nlikely to…?","subtitle":"Light up the room? Make everyone laugh?\\nPick the person who fits best."},{"eyebrow":"BETTER WITH YOUR PEOPLE","title":"Make it\\nyour circle.","subtitle":"Choose at least four contacts.\\nOr try our example names."},{"eyebrow":"A LITTLE PLAY. A LITTLE JOY.","title":"Play. Collect.\\nRepeat.","subtitle":"Answer 12 questions, collect your stars,\\nand come back for a fresh round."}]',
     'url_support':
         'https://distinct-lunaria-d0a.notion.site/41ae779d2742815494ebfa72e5db4620',
     'url_terms':
@@ -48,6 +48,9 @@ class ContentService {
     'support_email': 'support@flyprox.com',
     'guest_enabled': 'true',
     'contacts_enabled': 'true',
+    'example_names_enabled': 'true',
+    'example_names_button': 'Try with example names',
+    'example_names_description': 'Want to try first? Use example names without sharing contacts.',
   };
 
   Map<String, String> _overrides = {};
@@ -55,11 +58,13 @@ class ContentService {
   @visibleForTesting
   void debugSetOverrides(Map<String, String> values) {
     _overrides = Map.of(values);
+    notifyListeners();
   }
 
   @visibleForTesting
   void debugClear() {
     _overrides = {};
+    notifyListeners();
   }
 
   /// Reads [key]: server override first, baked-in default otherwise.
@@ -185,6 +190,7 @@ class ContentService {
       });
       if (next.isEmpty) return;
       _overrides = next;
+      notifyListeners();
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_cacheKey, jsonEncode(next));
       await prefs.setInt(_cacheAtKey, DateTime.now().millisecondsSinceEpoch);

@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../providers/service_providers.dart';
+import '../../router/app_router.dart';
 
-/// One-time pre-permission screen after phone login. Explains the value
-/// before the OS prompt; both actions return to the friends step.
+/// Optional notification prompt after eligible users complete contacts setup.
 class PushPromptScreen extends ConsumerStatefulWidget {
   const PushPromptScreen({super.key});
 
@@ -19,9 +19,7 @@ class _PushPromptScreenState extends ConsumerState<PushPromptScreen> {
   bool _busy = false;
 
   void _backToFriends() {
-    // Guarded: a deep link straight to this screen has nothing to pop.
-    if (context.canPop()) context.pop();
-    if (context.canPop()) context.pop();
+    context.go(AppRoutes.home);
   }
 
   Future<void> _enable() async {
