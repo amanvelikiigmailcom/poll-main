@@ -2,11 +2,17 @@
 
 Корень: `/Users/amanyessen/NEW/poll-main`. Flutter-приложение — `app/`, пакет `flyprox_app`. Локальный гостевой режим + серверная ветка с Firebase SMS-входом, Appwrite-бэкендом и APNs; подписка через Superwall. `AGENTS.md` — единственный источник инструкций; `CLAUDE.md` ссылается на него. Поведение сверять с кодом, устаревшие инструкции исправлять вместе с изменениями.
 
-## Казахстан в App Store и подготовка build13 — 23.11.2026
+## Последний доступный TestFlight — 1.0.2(13), 23.11.2026
+
+**Build8c073399-9d38-43db-ab4e-f036331f0234: VALID / IN_BETA_TESTING**. Source4885745. Внутренняя группа060e4223-2034-457e-aa16-859c63c582f4 проверена; en-US What to Test записан и перечитан. Upload завершился01:26:42 Asia/Bangkok, altool exit0/UPLOAD SUCCEEDED. Во время загрузки были сетевые retransmits/прерванные соединения, автоматические повторы завершились успешно; отдельного повторного upload не было. Archive202.3с; штатный Flutter export No Accounts/No Distribution, xcodebuild export с ASC API auth успешен. IPA: codesign deep/strict, production APNs, debug=false, encryption=false, настоящий billing key/Firebase callback/username screen подтверждены; photo permission отсутствует.
+
+Владелец уточнил **только TestFlight**, без публичного App Store review. После успешной доступности13 требуется итоговый коммит с точным заголовком «ОСНОВНОЙ КОТОРЫЙ УШЕЛ НА ПРОВЕРКУ»; это название владельца, не свидетельство публичного submit. Черновик App Store1.0.2 остаётся с build11. Код13 функционально совпадает с12 (196 tests/analyze22info), повышен только номер. Native QA нового ника на iPhone пока требуется.
+
+## Казахстан в App Store — 23.11.2026
 
 По прямой команде владельца KAZ включён в App Store. Повторный GET всех175 territoryAvailabilities подтвердил ровно7 available=true: CAN,GBR,HKG,KAZ,NZL,SGP,USA (168 disabled). Перед этим чтение API подтверждало ровно6, не172. Подписка premium_pro_weekly отдельно доступна в174 территориях (availableInNewTerritories=false), её не меняли. У приложения availableInNewTerritories всё ещё true: это будущие территории, не текущий список.
 
-Владелец отдельно уточнил: **казахстанский код/SMS не добавлять, входить будет тестовым номером**. PhoneRegions/Firebase остаются US,GB,CA,NZ,SG,HK. Само изменение стран магазина не требует бинарника; по дополнительной явной команде собирается TestFlight1.0.2(13), код тот же, что12, только номер выше. Тестовый номер/code сохранены.
+Владелец отдельно уточнил: **казахстанский код/SMS не добавлять, входить будет тестовым номером**. PhoneRegions/Firebase остаются US,GB,CA,NZ,SG,HK. Само изменение стран магазина не требует бинарника; по дополнительной явной команде собран и доступен TestFlight1.0.2(13), код тот же, что12, только номер выше. Тестовый номер/code сохранены.
 
 ## TestFlight 1.0.2(12) — доступен 23.11.2026
 

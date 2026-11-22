@@ -2,13 +2,15 @@
 
 ## Активно: Казахстан в App Store → TestFlight1.0.2(13)
 
-Владелец явно попросил добавить Казахстан в разрешённые страны App Store, затем собрать билд после готовности. PATCH KAZ выполнен, повторный GET всех175 территорий подтвердил ровно7: CAN,GBR,HKG,KAZ,NZL,SGP,USA. Это storefront, не SMS policy: Firebase/PhoneRegions остаются US,GB,CA,NZ,SG,HK. Подписка не менялась. Future territories flag у приложения остаётся true.
+Владелец явно попросил добавить Казахстан в разрешённые страны App Store, затем собрать билд после готовности. Уточнение: **только TestFlight**, публичный App Store review не запускать. После успешной доступности13 сделать итоговый коммит с точным заголовком «ОСНОВНОЙ КОТОРЫЙ УШЕЛ НА ПРОВЕРКУ». Это пользовательское название коммита, не утверждение о публичном submit. PATCH KAZ выполнен, повторный GET всех175 территорий подтвердил ровно7: CAN,GBR,HKG,KAZ,NZL,SGP,USA. Это storefront, не SMS policy: Firebase/PhoneRegions остаются US,GB,CA,NZ,SG,HK. Подписка не менялась. Future territories flag у приложения остаётся true.
 
 - [x] KAZ добавлен, API read-back всех175:7 enabled,168 disabled.
 - [x] Номер1.0.2+13. Код тот же, что в build12 (196 tests/analyze22info); новых функций не добавлять.
 - [x] pub get / pod install успешны, Podfile.lock==Pods/Manifest.lock; владелец подтвердил, что казахстанский SMS-код не нужен, будет тестовый вход.
-- [ ] Archive/export13, подписанный IPA checks.
-- [ ] Upload, VALID/IN_BETA_TESTING, внутренняя группа и What to Test.
+- [x] Archive13 (202.3с), source4885745. Flutter export No Accounts/No Distribution; xcodebuild export с ASC API auth успешен. Экспортированный IPA: bundle/version/build13, codesign deep/strict, production APNs, debug=false, encryption=false; billing key/Firebase callback/username screen подтверждены, photo permission отсутствует.
+- [x] Upload13: altool exit0 / UPLOAD SUCCEEDED, delivery8c073399-9d38-43db-ab4e-f036331f0234, завершён23.11.2026 01:26:42 Asia/Bangkok. Перед успешным завершением были сетевые retransmits/разрывы; повторный независимый upload не запускался.
+- [x] Build8c073399-9d38-43db-ab4e-f036331f0234 = VALID / IN_BETA_TESTING. Внутренняя группа060e4223-2034-457e-aa16-859c63c582f4 содержит13, en-US What to Test записан и перечитан.
+- [x] После доступности13 — итоговый snapshot-коммит с точным заголовком владельца «ОСНОВНОЙ КОТОРЫЙ УШЕЛ НА ПРОВЕРКУ». Только TestFlight; публичный App Store submit не выполнялся.
 
 ## Активно: TestFlight 1.0.2(12)
 
