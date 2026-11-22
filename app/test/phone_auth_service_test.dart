@@ -1,3 +1,4 @@
+import 'fakes/mock_storage_service.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -6,12 +7,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flyprox_app/services/api_service.dart';
 import 'package:flyprox_app/services/phone_auth_driver.dart';
 import 'package:flyprox_app/services/phone_auth_service.dart';
-import 'package:flyprox_app/services/storage_service.dart';
 import 'fakes/fake_phone_auth_driver.dart';
 
 class MockApiService extends Mock implements ApiService {}
-
-class MockStorageService extends Mock implements StorageService {}
 
 Response<Map<String, dynamic>> _json(Map<String, dynamic> data) =>
     Response<Map<String, dynamic>>(
@@ -33,8 +31,6 @@ void main() {
     storage = MockStorageService();
     driver = FakePhoneAuthDriver();
     svc = PhoneAuthService(api: api, storage: storage, driver: driver);
-    when(() => storage.saveToken(any())).thenAnswer((_) async {});
-    when(() => storage.savePhone(any())).thenAnswer((_) async {});
   });
 
   group('sendCode', () {

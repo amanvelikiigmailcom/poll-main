@@ -23,7 +23,7 @@ class NamesEntryScreen extends ConsumerStatefulWidget {
 }
 
 class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
-  String _playerName = 'Michael';
+  String _playerName = '';
   final List<String> _friends = [];
   bool _loading = true;
   bool _saving = false;
@@ -40,11 +40,11 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
 
   Future<void> _prefill() async {
     final game = LocalGameService.instance;
-    final existingPlayer = await game.getPlayerName();
+    final existingPlayer = await game.ensurePlayerName();
     final existingFriends = await game.getNames();
     if (!mounted) return;
     setState(() {
-      if (existingPlayer != null && existingPlayer.isNotEmpty) {
+      if (existingPlayer.isNotEmpty) {
         _playerName = existingPlayer;
       }
       _friends.addAll(existingFriends);
@@ -57,6 +57,7 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() => _saving = true);
     try {
+      await LocalGameService.instance.setUsernameSetupPending(true);
       await LocalGameService.instance.savePlayerAndFriends(
         playerName: _playerName,
         friends: List<String>.from(_friends),
@@ -64,11 +65,7 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
       if (!mounted) return;
       await ref.read(localProfileProvider.notifier).refresh();
       if (!mounted) return;
-      final loggedIn = await ref.read(authServiceProvider).isLoggedIn();
-      final needsPush =
-          loggedIn && await ref.read(pushServiceProvider).needsPrompt();
-      if (!mounted) return;
-      context.go(needsPush ? AppRoutes.pushPrompt : AppRoutes.home);
+      context.go(AppRoutes.username);
     } catch (_) {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -81,7 +78,6 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
   Future<void> _tryExamples() async {
     if (_busy || !ContentService.instance.flag('example_names_enabled')) return;
     setState(() {
-      _playerName = 'Michael';
       _friends
         ..clear()
         ..addAll(['Alex', 'Sam', 'Jordan', 'Taylor']);

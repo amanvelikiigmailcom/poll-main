@@ -68,13 +68,14 @@ class RoundAnswer {
 /// friend-name list, star balance, 40-minute round timer, and generation
 /// of each 12-question round from [quizQuestionSeeds].
 ///
-/// Gas-style options: each question shows **4 names** =
-/// **your name + 3 classmates** (shuffled).
+/// Each question shows up to four selected contacts, shuffled.
+/// The player profile is never inserted as a voting option.
 class LocalGameService {
   LocalGameService._();
   static final LocalGameService instance = LocalGameService._();
 
   static const _usernameKey = 'local_username';
+  static const _usernameSetupPendingKey = 'local_username_setup_pending_v1';
   static const _playerNameKey = 'local_player_name';
   static const _universityKey = 'local_university';
   static const _universityYearKey = 'local_university_year';
@@ -94,7 +95,7 @@ class LocalGameService {
   static const int starsPerRound = 1000;
   static const int roundBreakSeconds = 40 * 60;
 
-  /// Always 4 cards: self + 3 others (Gas-style).
+  /// Up to four cards, drawn only from selected contacts.
   static const int optionsPerQuestion = 4;
   static const int minFriends = 4;
   static const int minUsernameLength = 3;
@@ -189,13 +190,34 @@ class LocalGameService {
     return null;
   }
 
-  // ── Player name (always included in options) ─────────────────────────────
+  // ── Player profile name (never inserted into voting options) ─────────────────────────────
 
   Future<String?> getPlayerName() async {
     final prefs = await _prefs;
     final name = prefs.getString(_playerNameKey)?.trim();
     if (name == null || name.isEmpty) return null;
+    // Retire the old automatic example/self labels for existing installations.
+    if ((name == 'Michael' || name == 'You') &&
+        prefs.getString(_usernameKey) != name) {
+      return _saveGeneratedPlayerName();
+    }
     return name;
+  }
+
+  Future<String> ensurePlayerName() async =>
+      await getPlayerName() ?? await _saveGeneratedPlayerName();
+
+  Future<String> _saveGeneratedPlayerName() async {
+    final name = 'user${100000 + _random.nextInt(900000)}';
+    await savePlayerName(name);
+    return name;
+  }
+
+  Future<bool> isUsernameSetupPending() async =>
+      (await _prefs).getBool(_usernameSetupPendingKey) ?? false;
+
+  Future<void> setUsernameSetupPending(bool pending) async {
+    await (await _prefs).setBool(_usernameSetupPendingKey, pending);
   }
 
   Future<void> savePlayerName(String name) async {
@@ -327,6 +349,7 @@ class LocalGameService {
     await prefs.remove(_lastAnswersKey);
     await prefs.remove(_avatarKey);
     await prefs.remove(_usernameKey);
+    await prefs.remove(_usernameSetupPendingKey);
     await prefs.remove(_playerNameKey);
     await prefs.remove(_universityKey);
     await prefs.remove(_universityYearKey);
@@ -447,7 +470,7 @@ class LocalGameService {
 
   /// Build cards from selected local names, including unmatched contacts.
   Future<List<String>> selectedOptions() async =>
-      _buildOptions(await getPlayerName() ?? 'You', await getNames());
+      _buildOptions(await getNames());
 
   QuizQuestionSeed? _seedById(String id) {
     for (final seed in _introBank) {
@@ -477,9 +500,7 @@ class LocalGameService {
       if (seed == null) return null;
       seeds.add(seed);
     }
-    return seeds
-        .map((s) => _toGenerated(s, playerName, friends, languageCode))
-        .toList();
+    return seeds.map((s) => _toGenerated(s, friends, languageCode)).toList();
   }
 
   // ── Round generation ─────────────────────────────────────────────────────
@@ -523,25 +544,14 @@ class LocalGameService {
     return pool.take(count).toList();
   }
 
-  /// Gas-style: **your name + 3 random friends**, then shuffle so self is
-  /// not always in the same card slot.
-  List<String> _buildOptions(String playerName, List<String> friends) {
-    final others = List<String>.from(friends)
-      ..removeWhere((n) => n.toLowerCase() == playerName.toLowerCase())
-      ..shuffle(_random);
-
-    final othersNeeded = optionsPerQuestion - 1; // 3
-    final pickedOthers = others.take(othersNeeded).toList();
-
-    // If fewer than 3 friends, pad is impossible — use what we have.
-    final options = <String>[playerName, ...pickedOthers];
-    options.shuffle(_random);
-    return options;
+  /// Only selected contacts can appear; never add the voter's own profile.
+  List<String> _buildOptions(List<String> friends) {
+    final contacts = List<String>.from(friends)..shuffle(_random);
+    return contacts.take(optionsPerQuestion).toList();
   }
 
   GeneratedQuestion _toGenerated(
     QuizQuestionSeed seed,
-    String playerName,
     List<String> friends,
     String languageCode,
   ) {
@@ -550,7 +560,7 @@ class LocalGameService {
       question: seed.text(languageCode),
       emoji: seed.emoji,
       category: seed.category,
-      optionNames: _buildOptions(playerName, friends),
+      optionNames: _buildOptions(friends),
     );
   }
 
@@ -560,8 +570,7 @@ class LocalGameService {
   /// [introQuestionSeeds] in order. Round 3+ keeps the previous behavior:
   /// 4 sympathy, then 4 normal, then 4 humor (sympathy always first),
   /// picked at random excluding already-used pool questions.
-  /// Each question has up to 4 names: always includes the player +
-  /// classmates.
+  /// Each question has up to four selected contacts; no player card.
   Future<List<GeneratedQuestion>> generateRound({
     String languageCode = 'ru',
   }) async {
@@ -580,7 +589,7 @@ class LocalGameService {
           .toList();
       if (seeds.length == roundLength) {
         return seeds
-            .map((s) => _toGenerated(s, playerName, friends, languageCode))
+            .map((s) => _toGenerated(s, friends, languageCode))
             .toList();
       }
       // Truncated intro data — fall through to the pool instead of
@@ -595,8 +604,6 @@ class LocalGameService {
     used.addAll(seeds.map((s) => s.id));
     await _saveUsedQuestionIds(used);
 
-    return seeds
-        .map((s) => _toGenerated(s, playerName, friends, languageCode))
-        .toList();
+    return seeds.map((s) => _toGenerated(s, friends, languageCode)).toList();
   }
 }

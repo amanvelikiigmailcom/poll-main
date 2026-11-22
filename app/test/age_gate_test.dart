@@ -6,22 +6,22 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flyprox_app/providers/service_providers.dart';
 import 'package:flyprox_app/router/app_router.dart';
+import 'fakes/test_app.dart';
 import 'package:flyprox_app/services/age_gate_service.dart';
 import 'package:flyprox_app/services/storage_service.dart';
 import 'package:flyprox_app/widgets/common/bottom_nav_bar.dart';
 import 'fakes/fake_age_gate_store.dart';
 import 'package:flyprox_app/services/onboarding_flow.dart';
-import 'fakes/fake_secure_storage.dart';
 
 Future<void> mountAgeRoute(WidgetTester tester, String route) async {
   final storage = StorageService();
   await storage.init();
   if (route == AppRoutes.age) OnboardingFlow.instance.completePhoneStep();
-  appRouter.go(route);
+  testAppRouter.go(route);
   await tester.pumpWidget(
     ProviderScope(
       overrides: [storageServiceProvider.overrideWithValue(storage)],
-      child: MaterialApp.router(routerConfig: appRouter),
+      child: MaterialApp.router(routerConfig: testAppRouter),
     ),
   );
   await tester.pumpAndSettle();
@@ -37,10 +37,10 @@ Future<void> pickAge(WidgetTester tester, String label) async {
 }
 
 void main() {
+  setUp(setUpTestApp);
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     OnboardingFlow.instance.restart();
-    useFakeSecureStorage();
     AgeGateService.instance.debugStore(InMemoryAgeGateStore());
     AgeGateService.instance.statusListenable.value = AgeGateStatus.unknown;
     AgeGateService.instance.replayIntroOnLaunch = false;
@@ -90,10 +90,10 @@ void main() {
       AppRoutes.premium,
       AppRoutes.age,
     ]) {
-      appRouter.go(route);
+      testAppRouter.go(route);
       await tester.pumpAndSettle();
       expect(
-        appRouter.routeInformationProvider.value.uri.path,
+        testAppRouter.routeInformationProvider.value.uri.path,
         AppRoutes.ageBlocked,
       );
     }
@@ -131,7 +131,7 @@ void main() {
       final ready = Completer<void>();
       var initialized = 0;
       OnboardingFlow.instance.completePhoneStep();
-      appRouter.go(AppRoutes.age);
+      testAppRouter.go(AppRoutes.age);
       await tester.pumpWidget(
         ProviderScope(
           overrides: [storageServiceProvider.overrideWithValue(storage)],
@@ -140,7 +140,7 @@ void main() {
               initialized++;
               return ready.future;
             },
-            child: MaterialApp.router(routerConfig: appRouter),
+            child: MaterialApp.router(routerConfig: testAppRouter),
           ),
         ),
       );
@@ -165,7 +165,7 @@ void main() {
     (tester) async {
       await mountAgeRoute(tester, AppRoutes.home);
       expect(find.text('Log in with phone'), findsOneWidget);
-      appRouter.go(AppRoutes.age);
+      testAppRouter.go(AppRoutes.age);
       await tester.pumpAndSettle();
       expect(find.text('How old are you?'), findsNothing);
       expect(find.text('Log in with phone'), findsOneWidget);

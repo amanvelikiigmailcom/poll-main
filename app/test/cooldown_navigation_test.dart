@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flyprox_app/providers/service_providers.dart';
 import 'package:flyprox_app/router/app_router.dart';
+import 'fakes/test_app.dart';
 import 'package:flyprox_app/services/age_gate_service.dart';
 import 'package:flyprox_app/services/local_game_service.dart';
 import 'package:flyprox_app/services/storage_service.dart';
@@ -14,7 +15,6 @@ import 'package:flyprox_app/utils/constants.dart';
 
 import 'fakes/fake_age_gate_store.dart';
 import 'fakes/fake_gateway.dart';
-import 'fakes/fake_secure_storage.dart';
 import 'package:flyprox_app/widgets/common/bottom_nav_bar.dart';
 
 Future<void> pumpRoute(WidgetTester tester) async {
@@ -26,19 +26,19 @@ Future<void> pumpRoute(WidgetTester tester) async {
 Future<void> mount(WidgetTester tester, String route) async {
   final storage = StorageService();
   await storage.init();
-  appRouter.go(route);
+  testAppRouter.go(route);
   await tester.pumpWidget(ProviderScope(
     overrides: [storageServiceProvider.overrideWithValue(storage)],
-    child: MaterialApp.router(routerConfig: appRouter),
+    child: MaterialApp.router(routerConfig: testAppRouter),
   ));
   await pumpRoute(tester);
 }
 
 void main() {
+  setUp(setUpTestApp);
   setUp(markEligiblePlayer);
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
-    useFakeSecureStorage();
     await SubscriptionService.instance.resetForTest();
     SubscriptionService.instance.debugGateway(FakeGateway());
     await LocalGameService.instance.savePlayerAndFriends(
@@ -52,7 +52,7 @@ void main() {
     await tester.tap(find.byTooltip('Settings'));
     await pumpRoute(tester);
     expect(
-        appRouter.routeInformationProvider.value.uri.path, AppRoutes.settings);
+        testAppRouter.routeInformationProvider.value.uri.path, AppRoutes.settings);
     expect(
         tester
             .widget<AppBottomNavBar>(find.byType(AppBottomNavBar))
@@ -75,7 +75,7 @@ void main() {
     await tester.tap(find.byTooltip('Profile'));
     await pumpRoute(tester);
     expect(
-        appRouter.routeInformationProvider.value.uri.path, AppRoutes.profile);
+        testAppRouter.routeInformationProvider.value.uri.path, AppRoutes.profile);
     expect(
         tester
             .widget<AppBottomNavBar>(find.byType(AppBottomNavBar))
@@ -97,16 +97,16 @@ void main() {
       await tester.tap(find.byTooltip('Quiz'));
       await pumpRoute(tester);
       expect(
-          appRouter.routeInformationProvider.value.uri.path, AppRoutes.timer);
+          testAppRouter.routeInformationProvider.value.uri.path, AppRoutes.timer);
       expect(prefs.getInt('local_last_round_completed_at'), original);
       expect(find.text('Question 1 of 12'), findsNothing);
-      appRouter.go(AppRoutes.home);
+      testAppRouter.go(AppRoutes.home);
       await pumpRoute(tester);
     }
     await game.bypassTimer();
     await tester.tap(find.byTooltip('Quiz'));
     await pumpRoute(tester);
-    expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.vote);
+    expect(testAppRouter.routeInformationProvider.value.uri.path, AppRoutes.vote);
     expect(find.text('Question 1 of 12'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
@@ -116,7 +116,7 @@ void main() {
       await LocalGameService.instance.completeRound();
       await mount(tester, route);
       expect(
-          appRouter.routeInformationProvider.value.uri.path, AppRoutes.timer);
+          testAppRouter.routeInformationProvider.value.uri.path, AppRoutes.timer);
       expect(find.text('Question 1 of 12'), findsNothing);
       await tester.pumpWidget(const SizedBox());
     });
@@ -126,7 +126,7 @@ void main() {
     await LocalGameService.instance.completeRound();
     await SubscriptionService.instance.setPro(true);
     await mount(tester, AppRoutes.vote);
-    expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.vote);
+    expect(testAppRouter.routeInformationProvider.value.uri.path, AppRoutes.vote);
     expect(find.text('Question 1 of 12'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
@@ -149,10 +149,10 @@ void main() {
     testWidgets('$retired returns to the free game without a purchase screen',
         (tester) async {
       await mount(tester, retired);
-      expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
+      expect(testAppRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
       await tester.tap(find.byTooltip('Quiz'));
       await pumpRoute(tester);
-      expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.vote);
+      expect(testAppRouter.routeInformationProvider.value.uri.path, AppRoutes.vote);
       expect(find.text('Question 1 of 12'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     });
@@ -168,7 +168,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     await mount(tester, AppRoutes.premium);
     expect(
-        appRouter.routeInformationProvider.value.uri.path, AppRoutes.premium);
+        testAppRouter.routeInformationProvider.value.uri.path, AppRoutes.premium);
     expect(find.text('Premium Weekly'), findsOneWidget);
     expect(find.textContaining('1-week auto-renewing subscription'),
         findsWidgets);
@@ -216,7 +216,7 @@ void main() {
     await mount(tester, AppRoutes.home);
     await tester.tap(find.byTooltip('Quiz'));
     await pumpRoute(tester);
-    expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.vote);
+    expect(testAppRouter.routeInformationProvider.value.uri.path, AppRoutes.vote);
     await tester.pumpWidget(const SizedBox());
   });
 }

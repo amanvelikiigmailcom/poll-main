@@ -137,15 +137,15 @@ void main() {
       await tester.tap(find.text('Shuffle'));
       await tester.pump();
       expect(find.text('Question 1 of 12'), findsOneWidget);
-      // The player is always an option; exactly 3 of the 4 friends are shown.
-      expect(find.text('Player'), findsOneWidget);
+      // All four cards belong to selected contacts, never the player.
+      expect(find.text('Player'), findsNothing);
       var shown = 0;
       for (final name in ['Alex', 'Sam', 'Jordan', 'Taylor']) {
         final count = find.text(name).evaluate().length;
         expect(count, lessThanOrEqualTo(1));
         shown += count;
       }
-      expect(shown, 3);
+      expect(shown, 4);
     }
     for (var i = 1; i <= 12; i++) {
       expect(find.text('Question $i of 12'), findsOneWidget);

@@ -60,13 +60,18 @@ void main() {
       round.every((q) => q.question.startsWith('Server question')),
       isTrue,
     );
-    expect(round.every((q) => q.optionNames.contains('Me')), isTrue);
+    for (final q in round) {
+      expect(q.optionNames, unorderedEquals(['A', 'B', 'C', 'D']));
+    }
     final restored = await game.restoreRound(
       ids: round.map((q) => q.id).toList(),
       languageCode: 'en',
     );
+    for (final q in restored!) {
+      expect(q.optionNames, unorderedEquals(['A', 'B', 'C', 'D']));
+    }
     expect(
-      restored?.map((q) => q.question).toList(),
+      restored.map((q) => q.question).toList(),
       round.map((q) => q.question).toList(),
     );
   });

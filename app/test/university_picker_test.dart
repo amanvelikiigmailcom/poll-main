@@ -5,12 +5,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flyprox_app/providers/service_providers.dart';
 import 'package:flyprox_app/router/app_router.dart';
+import 'fakes/test_app.dart';
 import 'package:flyprox_app/services/local_game_service.dart';
 import 'package:flyprox_app/services/storage_service.dart';
 import 'package:flyprox_app/services/university_catalog.dart';
 import 'package:flyprox_app/widgets/common/university_picker_field.dart';
 
 void main() {
+  setUp(setUpTestApp);
   setUp(markEligiblePlayer);
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => SharedPreferences.setMockInitialValues({}));
@@ -85,13 +87,13 @@ void main() {
         playerName: 'Player', friends: ['Alex', 'Sam', 'Jordan']);
     final storage = StorageService();
     await storage.init();
-    appRouter.go(AppRoutes.profile);
+    testAppRouter.go(AppRoutes.profile);
     await tester.pumpWidget(ProviderScope(
       overrides: [storageServiceProvider.overrideWithValue(storage)],
-      child: MaterialApp.router(routerConfig: appRouter),
+      child: MaterialApp.router(routerConfig: testAppRouter),
     ));
     await tester.pumpAndSettle();
-    appRouter.push(AppRoutes.editProfile);
+    testAppRouter.push(AppRoutes.editProfile);
     await tester.pumpAndSettle();
     await tester
         .ensureVisible(find.byKey(const Key('university-picker-field')));
@@ -107,8 +109,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(await game.getUniversity(), 'Harvard University');
     expect(
-        appRouter.routeInformationProvider.value.uri.path, AppRoutes.profile);
-    appRouter.push(AppRoutes.editProfile);
+        testAppRouter.routeInformationProvider.value.uri.path, AppRoutes.profile);
+    testAppRouter.push(AppRoutes.editProfile);
     await tester.pumpAndSettle();
     final field = tester.widget<TextFormField>(
         find.byKey(const Key('university-picker-field')));

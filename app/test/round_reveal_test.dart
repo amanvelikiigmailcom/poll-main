@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flyprox_app/providers/service_providers.dart';
 import 'package:flyprox_app/services/storage_service.dart';
 import 'package:flyprox_app/router/app_router.dart';
+import 'fakes/test_app.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flyprox_app/services/game_settings.dart';
 import 'package:flyprox_app/services/local_game_service.dart';
@@ -17,8 +18,7 @@ import 'package:flyprox_app/screens/voting/star_received_screen.dart';
 
 /// Taps the first visible friend option and returns its name.
 ///
-/// Each question shows the player plus 3 of the 4 friends, so a fixed name
-/// is not always on screen.
+/// Each question shows four selected contacts.
 Future<String> tapFirstVisibleFriend(WidgetTester tester) async {
   for (final name in ['Alex', 'Sam', 'Jordan', 'Taylor']) {
     final found = find.text(name);
@@ -31,6 +31,7 @@ Future<String> tapFirstVisibleFriend(WidgetTester tester) async {
 }
 
 void main() {
+  setUp(setUpTestApp);
   setUp(markEligiblePlayer);
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() async {
@@ -90,15 +91,15 @@ void main() {
     expect(await game.getPlayerName(),'Player');
     expect(await game.getNames(),hasLength(4));
     final storage=StorageService();await storage.init();
-    appRouter.go(AppRoutes.editProfile);
+    testAppRouter.go(AppRoutes.editProfile);
     await tester.pumpWidget(ProviderScope(overrides:[storageServiceProvider.overrideWithValue(storage)],
-      child:MaterialApp.router(routerConfig:appRouter)));
+      child:MaterialApp.router(routerConfig:testAppRouter)));
     await tester.pumpAndSettle();
     expect(find.text('🙂'),findsOneWidget);
     expect(find.text('Change photo'),findsNothing);
     expect(find.text('Remove photo'),findsNothing);
     expect(find.byIcon(Icons.camera_alt),findsNothing);
-    appRouter.go(AppRoutes.profile);
+    testAppRouter.go(AppRoutes.profile);
     await tester.pumpAndSettle();
     expect(find.text('🙂'),findsOneWidget);
     expect(tester.takeException(),isNull);

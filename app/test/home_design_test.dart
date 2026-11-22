@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flyprox_app/providers/service_providers.dart';
 import 'package:flyprox_app/router/app_router.dart';
+import 'fakes/test_app.dart';
 import 'package:flyprox_app/screens/voting/vote_screen.dart';
 import 'package:flyprox_app/screens/voting/timer_screen.dart';
 import 'package:flyprox_app/services/local_game_service.dart';
@@ -11,12 +12,11 @@ import 'package:flyprox_app/services/storage_service.dart';
 import 'package:flyprox_app/services/subscription_service.dart';
 import 'fakes/eligible_player.dart';
 import 'fakes/fake_gateway.dart';
-import 'fakes/fake_secure_storage.dart';
 
 void main() {
+  setUp(setUpTestApp);
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
-    useFakeSecureStorage();
     markEligiblePlayer();
     await SubscriptionService.instance.resetForTest();
     SubscriptionService.instance.debugGateway(FakeGateway());
@@ -28,12 +28,12 @@ void main() {
   Future<void> mountHome(WidgetTester tester, double scale) async {
     final storage = StorageService();
     await storage.init();
-    appRouter.go(AppRoutes.home);
+    testAppRouter.go(AppRoutes.home);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [storageServiceProvider.overrideWithValue(storage)],
         child: MaterialApp.router(
-          routerConfig: appRouter,
+          routerConfig: testAppRouter,
           builder: (context, child) => MediaQuery(
             data: MediaQuery.of(
               context,

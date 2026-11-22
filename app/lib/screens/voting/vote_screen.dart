@@ -177,11 +177,7 @@ class _VoteScreenState extends State<VoteScreen>
                         name.trim().toLowerCase(),
               )
               .toList();
-          final self = q.candidates.where((c) => c.isSelf).toList();
-          final player = await svc.getPlayerName();
-          final userId = name == player
-              ? (self.length == 1 ? self.single.id : null)
-              : (matches.length == 1 ? matches.single.id : null);
+          final userId = matches.length == 1 ? matches.single.id : null;
           options.add(
             QuizOption(
               id: '${q.id}_$index',

@@ -1,3 +1,4 @@
+import 'fakes/mock_storage_service.dart';
 import 'fakes/eligible_player.dart';
 import 'package:flyprox_app/services/content_service.dart';
 import 'package:flyprox_app/services/age_gate_service.dart';
@@ -17,16 +18,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flyprox_app/providers/service_providers.dart';
 import 'package:flyprox_app/router/app_router.dart';
+import 'fakes/test_app.dart';
 import 'package:flyprox_app/services/api_service.dart';
 import 'package:flyprox_app/services/phone_auth_service.dart';
 import 'package:flyprox_app/services/phone_auth_driver.dart';
 import 'package:flyprox_app/services/storage_service.dart';
 import 'fakes/fake_phone_auth_driver.dart';
-import 'fakes/fake_secure_storage.dart';
 
 class MockApiService extends Mock implements ApiService {}
-
-class MockStorageService extends Mock implements StorageService {}
 
 Response<Map<String, dynamic>> _json(Map<String, dynamic> data) =>
     Response<Map<String, dynamic>>(
@@ -46,7 +45,7 @@ Future<void> mountNames(
 }) async {
   final storage = StorageService();
   await storage.init();
-  appRouter.go(AppRoutes.phone);
+  testAppRouter.go(AppRoutes.phone);
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -54,7 +53,7 @@ Future<void> mountNames(
         if (phoneAuth != null)
           phoneAuthServiceProvider.overrideWithValue(phoneAuth),
       ],
-      child: MaterialApp.router(routerConfig: appRouter),
+      child: MaterialApp.router(routerConfig: testAppRouter),
     ),
   );
   await tester.pumpAndSettle();
@@ -65,17 +64,15 @@ PhoneAuthService makeService({
   required MockApiService api,
   required MockStorageService storage,
 }) {
-  when(() => storage.saveToken(any())).thenAnswer((_) async {});
-  when(() => storage.savePhone(any())).thenAnswer((_) async {});
   return PhoneAuthService(api: api, storage: storage, driver: driver);
 }
 
 void main() {
+  setUp(setUpTestApp);
   setUp(markEligiblePlayer);
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     ContentService.instance.debugClear();
-    useFakeSecureStorage();
   });
 
   testWidgets(
@@ -246,14 +243,57 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets(
+    'same phone route preserves input; backing out of OTP and reopening resets the code',
+    (tester) async {
+      final driver = FakePhoneAuthDriver();
+      await mountNames(
+        tester,
+        phoneAuth: makeService(
+          driver: driver,
+          api: MockApiService(),
+          storage: MockStorageService(),
+        ),
+      );
+      await tester.enterText(find.byType(TextField), '6505551234');
+      await tester.pump();
+      testAppRouter.go(AppRoutes.phone);
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        '6505551234',
+      );
+      await tester.tap(find.text('Send code'));
+      await pumpRoute(tester);
+      expect(find.text('Enter the code'), findsOneWidget);
+      tester.widget<Pinput>(find.byType(Pinput)).controller!.text = '123';
+      await tester.pump();
+      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await tester.pumpAndSettle();
+      expect(find.text('Log in with phone'), findsOneWidget);
+      expect(find.text('Enter the code'), findsNothing);
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        '6505551234',
+      );
+      await tester.tap(find.text('Send code'));
+      await pumpRoute(tester);
+      expect(find.text('Enter the code'), findsOneWidget);
+      expect(
+        tester.widget<Pinput>(find.byType(Pinput)).controller!.text,
+        isEmpty,
+      );
+      expect(driver.sendCalls, 2);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets('typed number receives a code and verifies into friends', (
     tester,
   ) async {
     final api = MockApiService();
     final storage = MockStorageService();
     final driver = FakePhoneAuthDriver();
-    when(() => storage.saveToken(any())).thenAnswer((_) async {});
-    when(() => storage.savePhone(any())).thenAnswer((_) async {});
     when(
       () => api.post<Map<String, dynamic>>(
         '/api/auth/firebase',

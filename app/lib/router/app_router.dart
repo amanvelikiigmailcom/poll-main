@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../screens/onboarding/names_entry_screen.dart';
+import '../screens/registration/username_screen.dart';
 import '../screens/onboarding/onboarding_screen.dart';
 import '../screens/auth/phone_registration_screen.dart';
 import '../screens/auth/otp_verification_screen.dart';
@@ -54,6 +55,7 @@ abstract final class AppRoutes {
   static const splash = '/';
   static const onboarding = '/onboarding';
   static const namesEntry = '/names';
+  static const username = '/username';
   static const age = '/age';
   static const ageBlocked = '/age-blocked';
   static const vote = '/vote';
@@ -79,7 +81,6 @@ abstract final class AppRoutes {
   static const location = '/location';
   static const school = '/school';
   static const classSelect = '/class';
-  static const username = '/username';
   static const contacts = '/contacts';
   static const photo = '/photo';
   static const beforeVote = '/before-vote';
@@ -145,7 +146,11 @@ FutureOr<String?> _ageRedirect(BuildContext context, GoRouterState state) {
   }
   if (path == AppRoutes.age || path == AppRoutes.ageBlocked) {
     return LocalGameService.instance.hasEnoughNames().then(
-      (ready) => ready ? AppRoutes.home : AppRoutes.namesEntry,
+      (ready) async => ready
+          ? (await LocalGameService.instance.isUsernameSetupPending()
+                ? AppRoutes.username
+                : AppRoutes.home)
+          : AppRoutes.namesEntry,
     );
   }
   return null;
@@ -158,11 +163,13 @@ class _SplashRedirectState extends ConsumerState<_SplashRedirect> {
       return;
     }
     final hasNames = await LocalGameService.instance.hasEnoughNames();
+    final pendingUsername = await LocalGameService.instance
+        .isUsernameSetupPending();
     if (!mounted) return;
     final introDone = ref.read(storageServiceProvider).isOnboardingDone();
     context.go(
       hasNames
-          ? AppRoutes.home
+          ? (pendingUsername ? AppRoutes.username : AppRoutes.home)
           : introDone
           ? AppRoutes.phone
           : AppRoutes.onboarding,
@@ -173,7 +180,10 @@ class _SplashRedirectState extends ConsumerState<_SplashRedirect> {
   Widget build(BuildContext context) => StartupIntro(onComplete: _redirect);
 }
 
-final GoRouter appRouter = GoRouter(
+final GoRouter appRouter = createAppRouter();
+
+/// A fresh navigation tree for each app/test lifetime.
+GoRouter createAppRouter() => GoRouter(
   initialLocation: AppRoutes.splash,
   debugLogDiagnostics: false,
   refreshListenable: Listenable.merge([
@@ -203,6 +213,14 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.onboarding,
       builder: (_, __) => const OnboardingScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.username,
+      redirect: (_, __) async =>
+          await LocalGameService.instance.hasEnoughNames()
+          ? null
+          : AppRoutes.namesEntry,
+      builder: (_, __) => const UsernameScreen(),
     ),
     GoRoute(
       path: AppRoutes.namesEntry,

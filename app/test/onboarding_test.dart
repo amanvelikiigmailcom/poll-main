@@ -11,23 +11,22 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flyprox_app/providers/service_providers.dart';
 import 'package:flyprox_app/router/app_router.dart';
+import 'fakes/test_app.dart';
 import 'package:flyprox_app/screens/onboarding/onboarding_screen.dart';
 import 'package:flyprox_app/services/content_service.dart';
 import 'package:flyprox_app/services/local_game_service.dart';
 import 'package:flyprox_app/services/storage_service.dart';
 import 'package:flyprox_app/theme/app_theme.dart';
 
-import 'fakes/fake_secure_storage.dart';
-
 Future<StorageService> mountApp(WidgetTester tester) async {
   final storage = StorageService();
   await storage.init();
-  appRouter.go(AppRoutes.splash);
+  testAppRouter.go(AppRoutes.splash);
   await tester.pumpWidget(
     ProviderScope(
       overrides: [storageServiceProvider.overrideWithValue(storage)],
       child: MaterialApp.router(
-        routerConfig: appRouter,
+        routerConfig: testAppRouter,
         theme: AppTheme.lightTheme,
       ),
     ),
@@ -38,10 +37,10 @@ Future<StorageService> mountApp(WidgetTester tester) async {
 }
 
 void main() {
+  setUp(setUpTestApp);
   setUp(markEligiblePlayer);
   setUp(() {
     SharedPreferences.setMockInitialValues({});
-    useFakeSecureStorage();
     ContentService.instance.debugClear();
   });
 
@@ -56,13 +55,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(storage.isOnboardingDone(), isTrue);
       expect(
-        appRouter.routeInformationProvider.value.uri.path,
+        testAppRouter.routeInformationProvider.value.uri.path,
         AppRoutes.phone,
       );
       await tester.pumpWidget(const SizedBox());
       await mountApp(tester);
       expect(
-        appRouter.routeInformationProvider.value.uri.path,
+        testAppRouter.routeInformationProvider.value.uri.path,
         AppRoutes.phone,
       );
       expect(find.byType(OnboardingScreen), findsNothing);
@@ -90,7 +89,10 @@ void main() {
     await tester.tap(find.text('Get started'));
     await tester.pumpAndSettle();
     expect(storage.isOnboardingDone(), isTrue);
-    expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.phone);
+    expect(
+      testAppRouter.routeInformationProvider.value.uri.path,
+      AppRoutes.phone,
+    );
   });
 
   testWidgets('existing players bypass intro; replay keeps their game data', (
@@ -102,12 +104,18 @@ void main() {
       friends: ['Sam', 'Jamie', 'Taylor', 'Robin'],
     );
     await mountApp(tester);
-    expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
-    appRouter.push(AppRoutes.onboarding);
+    expect(
+      testAppRouter.routeInformationProvider.value.uri.path,
+      AppRoutes.home,
+    );
+    testAppRouter.push(AppRoutes.onboarding);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Skip'));
     await tester.pumpAndSettle();
-    expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
+    expect(
+      testAppRouter.routeInformationProvider.value.uri.path,
+      AppRoutes.home,
+    );
     expect(await LocalGameService.instance.getNames(), [
       'Sam',
       'Jamie',
@@ -130,15 +138,24 @@ void main() {
       await tester.ensureVisible(find.text('Try with example names'));
       await tester.tap(find.text('Try with example names'));
       await tester.pumpAndSettle();
+      expect(find.text('Choose your username'), findsOneWidget);
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
       final game = LocalGameService.instance;
-      expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
-      expect(await game.getUsername(), isNull);
-      expect(await game.getPlayerName(), 'Michael');
+      expect(
+        testAppRouter.routeInformationProvider.value.uri.path,
+        AppRoutes.home,
+      );
+      expect(await game.getUsername(), await game.getPlayerName());
+      expect(await game.getPlayerName(), matches(RegExp(r'^user[0-9]{6}$')));
       expect(await game.getNames(), ['Alex', 'Sam', 'Jordan', 'Taylor']);
       expect((await game.generateRound(languageCode: 'en')).length, 12);
       await tester.pumpWidget(const SizedBox());
       await mountApp(tester);
-      expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
+      expect(
+        testAppRouter.routeInformationProvider.value.uri.path,
+        AppRoutes.home,
+      );
     },
   );
 
@@ -188,14 +205,60 @@ void main() {
       expect(find.text('4 contacts selected · Ready to play'), findsOneWidget);
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
-      expect(appRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
+      expect(find.text('Choose your username'), findsOneWidget);
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+      expect(
+        testAppRouter.routeInformationProvider.value.uri.path,
+        AppRoutes.home,
+      );
       expect(await LocalGameService.instance.getNames(), [
         'Moon',
         'Sun',
         'Star',
         'Sky',
       ]);
+      expect(
+        await LocalGameService.instance.getPlayerName(),
+        matches(RegExp(r'^user[0-9]{6}$')),
+      );
+      final options = await LocalGameService.instance.selectedOptions();
+      expect(options, unorderedEquals(['Moon', 'Sun', 'Star', 'Sky']));
+      expect(options, isNot(contains('Michael')));
       expect(tester.testTextInput.isVisible, isFalse);
+    },
+  );
+
+  testWidgets(
+    'real contacts replace a saved demo identity without filtering a contact named Michael',
+    (tester) async {
+      await LocalGameService.instance.savePlayerName('Michael');
+      ContactPickerService.instance.debugDriver(
+        FakeContactPickerDriver(
+          manyResult: [
+            Contact(fullName: 'Michael'),
+            Contact(fullName: 'Moon'),
+            Contact(fullName: 'Sun'),
+            Contact(fullName: 'Sky'),
+          ],
+        ),
+      );
+      addTearDown(ContactPickerService.instance.resetDriverForTest);
+      await openContacts(tester);
+      await tester.tap(find.text('Choose from contacts'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+      expect(
+        await LocalGameService.instance.getPlayerName(),
+        matches(RegExp(r'^user[0-9]{6}$')),
+      );
+      expect(await LocalGameService.instance.getNames(), [
+        'Michael',
+        'Moon',
+        'Sun',
+        'Sky',
+      ]);
     },
   );
 
@@ -281,14 +344,14 @@ void main() {
   );
 
   testWidgets(
-    'examples replace an old wish nickname with Michael and preserve sample friends',
+    'examples preserve an existing custom nickname and sample friends',
     (tester) async {
       await LocalGameService.instance.savePlayerName('wish');
       await openContacts(tester);
       await tester.ensureVisible(find.text('Try with example names'));
       await tester.tap(find.text('Try with example names'));
       await tester.pumpAndSettle();
-      expect(await LocalGameService.instance.getPlayerName(), 'Michael');
+      expect(await LocalGameService.instance.getPlayerName(), 'wish');
       expect(await LocalGameService.instance.getNames(), [
         'Alex',
         'Sam',
@@ -308,12 +371,12 @@ void main() {
         addTearDown(tester.view.resetDevicePixelRatio);
         final storage = StorageService();
         await storage.init();
-        appRouter.go(AppRoutes.namesEntry);
+        testAppRouter.go(AppRoutes.namesEntry);
         await tester.pumpWidget(
           ProviderScope(
             overrides: [storageServiceProvider.overrideWithValue(storage)],
             child: MaterialApp.router(
-              routerConfig: appRouter,
+              routerConfig: testAppRouter,
               builder: (context, child) => MediaQuery(
                 data: MediaQuery.of(
                   context,

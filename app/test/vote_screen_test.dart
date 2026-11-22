@@ -21,7 +21,7 @@ server.QuizSession _serverSession() => server.QuizSession(
       candidates: [
         const server.QuizCandidate(
           id: 'self',
-          firstName: '',
+          firstName: 'Али',
           lastName: '',
           grade: 8,
           isSelf: true,
@@ -60,6 +60,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Question 1 of 12'), findsOneWidget);
+    expect(find.text('Аман'), findsNothing);
     expect(find.textContaining('make the whole group laugh'), findsOneWidget);
     expect(find.textContaining('Sympathy'), findsNothing);
     expect(find.textContaining('General'), findsNothing);
@@ -79,7 +80,7 @@ void main() {
     final quiz = MockQuizService();
     when(() => quiz.getQuizzes()).thenAnswer((_) async => _serverSession());
     when(
-      () => quiz.submitVote(quizId: 'sq0', winnerId: 'self'),
+      () => quiz.submitVote(quizId: 'sq0', winnerId: 'user_Али'),
     ).thenAnswer((_) async => const server.VoteResult(success: true));
     final source = ServerRoundSource(quiz, isLoggedIn: () async => true);
 
@@ -90,9 +91,15 @@ void main() {
 
     expect(find.text('Server question 0'), findsOneWidget);
     expect(find.text('Stranger'), findsNothing);
-    await tester.tap(find.text('Аман'));
+    expect(find.text('Аман'), findsNothing);
+    for (final name in ['Али', 'Маша', 'Даня', 'Саша']) {
+      expect(find.text(name), findsOneWidget);
+    }
+    await tester.tap(find.text('Али'));
     await tester.pumpAndSettle();
-    verify(() => quiz.submitVote(quizId: 'sq0', winnerId: 'self')).called(1);
+    verify(
+      () => quiz.submitVote(quizId: 'sq0', winnerId: 'user_Али'),
+    ).called(1);
     expect(find.text('Question 2 of 12'), findsOneWidget);
   });
 
@@ -122,7 +129,8 @@ void main() {
       final visible = friends
           .where((name) => find.text(name).evaluate().isNotEmpty)
           .toList();
-      expect(visible.length, 3);
+      expect(visible.length, 4);
+      expect(find.text('Me'), findsNothing);
       await tester.tap(find.text(visible.first));
       await tester.pumpAndSettle();
       verify(() => quiz.submitVote(quizId: 'sq0', winnerId: null)).called(1);

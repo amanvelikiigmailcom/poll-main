@@ -1,126 +1,177 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../providers/service_providers.dart';
+import '../../providers/user_provider.dart';
+import '../../router/app_router.dart';
+import '../../services/local_game_service.dart';
 
 const _primaryBlue = Color(0xFF4B6EF5);
-const _accentRed = Color(0xFFFF3B5C);
-const _textPrimary = Color(0xFF1A1A2E);
-const _background = Color(0xFFF8F8F8);
 
-class UsernameScreen extends StatefulWidget {
+/// A local profile nickname, after contacts and before optional notifications.
+class UsernameScreen extends ConsumerStatefulWidget {
   const UsernameScreen({super.key});
+
   @override
-  State<UsernameScreen> createState() => _UsernameScreenState();
+  ConsumerState<UsernameScreen> createState() => _UsernameScreenState();
 }
 
-class _UsernameScreenState extends State<UsernameScreen> {
+class _UsernameScreenState extends ConsumerState<UsernameScreen> {
   final _controller = TextEditingController();
-  Timer? _debounce;
-  bool isChecking = false;
-  bool? isAvailable;
   final _formKey = GlobalKey<FormState>();
-  final _unavailableNames = const ['admin', 'user', 'test'];
+  bool _loading = true;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _prefill();
+  }
+
+  Future<void> _prefill() async {
+    final game = LocalGameService.instance;
+    final name = await game.getUsername() ?? await game.ensurePlayerName();
+    if (!mounted) return;
+    setState(() {
+      _controller.text = name;
+      _loading = false;
+    });
+  }
 
   @override
   void dispose() {
     _controller.dispose();
-    _debounce?.cancel();
     super.dispose();
   }
 
-  void _onUsernameChanged(String value) {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-    setState(() {
-      isChecking = true;
-      isAvailable = null;
-    });
-    _debounce = Timer(const Duration(milliseconds: 500), () async {
-      await Future.delayed(const Duration(seconds: 1));
-      if (mounted) {
-        setState(() {
-          isChecking = false;
-          isAvailable = value.length >= 3 &&
-              RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(value) &&
-              !_unavailableNames.contains(value.toLowerCase());
-        });
-      }
-    });
+  Future<void> _continue() async {
+    if (_loading || _saving || !(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() => _saving = true);
+    try {
+      final name = _controller.text.trim();
+      final game = LocalGameService.instance;
+      await game.saveUsername(name);
+      await game.savePlayerName(name);
+      if (!mounted) return;
+      await ref.read(localProfileProvider.notifier).refresh();
+      final loggedIn = await ref.read(authServiceProvider).isLoggedIn();
+      if (!mounted) return;
+      final needsPush =
+          loggedIn && await ref.read(pushServiceProvider).needsPrompt();
+      await game.setUsernameSetupPending(false);
+      if (!mounted) return;
+      context.go(needsPush ? AppRoutes.pushPrompt : AppRoutes.home);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Couldn’t save your username. Try again.'),
+        ),
+      );
+    }
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: _background,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: const BackButton(color: _textPrimary),
-        title: const Text('Придумайте логин', style: TextStyle(color: _textPrimary)),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: _primaryBlue,
+    body: SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         child: Form(
           key: _formKey,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Придумайте логин вашего аккаунта',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _textPrimary),
-              ),
-              const SizedBox(height: 24),
-              TextFormField(
-                controller: _controller,
-                onChanged: _onUsernameChanged,
-                decoration: InputDecoration(
-                  labelText: 'Логин',
-                  hintText: 'Введите логин',
-                  helperText: 'Только латинские буквы, цифры и символ _',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  suffixIcon: isChecking
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: Padding(
-                            padding: EdgeInsets.all(12),
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        )
-                      : isAvailable == true
-                          ? const Icon(Icons.check_circle, color: Colors.green)
-                          : isAvailable == false
-                              ? const Icon(Icons.cancel, color: _accentRed)
-                              : null,
-                ),
-                validator: (v) {
-                  if (v == null || v.isEmpty) return 'Введите логин';
-                  if (v.length < 3) return 'Минимум 3 символа';
-                  if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(v)) return 'Только латинские буквы, цифры и _';
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isAvailable == true ? _primaryBlue : Colors.grey,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: IconButton(
+                  tooltip: 'Back to contacts',
+                  onPressed: _saving
+                      ? null
+                      : () => context.go(AppRoutes.namesEntry),
+                  icon: const Icon(
+                    Icons.arrow_back_rounded,
+                    color: Colors.white,
                   ),
-                  onPressed: isAvailable == true
-                      ? () {
-                          if (_formKey.currentState!.validate()) {
-                            Navigator.pushNamed(context, '/contacts');
-                          }
-                        }
-                      : null,
-                  child: const Text('Сохранить', style: TextStyle(color: Colors.white, fontSize: 16)),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Choose your username',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Keep the suggested name or make it your own. You can change it later in your profile.',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 28),
+              if (_loading)
+                const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                )
+              else
+                TextFormField(
+                  key: const Key('onboarding-username'),
+                  controller: _controller,
+                  enabled: !_saving,
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  textCapitalization: TextCapitalization.none,
+                  textInputAction: TextInputAction.done,
+                  style: const TextStyle(fontSize: 16),
+                  decoration: InputDecoration(
+                    labelText: 'Username',
+                    prefixText: '@',
+                    helperText: 'At least 3 characters: letters, numbers or _',
+                    helperMaxLines: 3,
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  validator: (value) =>
+                      LocalGameService.validateUsername(value ?? ''),
+                  onFieldSubmitted: (_) => _continue(),
+                ),
+              const SizedBox(height: 28),
+              ElevatedButton(
+                onPressed: _loading || _saving ? null : _continue,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: _primaryBlue,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                child: Text(
+                  _saving ? 'Saving…' : 'Continue',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
 }

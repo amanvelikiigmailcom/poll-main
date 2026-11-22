@@ -11,10 +11,10 @@ import 'package:flyprox_app/models/user.dart';
 import 'package:flyprox_app/providers/service_providers.dart';
 import 'package:flyprox_app/providers/user_provider.dart';
 import 'package:flyprox_app/router/app_router.dart';
+import 'fakes/test_app.dart';
 import 'package:flyprox_app/services/local_game_service.dart';
 import 'package:flyprox_app/services/storage_service.dart';
 
-import 'fakes/fake_secure_storage.dart';
 
 class DeletionApi extends Mock implements ApiService {}
 
@@ -43,11 +43,11 @@ Future<ProviderContainer> mountResetApp(
   await container.read(localProfileProvider.notifier).refresh();
   expect(container.read(localProfileProvider).playerName, 'Old player');
   expect(container.read(currentUserProvider)?.firstName, 'Old cache');
-  appRouter.go(route);
+  testAppRouter.go(route);
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
-      child: MaterialApp.router(routerConfig: appRouter),
+      child: MaterialApp.router(routerConfig: testAppRouter),
     ),
   );
   await tester.pumpAndSettle();
@@ -90,9 +90,9 @@ Future<void> checkClearedGame(ProviderContainer container) async {
 }
 
 void main() {
+  setUp(setUpTestApp);
   setUp(markEligiblePlayer);
   setUp(() async {
-    useFakeSecureStorage();
     await seedGame();
   });
 
@@ -129,7 +129,7 @@ void main() {
         greaterThan(0),
       );
       expect(container.read(localProfileProvider).playerName, 'Old player');
-      expect(appRouter.routeInformationProvider.value.uri.path, route);
+      expect(testAppRouter.routeInformationProvider.value.uri.path, route);
       await tester.pumpWidget(const SizedBox());
     });
 
@@ -163,21 +163,21 @@ void main() {
       await tester.pumpAndSettle();
       await checkClearedGame(container);
       expect(
-        appRouter.routeInformationProvider.value.uri.path,
+        testAppRouter.routeInformationProvider.value.uri.path,
         AppRoutes.phone,
       );
       await tester.pumpWidget(const SizedBox());
-      appRouter.go(AppRoutes.splash);
+      testAppRouter.go(AppRoutes.splash);
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
-          child: MaterialApp.router(routerConfig: appRouter),
+          child: MaterialApp.router(routerConfig: testAppRouter),
         ),
       );
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
       expect(
-        appRouter.routeInformationProvider.value.uri.path,
+        testAppRouter.routeInformationProvider.value.uri.path,
         AppRoutes.phone,
       );
       expect(find.text('Old player'), findsNothing);
@@ -214,10 +214,14 @@ void main() {
       await tester.ensureVisible(find.text('Try with example names'));
       await tester.tap(find.text('Try with example names'));
       await tester.pumpAndSettle();
-      expect(container.read(localProfileProvider).playerName, 'Michael');
-      appRouter.go(AppRoutes.profile);
+      expect(find.text('Choose your username'), findsOneWidget);
+      await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
-      expect(find.text('Michael'), findsOneWidget);
+      final name = container.read(localProfileProvider).playerName;
+      expect(name, matches(RegExp(r'^user[0-9]{6}$')));
+      testAppRouter.go(AppRoutes.profile);
+      await tester.pumpAndSettle();
+      expect(find.text(name), findsOneWidget);
       expect(find.text('Old player'), findsNothing);
       expect(find.text('Old cache'), findsNothing);
       await tester.pumpWidget(const SizedBox());
@@ -271,7 +275,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        appRouter.routeInformationProvider.value.uri.path,
+        testAppRouter.routeInformationProvider.value.uri.path,
         AppRoutes.settings,
       );
       await tester.pumpWidget(const SizedBox());
@@ -310,10 +314,10 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(await container.read(storageServiceProvider).getToken(), isNull);
-    expect(container.read(storageServiceProvider).getPhone(), isNull);
+      expect(container.read(storageServiceProvider).getPhone(), isNull);
       await checkClearedGame(container);
       expect(
-        appRouter.routeInformationProvider.value.uri.path,
+        testAppRouter.routeInformationProvider.value.uri.path,
         AppRoutes.phone,
       );
       await tester.pumpWidget(const SizedBox());

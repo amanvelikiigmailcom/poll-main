@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:flyprox_app/providers/service_providers.dart';
 import 'package:flyprox_app/router/app_router.dart';
+import 'fakes/test_app.dart';
 import 'package:flyprox_app/services/api_service.dart';
 import 'package:flyprox_app/services/push_service.dart';
 import 'package:flyprox_app/services/storage_service.dart';
@@ -21,18 +22,19 @@ Future<void> mountPrompt(
 }) async {
   final storage = StorageService();
   await storage.init();
-  appRouter.go(AppRoutes.pushPrompt);
+  testAppRouter.go(AppRoutes.pushPrompt);
   await tester.pumpWidget(ProviderScope(
     overrides: [
       storageServiceProvider.overrideWithValue(storage),
       pushServiceProvider.overrideWithValue(push),
     ],
-    child: MaterialApp.router(routerConfig: appRouter),
+    child: MaterialApp.router(routerConfig: testAppRouter),
   ));
   await tester.pumpAndSettle();
 }
 
 void main() {
+  setUp(setUpTestApp);
   setUp(markEligiblePlayer);
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
