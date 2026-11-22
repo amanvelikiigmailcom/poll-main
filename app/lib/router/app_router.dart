@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -52,6 +53,8 @@ abstract final class AppRoutes {
   static const splash = '/';
   static const onboarding = '/onboarding';
   static const namesEntry = '/names';
+  static const age = '/age';
+  static const ageBlocked = '/age-blocked';
   static const vote = '/vote';
   static const starReceived = '/star-received';
   static const timer = '/timer';
@@ -109,50 +112,78 @@ class _SplashRedirect extends ConsumerStatefulWidget {
   ConsumerState<_SplashRedirect> createState() => _SplashRedirectState();
 }
 
-/// Age gate in front of the paywall: unknown → wheel, blocked → dead end,
-/// verified → Premium. Reactive, so the picker needs no navigation of its own.
-class _PremiumGate extends StatelessWidget {
-  const _PremiumGate();
-
-  @override
-  Widget build(BuildContext context) {
-    return ValueListenableBuilder<AgeGateStatus>(
-      valueListenable: AgeGateService.instance.statusListenable,
-      builder: (context, status, _) {
-        switch (status) {
-          case AgeGateStatus.verified:
-            return const PremiumScreen();
-          case AgeGateStatus.blocked:
-            return const AgeBlockedScreen();
-          case AgeGateStatus.unknown:
-            return const AgePickerScreen();
-        }
-      },
+FutureOr<String?> _ageRedirect(BuildContext context, GoRouterState state) {
+  final age = AgeGateService.instance;
+  final path = state.uri.path;
+  const information = {
+    AppRoutes.privacy,
+    AppRoutes.terms,
+    AppRoutes.forParents,
+  };
+  if (information.contains(path)) return null;
+  if (age.status == AgeGateStatus.blocked) {
+    return path == AppRoutes.ageBlocked ? null : AppRoutes.ageBlocked;
+  }
+  if (age.status == AgeGateStatus.unknown) {
+    if ({
+      AppRoutes.splash,
+      AppRoutes.onboarding,
+      AppRoutes.age,
+    }.contains(path)) {
+      return null;
+    }
+    return age.replayIntroOnLaunch ? AppRoutes.onboarding : AppRoutes.age;
+  }
+  if (path == AppRoutes.age || path == AppRoutes.ageBlocked) {
+    return LocalGameService.instance.hasEnoughNames().then(
+      (ready) => ready ? AppRoutes.home : AppRoutes.namesEntry,
     );
   }
+  return null;
 }
 
 class _SplashRedirectState extends ConsumerState<_SplashRedirect> {
   Future<void> _redirect() async {
+    if (AgeGateService.instance.replayIntroOnLaunch) {
+      context.go(AppRoutes.onboarding);
+      return;
+    }
     final hasNames = await LocalGameService.instance.hasEnoughNames();
     if (!mounted) return;
     final introDone = ref.read(storageServiceProvider).isOnboardingDone();
-    context.go(hasNames
-        ? AppRoutes.home
-        : introDone
-            ? AppRoutes.namesEntry
-            : AppRoutes.onboarding);
+    context.go(
+      hasNames
+          ? AppRoutes.home
+          : introDone
+          ? AppRoutes.namesEntry
+          : AppRoutes.onboarding,
+    );
   }
 
   @override
   Widget build(BuildContext context) => StartupIntro(onComplete: _redirect);
-
 }
 
 final GoRouter appRouter = GoRouter(
   initialLocation: AppRoutes.splash,
   debugLogDiagnostics: false,
+  refreshListenable: AgeGateService.instance.statusListenable,
+  redirect: _ageRedirect,
   routes: [
+    GoRoute(path: AppRoutes.age, builder: (_, __) => const AgePickerScreen()),
+    GoRoute(
+      path: AppRoutes.ageBlocked,
+      builder: (_, __) => const AgeBlockedScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.privacy,
+      builder: (_, __) => const PrivacyPolicyScreen(),
+    ),
+    GoRoute(path: AppRoutes.terms, builder: (_, __) => const TermsScreen()),
+    GoRoute(
+      path: AppRoutes.forParents,
+      builder: (_, __) => const ForParentsScreen(),
+    ),
     GoRoute(
       path: AppRoutes.splash,
       builder: (_, __) => const _SplashRedirect(),
@@ -174,10 +205,13 @@ final GoRouter appRouter = GoRouter(
       builder: (_, state) {
         final extra = state.extra;
         final phone = extra is Map ? extra['phone'] as String? ?? '' : '';
-        final verificationId =
-            extra is Map ? extra['verificationId'] as String? : null;
+        final verificationId = extra is Map
+            ? extra['verificationId'] as String?
+            : null;
         return OTPVerificationScreen(
-            phone: phone, verificationId: verificationId);
+          phone: phone,
+          verificationId: verificationId,
+        );
       },
     ),
     GoRoute(
@@ -188,22 +222,13 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state, child) =>
           AppShell(child: PushListener(child: child)),
       routes: [
-        GoRoute(
-          path: AppRoutes.home,
-          builder: (_, __) => const HomeScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.vote,
-          builder: (_, __) => const VoteScreen(),
-        ),
+        GoRoute(path: AppRoutes.home, builder: (_, __) => const HomeScreen()),
+        GoRoute(path: AppRoutes.vote, builder: (_, __) => const VoteScreen()),
         GoRoute(
           path: AppRoutes.starReceived,
           builder: (_, __) => const StarReceivedScreen(),
         ),
-        GoRoute(
-          path: AppRoutes.timer,
-          builder: (_, __) => const TimerScreen(),
-        ),
+        GoRoute(path: AppRoutes.timer, builder: (_, __) => const TimerScreen()),
         GoRoute(
           path: AppRoutes.invite,
           builder: (_, __) => const InviteFriendScreen(),
@@ -232,73 +257,78 @@ final GoRouter appRouter = GoRouter(
           path: AppRoutes.safetyCenter,
           builder: (_, __) => const SafetyCenterScreen(),
         ),
-        GoRoute(
-          path: AppRoutes.privacy,
-          builder: (_, __) => const PrivacyPolicyScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.terms,
-          builder: (_, __) => const TermsScreen(),
-        ),
 
         GoRoute(path: AppRoutes.faq, builder: (_, __) => const FaqScreen()),
+
         GoRoute(
-            path: AppRoutes.forParents,
-            builder: (_, __) => const ForParentsScreen()),
+          path: AppRoutes.search,
+          builder: (_, __) => const SearchScreen(),
+        ),
         GoRoute(
-            path: AppRoutes.search, builder: (_, __) => const SearchScreen()),
+          path: AppRoutes.activity,
+          builder: (_, __) => const ActivityScreen(),
+        ),
         GoRoute(
-            path: AppRoutes.activity,
-            builder: (_, __) => const ActivityScreen()),
+          path: AppRoutes.collection,
+          builder: (_, __) => const CollectionScreen(),
+        ),
         GoRoute(
-            path: AppRoutes.collection,
-            builder: (_, __) => const CollectionScreen()),
+          path: AppRoutes.friends,
+          builder: (_, __) => const FriendsListScreen(),
+        ),
         GoRoute(
-            path: AppRoutes.friends,
-            builder: (_, __) => const FriendsListScreen()),
+          path: AppRoutes.friendRequests,
+          builder: (_, __) => const FriendRequestsScreen(),
+        ),
         GoRoute(
-            path: AppRoutes.friendRequests,
-            builder: (_, __) => const FriendRequestsScreen()),
-        GoRoute(
-            path: AppRoutes.premium,
-            builder: (_, __) => const _PremiumGate()),
+          path: AppRoutes.premium,
+          builder: (_, __) => const PremiumScreen(),
+        ),
         // Retired fake-voters result URL leads back to the free game.
         GoRoute(
-            path: AppRoutes.premiumResult, redirect: (_, __) => AppRoutes.home),
+          path: AppRoutes.premiumResult,
+          redirect: (_, __) => AppRoutes.home,
+        ),
         GoRoute(
-            path: AppRoutes.notificationsSettings,
-            builder: (_, __) => const NotificationsSettingsScreen()),
+          path: AppRoutes.notificationsSettings,
+          builder: (_, __) => const NotificationsSettingsScreen(),
+        ),
         GoRoute(
-            path: AppRoutes.languageSettings,
-            builder: (_, __) => const LanguageSettingsScreen()),
+          path: AppRoutes.languageSettings,
+          builder: (_, __) => const LanguageSettingsScreen(),
+        ),
         GoRoute(
-            path: AppRoutes.blockedUsers,
-            builder: (_, __) => const BlockedUsersScreen()),
+          path: AppRoutes.blockedUsers,
+          builder: (_, __) => const BlockedUsersScreen(),
+        ),
         GoRoute(
-            path: AppRoutes.hiddenUsers,
-            builder: (_, __) => const HiddenUsersScreen()),
+          path: AppRoutes.hiddenUsers,
+          builder: (_, __) => const HiddenUsersScreen(),
+        ),
         GoRoute(
-            path: AppRoutes.settingsQuiz,
-            builder: (_, __) => const SettingsQuizScreen()),
+          path: AppRoutes.settingsQuiz,
+          builder: (_, __) => const SettingsQuizScreen(),
+        ),
         GoRoute(
-            path: AppRoutes.likesFilled,
-            builder: (_, __) => const LikesFilledScreen()),
+          path: AppRoutes.likesFilled,
+          builder: (_, __) => const LikesFilledScreen(),
+        ),
         GoRoute(
-            path: AppRoutes.likesEmpty,
-            builder: (_, __) => const LikesEmptyScreen()),
+          path: AppRoutes.likesEmpty,
+          builder: (_, __) => const LikesEmptyScreen(),
+        ),
         GoRoute(
-            path: AppRoutes.likesResult,
-            builder: (_, __) => const LikesResultScreen()),
+          path: AppRoutes.likesResult,
+          builder: (_, __) => const LikesResultScreen(),
+        ),
         GoRoute(path: AppRoutes.room, builder: (_, __) => const RoomScreen()),
         GoRoute(
-            path: AppRoutes.createRoom,
-            builder: (_, __) => const CreateRoomScreen()),
+          path: AppRoutes.createRoom,
+          builder: (_, __) => const CreateRoomScreen(),
+        ),
       ],
     ),
   ],
-  errorBuilder: (_, state) => Scaffold(
-    body: Center(
-      child: Text('Page not found: ${state.error}'),
-    ),
-  ),
+  errorBuilder: (_, state) =>
+      Scaffold(body: Center(child: Text('Page not found: ${state.error}'))),
 );

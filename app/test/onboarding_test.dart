@@ -1,3 +1,4 @@
+import 'fakes/eligible_player.dart';
 import 'dart:convert';
 import 'package:flutter_native_contact_picker/model/contact.dart';
 import 'package:flyprox_app/services/contact_picker_service.dart';
@@ -37,6 +38,7 @@ Future<StorageService> mountApp(WidgetTester tester) async {
 }
 
 void main() {
+  setUp(markEligiblePlayer);
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     useFakeSecureStorage();
@@ -224,6 +226,39 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.testTextInput.isVisible, isFalse);
   });
+
+  testWidgets(
+    'nickname screen keeps input and spaced actions visible above keyboard',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetViewInsets);
+      await mountApp(tester);
+      await tester.tap(find.text('Skip'));
+      await tester.pumpAndSettle();
+      expect(tester.testTextInput.isVisible, isFalse);
+      tester.view.viewInsets = const FakeViewPadding(bottom: 340);
+      await tester.enterText(find.byType(TextField), 'Nickname');
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      final primary = find.widgetWithText(ElevatedButton, 'Continue');
+      final secondary = find.widgetWithText(
+        OutlinedButton,
+        'Try with example names',
+      );
+      await tester.ensureVisible(secondary);
+      await tester.pumpAndSettle();
+      expect(primary.hitTestable(), findsOneWidget);
+      expect(secondary.hitTestable(), findsOneWidget);
+      expect(
+        tester.getTopLeft(secondary).dy - tester.getBottomLeft(primary).dy,
+        greaterThanOrEqualTo(12),
+      );
+      expect(tester.testTextInput.isVisible, isTrue);
+    },
+  );
 
   testWidgets('examples do not duplicate the chosen nickname', (tester) async {
     await mountApp(tester);

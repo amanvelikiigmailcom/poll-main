@@ -58,3 +58,12 @@ ATT, геолокация, микрофон и камера для текуще�
 - [Apple: privacy design](https://developer.apple.com/design/human-interface-guidelines/privacy/)
 - [Apple: notification permission](https://developer.apple.com/documentation/usernotifications/asking-permission-to-use-notifications)
 - [Firebase iOS phone auth](https://firebase.google.com/docs/auth/ios/phone-auth)
+
+
+## Pending next build: age and startup (not build 9)
+
+Prepared source changes, not yet archived/uploaded: the declared-age question follows the introduction and precedes nickname, phone sign-in and contacts. Options are 12 or younger, 13, 14, 15, 16, 17 and 18+. No answer is preselected. An under-13 response blocks protected routes for the current run and shows the age restriction message. At the owner's request, a full new launch restarts intro and permits a new answer. This is self-declared age, not verified age or a guarantee of COPPA compliance.
+
+Firebase and Superwall initialization begins only after an eligible answer. Anonymous public intro content may load before that point without authenticated API interceptors or SDK identifiers. Parents/privacy pages remain accessible without the game shell. Keep public policy aligned with the actually distributed binary; publish this age-flow description with the next build, not as current build 9 behavior.
+
+SMS configuration and App Store availability are now restricted to US, UK, Canada, New Zealand, Singapore and Hong Kong. Test credentials remain +1 650-555-1234 / 123456; they do not send a real SMS. Pending client update adds all six country choices with US default. App Store's future-new-territory automatic availability flag still requires UI attention.

@@ -1,12 +1,25 @@
 # Flyprox — план работ (обновлено 2026-11-22)
 
+## Активный пакет: исправления без новой сборки
+
+**Прямой запрет владельца:** не запускать новый Archive/IPA/upload, пока он отдельно не скажет. Build 9 с новым Contacts UI уже был загружен ДО этого запрета и подтверждён Apple VALID/IN_BETA_TESTING (56071e4d-d750-417f-9d51-e44d0aa39f73). Его не путать с текущими неподписанными правками.
+
+- [x] Возраст после вводных экранов, до имени/телефона/контактов, без таббара и значения по умолчанию: 12 or younger, 13…18+. В этом запуске under 13 блокирует все игровые/авторизационные маршруты. После полного закрытия/нового запуска заново intro+возраст, по последнему явному решению владельца; это declared-age screen, не age verification.
+- [x] Firebase/Superwall не удалены: deferred startup после eligible answer. Вопросы обновляются после проверки. Публичные тексты intro могут обновляться до неё без SDK/auth/идентификаторов; кэш доступен сразу.
+- [x] IMG_1319: nickname keyboard не открывается автоматически, форма прокручивается, Continue возле поля, между кнопками 12px.
+- [x] IMG_1320: статус подписки обновляется при открытии; spinner/понятные active/free/unknown; ошибки не стирают известную подписку. Версия читается из Bundle через native app_info, hardcoded 1.0.1(build3) убран.
+- [x] Последняя команда: Firebase live allowlist и клиентский выбор ровно US,GB,CA,NZ,SG,HK; default US. Test number/code сохранены. Предыдущие 21 регион заменены.
+- [x] По явной команде отключены остальные App Store territories; GET подтвердил ровно USA,GBR,CAN,NZL,SGP,HKG. Флаг будущих новых территорий пока true: см. docs/phone-regions-and-storefront-plan.md.
+- [x] Полная проверка: 169/169 Flutter tests; analyze 22 прежних info, без errors/warnings; Swift typecheck AppDelegate + ContactAccessBridge пройден; backend 22/22. Это проверки, не Archive.
+- [x] Исправления сохранены локальным commit; отчёт подготовлен. Push приложения отложен вместе со сборкой: существующий Xcode Cloud workflow может автоматически запускать Build при push.
+
 ## Новая задача: контакты iOS 18+, build 9
 
 - [x] Пользователь попросил новый picker вместо старого без поиска. Официальная документация и SDK проверены: contactAccessPicker работает только при .limited, значит нужен Contacts permission flow.
 - [x] Native bridge: permission/limited/full/denied, настоящий contactAccessPicker и ContactAccessButton, постоянный поиск, name-only browsing, phone reads только по подтверждённым IDs, legacy fallback 15–17. Plugin cache и backend не менялись.
 - [x] Swift typecheck native bridge + AppDelegate; 156/156 Flutter tests, analyze 22 info без errors/warnings; Info.plist и Xcode project lint проходят.
 - [x] Source commit e8cc97b запушен. Privacy/Support в Notion и local review/privacy notes обновлены под новое разрешение.
-- [ ] Archive 1.0.2(9), export, IPA checks, upload, VALID/IN_BETA_TESTING и notes.
+- [x] Archive 1.0.2(9), export, IPA checks, upload, VALID/IN_BETA_TESTING подтверждены до запрета новых сборок. Notes отдельно при следующей подготовке выпуска.
 - [ ] Зафиксировать финальный статус и docs. Нативный UI на реальном iPhone требует проверки владельцем после установки.
 
 ## Текущий выпуск: TestFlight 1.0.2 (обновлено 22.11.2026)
@@ -16,7 +29,7 @@
 - [x] API App Store Connect работает; ключи в игнорируемом `.env`, p8 вне репозитория. Реальный Superwall key только локально, skip-worktree.
 - [x] Билд 6 загружен, VALID/IN_BETA_TESTING. Билд 5 expired из-за исправленного Firebase callback crash.
 - [x] Билд 7 (commit 90a02b1): исправлены клавиатура/переполнение friends, ввод телефона, выход из зависшего входа. 146 тестов. Archive/IPA подписан, проверен и загружен. Delivery/build `ec5f9730-e806-4596-9a13-2d2499c8d66f`, VALID и IN_BETA_TESTING подтверждены.
-- [x] Firebase: тестовый номер +16505551234 / 123456 реально настроен. SMS allowlist — только US по явному выбору пользователя. Гостевой режим доступен без SMS.
+- [x] Firebase: тестовый номер +16505551234 / 123456 реально настроен. Актуальный SMS allowlist — US,GB,CA,NZ,SG,HK по последнему выбору пользователя. Гостевой режим доступен без SMS.
 - [x] Backend на `s-prod`: questions API с cursor pages, нет first-500 cutoff; candidates ограничены self/выбранными matched contacts, чужой winner запрещён. Skip не создаёт ложный голос/пуш. Тест на 10000 вопросов, JSON import с валидацией/dry-run. Коммиты до 3d8603a включительно задеплоены; /health и /api/questions — 200. Полный живой банк: 536 вопросов (512 main + 24 intro), 3 cursor pages; проверен Dart User-Agent.
 - [x] Приложение build 8: выбранные локальные имена на карточках, сопоставление account ID отдельно; backend bank для гостя с полным offline cache; встроенный резерв только для первого offline запуска. Добавлен single-contact fallback Find one contact, ранее выбранные контакты не затираются при добавлении следующих.
 - [x] Финальный build 8 (source e748467): 152/152 Flutter tests, анализ 22 info без errors/warnings; backend 22/22. Archive 200.5с, API-auth export успешен, IPA codesign/APNs/billing/Firebase callback/encryption flag проверены. Delivery/build c9636727-9c80-4eb0-a762-e24292fc799c: VALID и IN_BETA_TESTING, 22.11.2026. Билд 8 доступен для установки.

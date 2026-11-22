@@ -1,3 +1,4 @@
+import 'fakes/eligible_player.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,6 +35,7 @@ Future<void> mount(WidgetTester tester, String route) async {
 }
 
 void main() {
+  setUp(markEligiblePlayer);
   setUp(() async {
     SharedPreferences.setMockInitialValues({});
     useFakeSecureStorage();

@@ -1,3 +1,4 @@
+import 'fakes/eligible_player.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -32,6 +33,7 @@ Future<void> mountPrompt(
 }
 
 void main() {
+  setUp(markEligiblePlayer);
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   testWidgets('enable uploads the token', (tester) async {

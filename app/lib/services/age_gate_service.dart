@@ -10,8 +10,8 @@ abstract class AgeGateStore {
   Future<void> write(String key, String value);
 }
 
-/// Production store: the platform keychain, so a blocked or verified status
-/// survives reinstalls. Game reset never touches secure storage.
+/// Platform keychain stores the outcome; load() treats a refusal as a request
+/// to replay intro on the next launch. Game reset does not clear this store.
 class SecureAgeGateStore implements AgeGateStore {
   const SecureAgeGateStore();
 
@@ -28,7 +28,7 @@ class SecureAgeGateStore implements AgeGateStore {
       _storage.write(key: key, value: value);
 }
 
-/// Neutral age gate in front of the paywall.
+/// Declared-age gate before entering the application.
 ///
 /// Only the resulting status and its timestamp are stored; the selected age
 /// itself is never retained, and nothing leaves the device. All entry points
@@ -36,7 +36,7 @@ class SecureAgeGateStore implements AgeGateStore {
 /// again) instead of throwing.
 class AgeGateService {
   AgeGateService._({AgeGateStore? store})
-      : _store = store ?? const SecureAgeGateStore();
+    : _store = store ?? const SecureAgeGateStore();
 
   static final AgeGateService instance = AgeGateService._();
 
@@ -45,21 +45,31 @@ class AgeGateService {
   static const String _statusKey = 'age_gate_status';
   static const String _checkedAtKey = 'age_gate_checked_at';
 
-  /// Minimum age for paid features. 12 and under are blocked.
+  /// Minimum age for using the application. 12 and under are blocked.
   static const int minAge = 13;
 
   static bool passes(int age) => age >= minAge;
 
-  /// Current status for reactive UI (the `/premium` gate listens to this).
-  final ValueNotifier<AgeGateStatus> statusListenable =
-      ValueNotifier(AgeGateStatus.unknown);
+  /// Current status for startup and all protected application routes.
+  final ValueNotifier<AgeGateStatus> statusListenable = ValueNotifier(
+    AgeGateStatus.unknown,
+  );
 
   AgeGateStatus get status => statusListenable.value;
+
+  bool replayIntroOnLaunch = false;
+  void introFinished() => replayIntroOnLaunch = false;
 
   /// Loads the persisted status. Call once at startup; never throws.
   Future<void> load() async {
     try {
-      statusListenable.value = _parse(await _store.read(_statusKey));
+      final saved = _parse(await _store.read(_statusKey));
+      // A refusal blocks this run. A fresh launch replays onboarding and asks
+      // again, as requested; no phone/contacts/SDK session starts meanwhile.
+      replayIntroOnLaunch = saved == AgeGateStatus.blocked;
+      statusListenable.value = replayIntroOnLaunch
+          ? AgeGateStatus.unknown
+          : saved;
     } catch (_) {
       statusListenable.value = AgeGateStatus.unknown;
     }
@@ -96,5 +106,6 @@ class AgeGateService {
   Future<void> resetForTest() async {
     _store = const SecureAgeGateStore();
     statusListenable.value = AgeGateStatus.unknown;
+    replayIntroOnLaunch = false;
   }
 }

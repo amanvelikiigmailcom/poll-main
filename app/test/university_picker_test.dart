@@ -1,3 +1,4 @@
+import 'fakes/eligible_player.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +11,7 @@ import 'package:flyprox_app/services/university_catalog.dart';
 import 'package:flyprox_app/widgets/common/university_picker_field.dart';
 
 void main() {
+  setUp(markEligiblePlayer);
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => SharedPreferences.setMockInitialValues({}));
   setUpAll(() async {

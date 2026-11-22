@@ -1,3 +1,4 @@
+import 'fakes/eligible_player.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -31,6 +32,7 @@ Future<String> tapFirstVisibleFriend(WidgetTester tester) async {
 }
 
 void main() {
+  setUp(markEligiblePlayer);
   TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() async {
     SharedPreferences.setMockInitialValues({});

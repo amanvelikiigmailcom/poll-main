@@ -129,10 +129,10 @@ void main() {
     expect(ContentService.instance.text('paywall_title'), 'Premium');
   });
 
-  testWidgets('blocked screen renders the server override', (tester) async {
+  testWidgets('global age restriction cannot inherit old Premium-only server text', (tester) async {
     ContentService.instance.debugSetOverrides({'blocked_title': 'Server title'});
     await tester.pumpWidget(const MaterialApp(home: AgeBlockedScreen()));
-    expect(find.text('Server title'), findsOneWidget);
-    expect(find.text('Not available for your age'), findsNothing);
+    expect(find.text('Server title'), findsNothing);
+    expect(find.text('Flyprox isn’t available for your age'), findsOneWidget);
   });
 }

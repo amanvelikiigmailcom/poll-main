@@ -1,0 +1,34 @@
+# SMS и App Store: шесть регионов
+
+Обновлено 22.11.2026 по последней явной команде владельца. Этот список заменяет прежний список из 21 региона.
+
+| Страна/территория | Firebase ISO | App Store | Код телефона |
+|---|---|---|---|
+| США | US | USA | +1 (по умолчанию) |
+| Великобритания | GB | GBR | +44 |
+| Канада | CA | CAN | +1 |
+| Новая Зеландия | NZ | NZL | +64 |
+| Сингапур | SG | SGP | +65 |
+| Гонконг | HK | HKG | +852 |
+
+## Фактическое состояние
+
+- Firebase project flyprox-2d01b: smsRegionConfig allowlist содержит ровно CA,GB,HK,NZ,SG,US; Phone Auth включён, тестовый номер и код сохранены. Реальная доставка каждому оператору не проверялась платными SMS.
+- Приложение: PhoneRegions ограничивает выбор этими шестью регионами, default US. Смена страны пересчитывает номер; национальный начальный ноль Великобритании/Новой Зеландии нормализуется. Эти изменения ещё не вошли в установленный TestFlight build 9.
+- App Store Connect: после команды владельца PATCH territoryAvailabilities отключены остальные территории. Повторный GET всех 175 подтвердил available=true только для CAN,GBR,HKG,NZL,SGP,USA. Ошибок записи нет. Снимки до/после сохранены локально в /tmp/flyprox_territory_availability_before.json и /tmp/flyprox_territory_availability_after.json. Секретов в снимках нет.
+- Отдельный флаг availableInNewTerritories остаётся true. В проверенной официальной OpenAPI 4.6.1 не найден PATCH для этого флага у уже существующей availability; POST создаёт новую и возвращает конфликт для существующей. Не выдавать индивидуальное отключение стран за выключение этого будущего автодобавления. Для постоянного ограничения новых территорий нужен переключатель в веб-интерфейсе Connect.
+- Notion Support обновлён: прежнее US-only описание заменено шестью регионами.
+
+## Проверка и выпуск
+
+Сборку/Archive/upload и push приложения не запускать до отдельной команды владельца. Push может автоматически запустить существующий Xcode Cloud Build. После разрешения — новый уникальный build number, Archive/export, IPA checks, upload, VALID/IN_BETA_TESTING. На iPhone проверить выбор стран и SMS на собственном номере. Настройки SMS и доступности магазинов уже действуют независимо от будущего бинарника.
+
+Изменение доступности App Store может отображаться с задержкой до 24 часов; прежние пользователи в удалённых регионах могут продолжать получать обновления и повторно скачивать приложение согласно правилам Apple.
+
+## Источники
+
+- [Firebase: регионы и доставка](https://firebase.google.com/docs/auth/faq-and-troubleshooting)
+- [Google Identity Platform: SMS pricing](https://cloud.google.com/identity-platform/pricing)
+- [Apple: availability](https://developer.apple.com/help/app-store-connect/manage-your-apps-availability/manage-availability-for-your-app-on-the-app-store/)
+
+SMS-регионы и магазины — разные настройки; регион номера не подтверждает текущее местонахождение пользователя.

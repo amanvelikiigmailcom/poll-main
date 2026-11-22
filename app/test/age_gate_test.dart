@@ -1,82 +1,158 @@
-import 'package:flutter/cupertino.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flyprox_app/widgets/common/age_gated_startup.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:flyprox_app/providers/service_providers.dart';
 import 'package:flyprox_app/router/app_router.dart';
 import 'package:flyprox_app/services/age_gate_service.dart';
 import 'package:flyprox_app/services/storage_service.dart';
-import 'package:flyprox_app/services/subscription_service.dart';
+import 'package:flyprox_app/widgets/common/bottom_nav_bar.dart';
 import 'fakes/fake_age_gate_store.dart';
-import 'fakes/fake_gateway.dart';
+import 'fakes/fake_secure_storage.dart';
 
-Future<void> mountPremium(WidgetTester tester) async {
+Future<void> mountAgeRoute(WidgetTester tester, String route) async {
   final storage = StorageService();
   await storage.init();
-  appRouter.go(AppRoutes.premium);
-  await tester.pumpWidget(ProviderScope(
-    overrides: [storageServiceProvider.overrideWithValue(storage)],
-    child: MaterialApp.router(routerConfig: appRouter),
-  ));
+  appRouter.go(route);
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [storageServiceProvider.overrideWithValue(storage)],
+      child: MaterialApp.router(routerConfig: appRouter),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+Future<void> pickAge(WidgetTester tester, String label) async {
+  await tester.ensureVisible(find.text(label));
+  await tester.tap(find.text(label));
+  await tester.pumpAndSettle();
+  await tester.ensureVisible(find.text('Continue'));
+  await tester.tap(find.text('Continue'));
   await tester.pumpAndSettle();
 }
 
 void main() {
-  setUp(() async {
+  setUp(() {
     SharedPreferences.setMockInitialValues({});
-    await SubscriptionService.instance.resetForTest();
-    SubscriptionService.instance.debugGateway(FakeGateway());
+    useFakeSecureStorage();
     AgeGateService.instance.debugStore(InMemoryAgeGateStore());
     AgeGateService.instance.statusListenable.value = AgeGateStatus.unknown;
+    AgeGateService.instance.replayIntroOnLaunch = false;
   });
+  tearDown(() => AgeGateService.instance.resetForTest());
 
-  tearDown(() async {
-    await AgeGateService.instance.resetForTest();
-    await SubscriptionService.instance.resetForTest();
-  });
-
-  testWidgets('unknown age shows the wheel; default choice blocks',
-      (tester) async {
-    await mountPremium(tester);
+  testWidgets('intro finishes at age selection, no answer is preselected', (
+    tester,
+  ) async {
+    await mountAgeRoute(tester, AppRoutes.onboarding);
+    await tester.tap(find.text('Skip'));
+    await tester.pumpAndSettle();
     expect(find.text('How old are you?'), findsOneWidget);
-    expect(find.text('Selected age: 10'), findsOneWidget);
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
-    expect(find.text('Not available for your age'), findsOneWidget);
-    expect(find.text('How old are you?'), findsNothing);
-    expect(find.text('Premium Weekly'), findsNothing);
-    await tester.pumpWidget(const SizedBox());
+    expect(find.text('12 or younger'), findsOneWidget);
+    expect(find.text('13'), findsOneWidget);
+    expect(
+      tester
+          .widget<ElevatedButton>(
+            find.widgetWithText(ElevatedButton, 'Continue'),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(find.byType(AppBottomNavBar), findsNothing);
+    expect(find.text('Log in with phone'), findsNothing);
   });
 
-  testWidgets('scrolling to 15 verifies and opens the paywall once',
-      (tester) async {
-    await mountPremium(tester);
-    // The wheel starts at 10 (index 0); each item is 44 logical pixels.
-    await tester.drag(find.byType(CupertinoPicker), const Offset(0, -44 * 5));
+  testWidgets('under 13 blocks all protected routes in this run', (
+    tester,
+  ) async {
+    await mountAgeRoute(tester, AppRoutes.age);
+    await pickAge(tester, '12 or younger');
+    expect(find.text('Flyprox isn’t available for your age'), findsOneWidget);
+    expect(find.textContaining('aged 13 and older'), findsOneWidget);
+    expect(find.text('Close'), findsNothing);
+    expect(find.byType(AppBottomNavBar), findsNothing);
+    for (final route in [
+      AppRoutes.home,
+      AppRoutes.phone,
+      AppRoutes.namesEntry,
+      AppRoutes.vote,
+      AppRoutes.premium,
+      AppRoutes.age,
+    ]) {
+      appRouter.go(route);
+      await tester.pumpAndSettle();
+      expect(
+        appRouter.routeInformationProvider.value.uri.path,
+        AppRoutes.ageBlocked,
+      );
+    }
+    await tester.tap(find.text('For Parents'));
     await tester.pumpAndSettle();
-    expect(find.text('Selected age: 15'), findsOneWidget);
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
-    expect(find.text('Premium Weekly'), findsOneWidget);
-    // Reopening premium asks nothing again.
-    await tester.pumpWidget(const SizedBox());
-    await mountPremium(tester);
-    expect(find.text('How old are you?'), findsNothing);
-    expect(find.text('Premium Weekly'), findsOneWidget);
-    await tester.pumpWidget(const SizedBox());
+    expect(find.text('For parents'), findsOneWidget);
+    expect(find.byType(AppBottomNavBar), findsNothing);
   });
 
-  testWidgets('blocked status survives a remount with no way back',
-      (tester) async {
-    await AgeGateService.instance.blockMinor();
-    await mountPremium(tester);
-    expect(find.text('Not available for your age'), findsOneWidget);
-    expect(find.text('How old are you?'), findsNothing);
-    expect(find.text('For Parents'), findsOneWidget);
-    await tester.tap(find.text('Close'));
-    await tester.pumpAndSettle();
-    await tester.pumpWidget(const SizedBox());
+  testWidgets(
+    'fresh launch after refusal replays intro and permits a new age answer',
+    (tester) async {
+      await mountAgeRoute(tester, AppRoutes.age);
+      await pickAge(tester, '12 or younger');
+      await tester.pumpWidget(const SizedBox());
+      await AgeGateService.instance.load();
+      await mountAgeRoute(tester, AppRoutes.splash);
+      expect(find.text('Who’s most\nlikely to…?'), findsOneWidget);
+      await tester.tap(find.text('Skip'));
+      await tester.pumpAndSettle();
+      await pickAge(tester, '13');
+      expect(find.text('What should we call you?'), findsOneWidget);
+      expect(AgeGateService.instance.status, AgeGateStatus.verified);
+    },
+  );
+
+  testWidgets(
+    'eligible SDK bootstrap completes before the real setup route mounts',
+    (tester) async {
+      final storage = StorageService();
+      await storage.init();
+      final ready = Completer<void>();
+      var initialized = 0;
+      appRouter.go(AppRoutes.age);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [storageServiceProvider.overrideWithValue(storage)],
+          child: AgeGatedStartup(
+            initialize: () {
+              initialized++;
+              return ready.future;
+            },
+            child: MaterialApp.router(routerConfig: appRouter),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('13'));
+      await tester.pump();
+      await tester.ensureVisible(find.text('Continue'));
+      await tester.tap(find.text('Continue'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(initialized, 1);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      ready.complete();
+      await tester.pumpAndSettle();
+      expect(find.text('What should we call you?'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('direct phone entry cannot bypass an unknown age', (
+    tester,
+  ) async {
+    await mountAgeRoute(tester, AppRoutes.phone);
+    expect(find.text('How old are you?'), findsOneWidget);
+    expect(find.text('Log in with phone'), findsNothing);
   });
 }

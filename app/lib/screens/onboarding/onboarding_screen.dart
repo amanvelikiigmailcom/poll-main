@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../providers/service_providers.dart';
 import '../../router/app_router.dart';
 import '../../services/content_service.dart';
+import '../../services/age_gate_service.dart';
 import '../../services/local_game_service.dart';
 import '../../theme/app_colors.dart';
 
@@ -37,7 +38,7 @@ const _fallbackSlides = [
     eyebrow: 'BETTER WITH YOUR PEOPLE',
     title: 'Make it\nyour circle.',
     description:
-        'Choose a nickname and three participants.\nUse your own names or try our examples.',
+        'Choose a nickname and four participants.\nUse your own names or try our examples.',
   ),
   OnboardingSlide(
     eyebrow: 'A LITTLE PLAY. A LITTLE JOY.',
@@ -104,8 +105,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       final storage = ref.read(storageServiceProvider);
       final hasNames = await LocalGameService.instance.hasEnoughNames();
       await storage.saveOnboardingDone();
+      AgeGateService.instance.introFinished();
       if (!mounted) return;
-      context.go(hasNames ? AppRoutes.home : AppRoutes.namesEntry);
+      context.go(AgeGateService.instance.status == AgeGateStatus.verified
+          ? (hasNames ? AppRoutes.home : AppRoutes.namesEntry)
+          : AppRoutes.age);
     } catch (_) {
       if (!mounted) return;
       setState(() => _saving = false);

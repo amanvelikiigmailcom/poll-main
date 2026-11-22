@@ -1,3 +1,6 @@
+import 'fakes/eligible_player.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
+import 'package:flyprox_app/config/phone_regions.dart';
 import 'dart:async';
 
 import 'package:dio/dio.dart';
@@ -70,10 +73,62 @@ PhoneAuthService makeService({
 }
 
 void main() {
+  setUp(markEligiblePlayer);
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     useFakeSecureStorage();
   });
+
+  testWidgets(
+    'changing country recomputes the dial code for the existing number',
+    (tester) async {
+      final driver = FakePhoneAuthDriver();
+      await mountNames(
+        tester,
+        phoneAuth: makeService(
+          driver: driver,
+          api: MockApiService(),
+          storage: MockStorageService(),
+        ),
+      );
+      await enterNickAndContinue(tester, 'Player');
+      await tester.enterText(find.byType(TextField), '6505551234');
+      await tester.pump();
+      final field = tester.widget<IntlPhoneField>(find.byType(IntlPhoneField));
+      expect(field.initialCountryCode, 'US');
+      expect(field.countries?.length, 6);
+      field.onCountryChanged!(
+        PhoneRegions.countries.singleWhere((c) => c.code == 'GB'),
+      );
+      await tester.pump();
+      await tester.ensureVisible(find.text('Send code'));
+      await tester.tap(find.text('Send code'));
+      await pumpRoute(tester);
+      expect(driver.lastPhone, '+446505551234');
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  for (final sample in [
+    ('GB','07911123456','+447911123456'),
+    ('NZ','0211234567','+64211234567'),
+  ]) {
+    testWidgets('national trunk zero is normalized for ${sample.$1}', (tester) async {
+      final driver=FakePhoneAuthDriver();
+      await mountNames(tester,phoneAuth:makeService(driver:driver,api:MockApiService(),storage:MockStorageService()));
+      await enterNickAndContinue(tester,'Player');
+      await tester.enterText(find.byType(TextField),sample.$2);
+      await tester.pump();
+      final field=tester.widget<IntlPhoneField>(find.byType(IntlPhoneField));
+      field.onCountryChanged!(PhoneRegions.countries.singleWhere((c)=>c.code==sample.$1));
+      await tester.pump();
+      await tester.ensureVisible(find.text('Send code'));
+      await tester.tap(find.text('Send code'));
+      await pumpRoute(tester);
+      expect(driver.lastPhone,sample.$3);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
 
   testWidgets('guest skip reveals the friends step underneath', (tester) async {
     await mountNames(tester,

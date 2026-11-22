@@ -1,3 +1,4 @@
+import 'fakes/eligible_player.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -68,6 +69,7 @@ Future<void> checkClearedGame(ProviderContainer container) async {
 }
 
 void main() {
+  setUp(markEligiblePlayer);
   setUp(() async {
     useFakeSecureStorage();
     await seedGame();

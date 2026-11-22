@@ -73,7 +73,7 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
 
     final step = existingPlayer != null && existingPlayer.isNotEmpty ? 1 : 0;
     setState(() => _step = step);
-    _refocus(step == 0 ? _playerFocus : _friendFocus);
+    // Let the person tap a field; entering setup should not open a keyboard.
   }
 
   @override
@@ -322,67 +322,89 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
 
   Widget _buildPlayerStep() {
     final canNext = _playerController.text.trim().isNotEmpty;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Text(
-          'What should we call you?',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 30,
-            fontWeight: FontWeight.bold,
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: IntrinsicHeight(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 12),
+                const Text(
+                  'What should we call you?',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    height: 1.15,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Use a nickname or game name. No real name needed.',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 15,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                TextField(
+                  controller: _playerController,
+                  focusNode: _playerFocus,
+                  textCapitalization: TextCapitalization.words,
+                  textInputAction: TextInputAction.done,
+                  onChanged: (_) => setState(() {}),
+                  onSubmitted: (_) => _goToFriendsStep(),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Your nickname',
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 28),
+                ElevatedButton(
+                  onPressed: canNext && !_saving ? _goToFriendsStep : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: _primaryBlue,
+                    disabledBackgroundColor: Colors.white.withValues(
+                      alpha: 0.4,
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Continue',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _exampleButton(),
+                const SizedBox(height: 20),
+                const Spacer(),
+              ],
+            ),
           ),
         ),
-        const SizedBox(height: 8),
-        const Text(
-          'Use a nickname or game name. No account or real name needed.',
-          style: TextStyle(color: Colors.white70, fontSize: 15, height: 1.4),
-        ),
-        const SizedBox(height: 28),
-        TextField(
-          controller: _playerController,
-          focusNode: _playerFocus,
-          textInputAction: TextInputAction.done,
-          onChanged: (_) => setState(() {}),
-          onSubmitted: (_) => _goToFriendsStep(),
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-          decoration: InputDecoration(
-            hintText: 'Your nickname',
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide.none,
-            ),
-          ),
-        ),
-        const Spacer(),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: canNext && !_saving ? _goToFriendsStep : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: _primaryBlue,
-              disabledBackgroundColor: Colors.white.withValues(alpha: 0.4),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(14),
-              ),
-              elevation: 0,
-            ),
-            child: const Text(
-              'Continue',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ),
-        _exampleButton(),
-      ],
+      ),
     );
   }
 

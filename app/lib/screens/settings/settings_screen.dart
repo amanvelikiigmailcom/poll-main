@@ -10,12 +10,12 @@ import '../../services/content_service.dart';
 import '../../theme/app_colors.dart';
 import '../../services/game_settings.dart';
 import '../../services/subscription_service.dart';
+import '../../services/app_info_service.dart';
 import '../../widgets/common/reset_game_action.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
-  static const String _appVersion = '1.0.1 (build 3)';
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -119,11 +119,12 @@ class SettingsScreen extends ConsumerWidget {
               onTap: () => context.push(AppRoutes.onboarding),
             ),
             const Divider(height: 1),
-            const ListTile(
-              leading: Icon(Icons.info_outline),
-              title: Text('App version'),
-              trailing: Text(_appVersion),
-            ),
+            FutureBuilder<String>(future: AppInfoService.versionLabel(),
+              builder: (context, snapshot) => ListTile(
+                leading: const Icon(Icons.info_outline),
+                title: const Text('App version'),
+                trailing: Text(snapshot.data ?? 'Checking…'),
+              )),
             const Divider(height: 1),
             _ArrowTile(
               icon: Icons.help_outline,
@@ -236,22 +237,46 @@ class _SubscriptionStatusTile extends StatelessWidget {
   }
 }
 
-Future<void> showSubscriptionStatusDialog(BuildContext context) async {
+Future<String> _subscriptionStatusText() async {
   final sub = SubscriptionService.instance;
-  final ready = sub.billingReady;
-  final pro = await sub.isPro();
-  final installId = await sub.debugInstallId();
-  final shortId =
-      installId.length > 8 ? '${installId.substring(0, 8)}…' : installId;
-  if (!context.mounted) return;
+  var timedOut = false;
+  try {
+    await sub.refresh().timeout(const Duration(seconds: 8));
+  } catch (_) {
+    timedOut = true;
+  }
+  if (await sub.isPro()) return 'Premium is active on this device.';
+  if (!timedOut && sub.statusAvailable) {
+    return 'You are using the free version. No active Premium subscription was found. '
+        'If you purchased Premium before, use Restore purchases on the Premium screen.';
+  }
+  return 'We couldn’t check your subscription right now. Check your connection and try again. '
+      'This does not mean your subscription has been cancelled.';
+}
+
+Future<void> showSubscriptionStatusDialog(BuildContext context) async {
+  final status = _subscriptionStatusText();
   await showDialog<void>(
     context: context,
     builder: (dialogContext) => AlertDialog(
       title: const Text('Subscription status'),
-      content: Text(
-        'Store billing: ${ready ? 'connected' : 'not connected'}\n'
-        'Premium: ${pro ? 'active' : 'inactive'}\n'
-        'User ID: $shortId',
+      content: FutureBuilder<String>(
+        future: status,
+        builder: (context, snapshot) {
+          if (snapshot.hasData) return Text(snapshot.data!);
+          return const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              SizedBox(width: 16),
+              Flexible(child: Text('Checking your subscription…')),
+            ],
+          );
+        },
       ),
       actions: [
         TextButton(

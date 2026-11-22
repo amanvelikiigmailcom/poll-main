@@ -8,6 +8,7 @@ import 'package:flyprox_app/services/billing_gateway.dart';
 class FakeGateway implements BillingGateway {
   bool configured = true;
   Set<String> entitlements = {};
+  Future<Set<String>> Function()? entitlementsHandler;
   String? price;
   BuyResult buyResult = const BuyResult(BuyOutcome.purchased);
   bool identifyCalled = false;
@@ -27,7 +28,8 @@ class FakeGateway implements BillingGateway {
   Stream<Set<String>> watchActiveEntitlements() => events.stream;
 
   @override
-  Future<Set<String>> activeEntitlements() async => entitlements;
+  Future<Set<String>> activeEntitlements() async =>
+      entitlementsHandler == null ? entitlements : await entitlementsHandler!();
 
   @override
   Future<String?> priceFor(String productId) async => price;

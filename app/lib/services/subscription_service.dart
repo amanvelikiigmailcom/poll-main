@@ -38,10 +38,12 @@ class SubscriptionService {
 
   StreamSubscription<Set<String>>? _statusSub;
   bool _ready = false;
+  bool _lastRefreshSucceeded = false;
   bool _entitlementActive = false;
 
   /// True once the billing backend is configured and reachable.
   bool get billingReady => _ready;
+  bool get statusAvailable => _ready && _lastRefreshSucceeded;
 
   Future<SharedPreferences> get _prefs => SharedPreferences.getInstance();
 
@@ -111,13 +113,10 @@ class SubscriptionService {
   Future<void> _attachStatusListener() async {
     if (_statusSub != null) return;
     try {
-      _statusSub = _gateway.watchActiveEntitlements().listen(
-        (ids) async {
-          _entitlementActive = ids.contains(SuperwallIds.proEntitlement);
-          proListenable.value = await isPro();
-        },
-        onError: (Object e) => debugPrint('Billing status failed: $e'),
-      );
+      _statusSub = _gateway.watchActiveEntitlements().listen((ids) async {
+        _entitlementActive = ids.contains(SuperwallIds.proEntitlement);
+        proListenable.value = await isPro();
+      }, onError: (Object e) => debugPrint('Billing status failed: $e'));
     } catch (e) {
       debugPrint('Billing status attach failed: $e');
     }
@@ -129,11 +128,13 @@ class SubscriptionService {
 
   /// Re-read entitlements from the backend (safe to call any time).
   Future<void> refresh() async {
+    _lastRefreshSucceeded = false;
     await _ensureReady();
     if (!_ready) return;
     try {
       final ids = await _gateway.activeEntitlements();
       _entitlementActive = ids.contains(SuperwallIds.proEntitlement);
+      _lastRefreshSucceeded = true;
     } catch (e) {
       debugPrint('Billing entitlements check failed: $e');
     }
@@ -141,8 +142,10 @@ class SubscriptionService {
   }
 
   /// Store price label with a safe fallback.
-  Future<String> priceLabel(String productId,
-      {String fallback = '\$6.99'}) async {
+  Future<String> priceLabel(
+    String productId, {
+    String fallback = '\$6.99',
+  }) async {
     await _ensureReady();
     if (!_ready) return fallback;
     try {
@@ -229,6 +232,7 @@ class SubscriptionService {
     _statusSub = null;
     _gateway = SuperwallGateway();
     _ready = false;
+    _lastRefreshSucceeded = false;
     _entitlementActive = false;
     proListenable.value = false;
     purchasePending.value = false;

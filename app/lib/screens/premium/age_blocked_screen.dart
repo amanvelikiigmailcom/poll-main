@@ -1,96 +1,64 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
 import '../../router/app_router.dart';
-import '../../services/content_service.dart';
 
-/// Dead end for underage users. There is intentionally no path back to the
-/// age wheel: only For Parents (information) and Close.
+/// Blocks the current app run, without terminating the iOS application.
 class AgeBlockedScreen extends StatelessWidget {
   const AgeBlockedScreen({super.key});
 
-  void _close(BuildContext context) {
-    if (context.canPop()) {
-      context.pop();
-    } else {
-      context.go(AppRoutes.home);
-    }
-  }
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF0D0D2B), Color(0xFF1A1A4E), Color(0xFF0F3460)],
-            stops: [0.0, 0.5, 1.0],
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+  Widget build(BuildContext context) => PopScope(
+    canPop: false,
+    child: Scaffold(
+      backgroundColor: const Color(0xFF4B6EF5),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const SizedBox(height: 48),
-                const Center(
-                  child: Text('🔒', style: TextStyle(fontSize: 64)),
-                ),
+                const Icon(Icons.lock_outline, color: Colors.white, size: 54),
                 const SizedBox(height: 24),
-                Text(
-                  ContentService.instance.text('blocked_title'),
-                  style: const TextStyle(
+                const Text(
+                  'Flyprox isn’t available for your age',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 26,
+                    fontSize: 28,
                     fontWeight: FontWeight.bold,
                   ),
-                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  ContentService.instance.text('blocked_body'),
-                  style: const TextStyle(
-                      color: Colors.white70, fontSize: 15, height: 1.45),
+                const SizedBox(height: 16),
+                const Text(
+                  'Sorry, Flyprox is only available to people aged 13 and older.',
                   textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 17,
+                    height: 1.5,
+                  ),
                 ),
-                const Spacer(),
+                const SizedBox(height: 32),
                 OutlinedButton(
                   onPressed: () => context.push(AppRoutes.forParents),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
                     side: const BorderSide(color: Colors.white70),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
                   ),
                   child: const Text('For Parents'),
                 ),
                 const SizedBox(height: 12),
-                ElevatedButton(
-                  onPressed: () => _close(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFF0F3460),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Close',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-                  ),
+                TextButton(
+                  onPressed: () => context.push(AppRoutes.privacy),
+                  style: TextButton.styleFrom(foregroundColor: Colors.white70),
+                  child: const Text('Privacy Policy'),
                 ),
               ],
             ),
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
 }

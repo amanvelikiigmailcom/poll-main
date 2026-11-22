@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api_service.dart';
@@ -35,7 +36,7 @@ class ContentService {
     'blocked_body':
         'Flyprox is for ages 13 and up. This game isn’t available for your age yet. Ask a parent or guardian if you have questions.',
     'onboarding_pages':
-        '[{"eyebrow":"A NEW WAY TO PLAY","title":"Who’s most\\nlikely to…?","subtitle":"Light up the room? Make everyone laugh?\\nPick the person who fits best."},{"eyebrow":"BETTER WITH YOUR PEOPLE","title":"Make it\\nyour circle.","subtitle":"Choose a nickname and three participants.\\nUse your own names or try our examples."},{"eyebrow":"A LITTLE PLAY. A LITTLE JOY.","title":"Play. Collect.\\nRepeat.","subtitle":"Answer 12 questions, collect your stars,\\nand come back for a fresh round."}]',
+        '[{"eyebrow":"A NEW WAY TO PLAY","title":"Who’s most\\nlikely to…?","subtitle":"Light up the room? Make everyone laugh?\\nPick the person who fits best."},{"eyebrow":"BETTER WITH YOUR PEOPLE","title":"Make it\\nyour circle.","subtitle":"Choose a nickname and four participants.\\nUse your own names or try our examples."},{"eyebrow":"A LITTLE PLAY. A LITTLE JOY.","title":"Play. Collect.\\nRepeat.","subtitle":"Answer 12 questions, collect your stars,\\nand come back for a fresh round."}]',
     'url_support':
         'https://distinct-lunaria-d0a.notion.site/41ae779d2742815494ebfa72e5db4620',
     'url_terms':
@@ -75,10 +76,7 @@ class ContentService {
   /// Parses a flag: only explicit false-values disable; default is enabled.
   bool flag(String key) {
     final value = text(key).trim().toLowerCase();
-    return value != 'false' &&
-        value != '0' &&
-        value != 'no' &&
-        value != 'off';
+    return value != 'false' && value != '0' && value != 'no' && value != 'off';
   }
 
   /// Substitutes `{name}` placeholders in the [key] template.
@@ -138,8 +136,9 @@ class ContentService {
       if (raw == null || raw.isEmpty) return;
       final decoded = jsonDecode(raw);
       if (decoded is Map) {
-        _overrides =
-            decoded.map((k, v) => MapEntry(k.toString(), v.toString()));
+        _overrides = decoded.map(
+          (k, v) => MapEntry(k.toString(), v.toString()),
+        );
       }
     } catch (_) {
       _overrides = {};
@@ -147,11 +146,38 @@ class ContentService {
   }
 
   /// Fetches `/api/content` (public) and persists it; never throws.
-  Future<void> refresh(ApiService api) async {
+  Future<void> refresh(ApiService api) => _refreshFrom(
+    () async => (await api.get<Map<String, dynamic>>('/api/content')).data,
+  );
+
+  /// Intro copy can load before the age answer without auth/install IDs or SDKs.
+  Future<void> refreshPublic() async {
+    final client = Dio(
+      BaseOptions(
+        baseUrl: const String.fromEnvironment(
+          'API_BASE_URL',
+          defaultValue: 'https://api.flyprox.com',
+        ),
+        connectTimeout: const Duration(seconds: 5),
+        receiveTimeout: const Duration(seconds: 8),
+      ),
+    );
     try {
-      final response =
-          await api.get<Map<String, dynamic>>('/api/content');
-      final content = response.data?['content'];
+      await _refreshFrom(
+        () async =>
+            (await client.get<Map<String, dynamic>>('/api/content')).data,
+      );
+    } finally {
+      client.close(force: true);
+    }
+  }
+
+  Future<void> _refreshFrom(
+    Future<Map<String, dynamic>?> Function() fetch,
+  ) async {
+    try {
+      final body = await fetch();
+      final content = body?['content'];
       if (content is! Map) return;
       final next = <String, String>{};
       content.forEach((k, v) {
@@ -161,8 +187,7 @@ class ContentService {
       _overrides = next;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_cacheKey, jsonEncode(next));
-      await prefs.setInt(
-          _cacheAtKey, DateTime.now().millisecondsSinceEpoch);
+      await prefs.setInt(_cacheAtKey, DateTime.now().millisecondsSinceEpoch);
     } catch (_) {
       // Offline or server error: keep whatever we have.
     }

@@ -57,12 +57,10 @@ class SuperwallGateway implements BillingGateway {
 
   @override
   Future<Set<String>> activeEntitlements() async {
-    try {
-      final entitlements = await Superwall.shared.getEntitlements();
-      return entitlements.active.map((e) => e.id).toSet();
-    } catch (_) {
-      return <String>{};
-    }
+    // A failed check is not an empty entitlement set. Let the service keep
+    // the last known access and show a retryable status instead.
+    final entitlements = await Superwall.shared.getEntitlements();
+    return entitlements.active.map((e) => e.id).toSet();
   }
 
   @override

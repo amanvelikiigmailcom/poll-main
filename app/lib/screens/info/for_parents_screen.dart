@@ -50,17 +50,17 @@ class ForParentsScreen extends ConsumerWidget {
             _section(
               Icons.lock_rounded,
               'Participant names',
-              'Nicknames and fictional names are welcome. The names are labels on game cards, not connected accounts. Other people do not need the app, and Flyprox does not contact them or send them the player’s choices.',
+              'Nicknames and fictional names are welcome. Participant labels may be fictional. In optional online play, selected contacts matching registered accounts can receive vote notifications. Merely choosing a contact sends no invitation.',
             ),
             _section(
               Icons.child_care_rounded,
               'Age and responsible play',
-              'Flyprox is intended for people aged 14 and over. Use it for entertainment and discuss respectful play. Do not enter sensitive information about anyone or use the game to harass or embarrass another person.',
+              'Flyprox is intended for people aged 13 and over. Use it for entertainment and discuss respectful play. Do not enter sensitive information about anyone or use the game to harass or embarrass another person.',
             ),
             _section(
               Icons.privacy_tip_rounded,
               'Game data and privacy',
-              'The game profile, participant names and progress are stored locally. No server account is required. Read Privacy policy and Terms of use in Settings for the current information about data and optional sharing.',
+              'The game profile, participant names and progress are stored locally. Guest play needs no account. Signed-in online rounds use account identifiers, selected-contact hashes and votes. Underage answers block the current run before phone sign-in and subscription services start. Read the Privacy Policy for details.',
             ),
             _section(
               Icons.supervisor_account_rounded,

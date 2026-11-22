@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:intl_phone_field/phone_number.dart';
+import '../../config/phone_regions.dart';
+import '../../services/contact_sync_service.dart';
+import 'package:phone_numbers_parser/phone_numbers_parser.dart' show IsoCode;
 
 import '../../providers/auth_provider.dart';
 import '../../router/app_router.dart';
@@ -22,7 +26,28 @@ class _PhoneRegistrationScreenState
     extends ConsumerState<PhoneRegistrationScreen> {
   static const _primaryBlue = Color(0xFF4B6EF5);
 
+  final _phoneController = TextEditingController();
   String _completePhone = '';
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  String _internationalNumber(String raw, String country, String dialCode) {
+    var national = raw.trim();
+    if ((country == 'GB' || country == 'NZ') && national.startsWith('0')) {
+      national = national.substring(1);
+    }
+    if (national.isEmpty) return '';
+    return ContactSyncService.normalizePhone(
+          national,
+          defaultRegion: IsoCode.fromJson(country),
+        ) ??
+        '+$dialCode$national';
+  }
+
   bool _sending = false;
 
   Future<void> _submit() async {
@@ -96,7 +121,7 @@ class _PhoneRegistrationScreenState
                       const Text(
                         'Use your number to sign in and let friends find you. '
                         'Firebase verifies your number; Flyprox stores it for your account. '
-                        'Phone login is optional and currently supports US (+1) numbers.',
+                        'Phone login is optional. Choose your country code below.',
                         style: TextStyle(
                           color: Colors.white70,
                           fontSize: 15,
@@ -114,19 +139,34 @@ class _PhoneRegistrationScreenState
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: IntlPhoneField(
+                          controller: _phoneController,
                           decoration: const InputDecoration(
                             hintText: 'Phone number',
                             border: InputBorder.none,
                           ),
-                          initialCountryCode: 'US',
-                          disableLengthCheck: false,
-                          onChanged: (PhoneNumber phone) {
-                            setState(
-                              () => _completePhone = phone.number.isEmpty
-                                  ? ''
-                                  : phone.completeNumber,
+                          initialCountryCode: PhoneRegions.defaultCountry,
+                          countries: PhoneRegions.countries,
+                          // Preserve national trunk zeros until normalization.
+                          // The package limit otherwise truncates UK/NZ input.
+                          disableLengthCheck: true,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(15),
+                          ],
+                          onCountryChanged: (country) => setState(() {
+                            _completePhone = _internationalNumber(
+                              _phoneController.text,
+                              country.code,
+                              country.fullCountryCode,
                             );
-                          },
+                          }),
+                          onChanged: (PhoneNumber phone) => setState(() {
+                            _completePhone = _internationalNumber(
+                              phone.number,
+                              phone.countryISOCode,
+                              phone.countryCode.replaceFirst('+', ''),
+                            );
+                          }),
                         ),
                       ),
                       if (!supported) ...[

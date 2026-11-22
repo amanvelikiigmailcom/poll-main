@@ -32,14 +32,15 @@ void main() {
     expect(svc.status, AgeGateStatus.verified);
   });
 
-  test('block persists and survives a reload', () async {
+  test('block applies this run and a fresh launch restarts onboarding', () async {
     final svc = AgeGateService.instance;
     await svc.blockMinor();
     expect(svc.status, AgeGateStatus.blocked);
 
     svc.statusListenable.value = AgeGateStatus.unknown;
     await svc.load();
-    expect(svc.status, AgeGateStatus.blocked);
+    expect(svc.status, AgeGateStatus.unknown);
+    expect(svc.replayIntroOnLaunch, isTrue);
   });
 
   test('passes boundary: 12 fails, 13 passes', () {
