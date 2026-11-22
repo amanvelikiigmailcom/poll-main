@@ -109,8 +109,17 @@ class _OTPVerificationScreenState extends ConsumerState<OTPVerificationScreen> {
     }
   }
 
+  void _continueAsGuest() {
+    if (ContentService.instance.flag('guest_enabled')) _next();
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: ContentService.instance,
+    builder: (context, _) => _buildScreen(context),
+  );
+
+  Widget _buildScreen(BuildContext context) {
     return Scaffold(
       backgroundColor: _primaryBlue,
       body: SafeArea(
@@ -221,7 +230,7 @@ class _OTPVerificationScreenState extends ConsumerState<OTPVerificationScreen> {
                       if (ContentService.instance.flag('guest_enabled')) ...[
                         const SizedBox(height: 8),
                         OutlinedButton(
-                          onPressed: _verifying ? null : _next,
+                          onPressed: _verifying ? null : _continueAsGuest,
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white,
                             side: const BorderSide(color: Colors.white70),

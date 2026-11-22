@@ -1,5 +1,8 @@
 import 'fakes/eligible_player.dart';
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:flyprox_app/services/api_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -13,23 +16,40 @@ import 'package:flyprox_app/services/storage_service.dart';
 
 import 'fakes/fake_secure_storage.dart';
 
+class DeletionApi extends Mock implements ApiService {}
+
 Future<ProviderContainer> mountResetApp(
-    WidgetTester tester, String route) async {
+  WidgetTester tester,
+  String route, {
+  ApiService? api,
+  bool signedIn = false,
+}) async {
   final storage = StorageService();
   await storage.init();
+  if (signedIn) {
+    await storage.saveToken('signed-in-token');
+    await storage.savePhone('+16505551234');
+  }
   await storage.saveUser(
-      User.fromJson({'id': 'old-local-cache', 'firstName': 'Old cache'}));
+    User.fromJson({'id': 'old-local-cache', 'firstName': 'Old cache'}),
+  );
   final container = ProviderContainer(
-      overrides: [storageServiceProvider.overrideWithValue(storage)]);
+    overrides: [
+      storageServiceProvider.overrideWithValue(storage),
+      if (api != null) apiServiceProvider.overrideWithValue(api),
+    ],
+  );
   addTearDown(container.dispose);
   await container.read(localProfileProvider.notifier).refresh();
   expect(container.read(localProfileProvider).playerName, 'Old player');
   expect(container.read(currentUserProvider)?.firstName, 'Old cache');
   appRouter.go(route);
-  await tester.pumpWidget(UncontrolledProviderScope(
-    container: container,
-    child: MaterialApp.router(routerConfig: appRouter),
-  ));
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: MaterialApp.router(routerConfig: appRouter),
+    ),
+  );
   await tester.pumpAndSettle();
   return container;
 }
@@ -38,9 +58,10 @@ Future<void> seedGame() async {
   SharedPreferences.setMockInitialValues({'onboarding_done': true});
   final game = LocalGameService.instance;
   await game.savePlayerAndFriends(
-      username: 'old_handle',
-      playerName: 'Old player',
-      friends: ['Alex', 'Sam', 'Jordan']);
+    username: 'old_handle',
+    playerName: 'Old player',
+    friends: ['Alex', 'Sam', 'Jordan'],
+  );
   await game.saveUniversity('Stanford University');
   await game.saveUniversityYear(3);
   await game.generateRound(languageCode: 'en');
@@ -78,55 +99,87 @@ void main() {
   for (final route in [
     AppRoutes.settings,
     AppRoutes.editProfile,
-    AppRoutes.deleteAccount
+    AppRoutes.deleteAccount,
   ]) {
     final deleteWording = route == AppRoutes.deleteAccount;
     final buttonLabel = deleteWording ? 'Delete account' : 'Reset game';
     final dialogTitle = deleteWording ? 'Delete account?' : 'Reset game?';
-    testWidgets('$route cancel leaves local game and cache intact',
-        (tester) async {
+    testWidgets('$route cancel leaves local game and cache intact', (
+      tester,
+    ) async {
       final container = await mountResetApp(tester, route);
-      await tester.ensureVisible(find.text(buttonLabel));
-      await tester.tap(find.text(buttonLabel));
+      await tester.ensureVisible(
+        deleteWording
+            ? find.widgetWithText(FilledButton, buttonLabel)
+            : find.text(buttonLabel),
+      );
+      await tester.tap(
+        deleteWording
+            ? find.widgetWithText(FilledButton, buttonLabel)
+            : find.text(buttonLabel),
+      );
       await tester.pumpAndSettle();
       expect(find.text(dialogTitle), findsOneWidget);
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
       expect(await LocalGameService.instance.getPlayerName(), 'Old player');
       expect(await LocalGameService.instance.getStars(), 1000);
-      expect(await LocalGameService.instance.secondsUntilNextRound(),
-          greaterThan(0));
+      expect(
+        await LocalGameService.instance.secondsUntilNextRound(),
+        greaterThan(0),
+      );
       expect(container.read(localProfileProvider).playerName, 'Old player');
       expect(appRouter.routeInformationProvider.value.uri.path, route);
       await tester.pumpWidget(const SizedBox());
     });
 
-    testWidgets('$route confirm clears game, cache and persisted progress',
-        (tester) async {
+    testWidgets('$route confirm clears game, cache and persisted progress', (
+      tester,
+    ) async {
       final container = await mountResetApp(tester, route);
-      await tester.ensureVisible(find.text(buttonLabel));
-      await tester.tap(find.text(buttonLabel));
+      await tester.ensureVisible(
+        deleteWording
+            ? find.widgetWithText(FilledButton, buttonLabel)
+            : find.text(buttonLabel),
+      );
+      await tester.tap(
+        deleteWording
+            ? find.widgetWithText(FilledButton, buttonLabel)
+            : find.text(buttonLabel),
+      );
       await tester.pumpAndSettle();
       if (deleteWording) {
-        expect(find.textContaining('Are you sure you are ready to delete?'),
-            findsOneWidget);
+        expect(
+          find.textContaining('Are you sure you are ready to delete?'),
+          findsOneWidget,
+        );
       }
-      await tester.tap(find.descendant(
+      await tester.tap(
+        find.descendant(
           of: find.byType(AlertDialog),
-          matching: find.widgetWithText(FilledButton, buttonLabel)));
+          matching: find.widgetWithText(FilledButton, buttonLabel),
+        ),
+      );
       await tester.pumpAndSettle();
       await checkClearedGame(container);
-      expect(appRouter.routeInformationProvider.value.uri.path,
-          AppRoutes.phone);
+      expect(
+        appRouter.routeInformationProvider.value.uri.path,
+        AppRoutes.phone,
+      );
       await tester.pumpWidget(const SizedBox());
       appRouter.go(AppRoutes.splash);
-      await tester.pumpWidget(UncontrolledProviderScope(
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
           container: container,
-          child: MaterialApp.router(routerConfig: appRouter)));
+          child: MaterialApp.router(routerConfig: appRouter),
+        ),
+      );
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
-      expect(appRouter.routeInformationProvider.value.uri.path,
-          AppRoutes.phone);
+      expect(
+        appRouter.routeInformationProvider.value.uri.path,
+        AppRoutes.phone,
+      );
       expect(find.text('Old player'), findsNothing);
       await tester.pumpWidget(const SizedBox());
     });
@@ -144,31 +197,36 @@ void main() {
   });
 
   testWidgets(
-      'new setup after reset displays the new profile instead of cached data',
-      (tester) async {
-    final container = await mountResetApp(tester, AppRoutes.settings);
-    await tester.tap(find.text('Reset game'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.descendant(
-        of: find.byType(AlertDialog),
-        matching: find.widgetWithText(FilledButton, 'Reset game')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Continue without login'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Try with example names'));
-    await tester.tap(find.text('Try with example names'));
-    await tester.pumpAndSettle();
-    expect(container.read(localProfileProvider).playerName, 'Michael');
-    appRouter.go(AppRoutes.profile);
-    await tester.pumpAndSettle();
-    expect(find.text('Michael'), findsOneWidget);
-    expect(find.text('Old player'), findsNothing);
-    expect(find.text('Old cache'), findsNothing);
-    await tester.pumpWidget(const SizedBox());
-  });
+    'new setup after reset displays the new profile instead of cached data',
+    (tester) async {
+      final container = await mountResetApp(tester, AppRoutes.settings);
+      await tester.tap(find.text('Reset game'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(FilledButton, 'Reset game'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Continue without login'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Try with example names'));
+      await tester.tap(find.text('Try with example names'));
+      await tester.pumpAndSettle();
+      expect(container.read(localProfileProvider).playerName, 'Michael');
+      appRouter.go(AppRoutes.profile);
+      await tester.pumpAndSettle();
+      expect(find.text('Michael'), findsOneWidget);
+      expect(find.text('Old player'), findsNothing);
+      expect(find.text('Old cache'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
-  testWidgets('settings renders cleanly with local-game actions',
-      (tester) async {
+  testWidgets('settings renders cleanly with local-game actions', (
+    tester,
+  ) async {
     await mountResetApp(tester, AppRoutes.settings);
     expect(find.text('Reset game'), findsOneWidget);
     expect(find.text('Log out'), findsNothing);
@@ -176,4 +234,89 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
+  testWidgets(
+    'failed server erasure preserves credentials and local progress for retry',
+    (tester) async {
+      final api = DeletionApi();
+      when(
+        () => api.delete<Map<String, dynamic>>(
+          '/api/users/me',
+          options: any(named: 'options'),
+        ),
+      ).thenThrow(const ApiException('Network unavailable'));
+      final container = await mountResetApp(
+        tester,
+        AppRoutes.settings,
+        api: api,
+        signedIn: true,
+      );
+      await tester.ensureVisible(find.text('Reset game'));
+      await tester.tap(find.text('Reset game'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(FilledButton, 'Reset game'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        await container.read(storageServiceProvider).getToken(),
+        'signed-in-token',
+      );
+      expect(await LocalGameService.instance.getPlayerName(), 'Old player');
+      expect(await LocalGameService.instance.getStars(), 1000);
+      expect(
+        find.textContaining('Your local progress was kept'),
+        findsOneWidget,
+      );
+      expect(
+        appRouter.routeInformationProvider.value.uri.path,
+        AppRoutes.settings,
+      );
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
+    'only explicit server erasure confirmation clears a signed-in account locally',
+    (tester) async {
+      final api = DeletionApi();
+      when(
+        () => api.delete<Map<String, dynamic>>(
+          '/api/users/me',
+          options: any(named: 'options'),
+        ),
+      ).thenAnswer(
+        (_) async => Response<Map<String, dynamic>>(
+          requestOptions: RequestOptions(path: '/api/users/me'),
+          data: {'deleted': true},
+        ),
+      );
+      final container = await mountResetApp(
+        tester,
+        AppRoutes.settings,
+        api: api,
+        signedIn: true,
+      );
+      await tester.ensureVisible(find.text('Reset game'));
+      await tester.tap(find.text('Reset game'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.widgetWithText(FilledButton, 'Reset game'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(await container.read(storageServiceProvider).getToken(), isNull);
+    expect(container.read(storageServiceProvider).getPhone(), isNull);
+      await checkClearedGame(container);
+      expect(
+        appRouter.routeInformationProvider.value.uri.path,
+        AppRoutes.phone,
+      );
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 }

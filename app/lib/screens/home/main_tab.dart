@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../router/app_router.dart';
 import '../../services/local_game_service.dart';
+import '../../theme/app_colors.dart';
 
 // Tracks whether a vote round is available right now or the 40-minute
 // break timer is still running, using LocalGameService's local state.
@@ -77,7 +78,7 @@ class _MainTabState extends ConsumerState<MainTab> {
     return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
-  /// Start the game after a nickname and at least 4 participants are ready.
+  /// Start a round once the selected contacts or example names are ready.
   Future<void> _startVote() async {
     final ready = await LocalGameService.instance.hasEnoughNames();
     if (!mounted) return;
@@ -89,7 +90,7 @@ class _MainTabState extends ConsumerState<MainTab> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
-          'Choose a nickname and 4 participants, or use example names to start the game.',
+          'Choose at least 4 contacts, or try example names to start the game.',
         ),
         behavior: SnackBarBehavior.floating,
       ),
@@ -99,20 +100,73 @@ class _MainTabState extends ConsumerState<MainTab> {
 
   @override
   Widget build(BuildContext context) {
+    final decorative =
+        MediaQuery.sizeOf(context).height >= 700 &&
+        MediaQuery.textScalerOf(context).scale(1) <= 1.4;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         bottom: false,
         child: RefreshIndicator(
           onRefresh: _loadState,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
             children: [
-              _buildStatsRow(),
-              const SizedBox(height: 20),
-              if (_tabState == _HomeTabState.loading) _buildLoadingCard(),
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Flyprox',
+                      style: TextStyle(
+                        fontSize: 27,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                        letterSpacing: -0.8,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Open profile',
+                    onPressed: () => context.go(AppRoutes.profile),
+                    icon: const Text('🙂', style: TextStyle(fontSize: 28)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              if (_tabState == _HomeTabState.loading)
+                const SizedBox(
+                  height: 260,
+                  child: Center(child: CircularProgressIndicator()),
+                ),
               if (_tabState == _HomeTabState.timerActive) _buildTimerCard(),
-              if (_tabState == _HomeTabState.voteAvailable) _buildVoteCard(),
+              if (_tabState == _HomeTabState.voteAvailable)
+                _buildVoteCard(decorative),
+              const SizedBox(height: 20),
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: _StatCard(
+                        icon: Icons.star_rounded,
+                        iconColor: const Color(0xFFECA900),
+                        value: '$_starsCount',
+                        label: 'Stars',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _StatCard(
+                        icon: Icons.people_alt_outlined,
+                        iconColor: AppColors.primaryBlue,
+                        value: '$_peopleCount',
+                        label: 'People',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -120,227 +174,213 @@ class _MainTabState extends ConsumerState<MainTab> {
     );
   }
 
-  Widget _buildStatsRow() {
-    return Row(
+  BoxDecoration get _heroDecoration => BoxDecoration(
+    color: AppColors.primaryBlueDark,
+    borderRadius: BorderRadius.circular(28),
+  );
+
+  Widget _buildTimerCard() => Container(
+    padding: const EdgeInsets.all(24),
+    decoration: _heroDecoration,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: _StatCard(
-            icon: Icons.star_rounded,
-            iconColor: const Color(0xFFFFB800),
-            value: '$_starsCount',
-            label: 'Stars',
+        const Icon(Icons.timer_outlined, color: Colors.white, size: 32),
+        const SizedBox(height: 24),
+        const Text(
+          'A little break.',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 30,
+            fontWeight: FontWeight.w800,
+            height: 1.1,
+            letterSpacing: -0.6,
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _StatCard(
-            icon: Icons.people_alt_outlined,
-            iconColor: const Color(0xFF4B6EF5),
-            value: '$_peopleCount',
-            label: 'People named',
-          ),
+        const SizedBox(height: 12),
+        const Text(
+          'Your next round opens in',
+          style: TextStyle(color: Colors.white, fontSize: 15, height: 1.4),
         ),
-      ],
-    );
-  }
-
-  Widget _buildLoadingCard() {
-    return Container(
-      height: 200,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation(Color(0xFF4B6EF5)),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTimerCard() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF4B6EF5), Color(0xFF7C3AED)],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF4B6EF5).withValues(alpha: 0.35),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          const Icon(Icons.timer_outlined, color: Colors.white, size: 40),
-          const SizedBox(height: 12),
-          const Text(
-            'Next quiz in',
-            style: TextStyle(color: Colors.white70, fontSize: 14),
-          ),
-          const SizedBox(height: 8),
-          Text(
+        const SizedBox(height: 12),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
             _formatTime(_secondsRemaining),
             style: const TextStyle(
               color: Colors.white,
               fontSize: 40,
               fontWeight: FontWeight.w700,
               fontFeatures: [FontFeature.tabularFigures()],
-              letterSpacing: 2,
             ),
           ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () => context.push(AppRoutes.timer),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: const BorderSide(color: Colors.white54),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text('Details'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVoteCard() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFFF3B5C), Color(0xFFFF6B35)],
         ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFFF3B5C).withValues(alpha: 0.35),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+        const SizedBox(height: 28),
+        _heroButton(
+          'Details',
+          () => context.push(AppRoutes.timer),
+          Icons.arrow_forward_rounded,
+        ),
+      ],
+    ),
+  );
+
+  Widget _buildVoteCard(bool decorative) => Container(
+    padding: const EdgeInsets.all(24),
+    decoration: _heroDecoration,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'YOUR NEXT ROUND',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.5,
           ),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Who’s most\nlikely to…?',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 34,
+            fontWeight: FontWeight.w800,
+            height: 1.1,
+            letterSpacing: -0.8,
+          ),
+        ),
+        const SizedBox(height: 14),
+        const Text(
+          '12 questions about the people you choose.',
+          style: TextStyle(color: Colors.white, fontSize: 16, height: 1.45),
+        ),
+        if (decorative) ...[
+          const SizedBox(height: 16),
+          const ExcludeSemantics(child: _RoundCards()),
         ],
+        const SizedBox(height: 28),
+        _heroButton('Go to quiz', _startVote, Icons.arrow_forward_rounded),
+      ],
+    ),
+  );
+
+  Widget _heroButton(
+    String label,
+    VoidCallback onPressed,
+    IconData icon,
+  ) => SizedBox(
+    width: double.infinity,
+    child: FilledButton(
+      onPressed: onPressed,
+      style: FilledButton.styleFrom(
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.primaryBlueDark,
+        minimumSize: const Size(0, 56),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
-      child: Column(
+      child: Row(
         children: [
-          const Icon(Icons.how_to_vote_outlined, color: Colors.white, size: 40),
-          const SizedBox(height: 12),
-          const Text(
-            'Quiz is ready',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
             ),
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'Play 12 questions with your game names. Signed-in online rounds sync votes; guest rounds stay on this device.',
-            style: TextStyle(color: Colors.white70, fontSize: 14),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _startVote,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: const Color(0xFFFF3B5C),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                'Go to quiz',
-                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-              ),
-            ),
-          ),
+          const SizedBox(width: 12),
+          Icon(icon, size: 22),
         ],
       ),
-    );
-  }
+    ),
+  );
 }
 
-// ── Helper widgets ────────────────────────────────────────────────────────────
+class _RoundCards extends StatelessWidget {
+  const _RoundCards();
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    height: 112,
+    child: Center(
+      child: SizedBox(
+        width: 216,
+        height: 112,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            _card('💛', -0.18, const Offset(-58, 5), const Color(0xFFEAF0FF)),
+            _card('😂', 0.18, const Offset(58, 5), const Color(0xFFEAF0FF)),
+            _card('✨', 0, Offset.zero, Colors.white),
+          ],
+        ),
+      ),
+    ),
+  );
+  Widget _card(String emoji, double angle, Offset offset, Color color) =>
+      Transform.translate(
+        offset: offset,
+        child: Transform.rotate(
+          angle: angle,
+          child: Container(
+            width: 82,
+            height: 100,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.8)),
+            ),
+            child: Text(emoji, style: const TextStyle(fontSize: 35)),
+          ),
+        ),
+      );
+}
 
 class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String value;
-  final String label;
-
   const _StatCard({
     required this.icon,
     required this.iconColor,
     required this.value,
     required this.label,
   });
-
+  final IconData icon;
+  final Color iconColor;
+  final String value;
+  final String label;
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: const Color(0xFFE9ECF4)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: iconColor, size: 24),
+        const SizedBox(height: 12),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textPrimary,
+              height: 1.1,
+            ),
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: iconColor, size: 28),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF1A1A2E),
-                ),
-              ),
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: Color(0xFF6B7280),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+        ),
+      ],
+    ),
+  );
 }

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../models/user.dart';
 import '../../providers/user_provider.dart';
 import '../../router/app_router.dart';
-import '../../services/local_game_service.dart';
 import '../../services/subscription_service.dart';
 import '../../theme/app_colors.dart';
 
@@ -73,10 +71,6 @@ class _ProfileHeaderCard extends StatelessWidget {
         : (user?.username ?? '');
     final username = login.isNotEmpty ? '@$login' : '';
     final universityInfo = local.universityLine;
-    final letter = LocalGameService.avatarLetter(
-      displayName: displayName,
-      username: login,
-    );
 
     return Container(
       width: double.infinity,
@@ -84,7 +78,11 @@ class _ProfileHeaderCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       child: Column(
         children: [
-          _AvatarWidget(user: user, encoded: local.avatar, letter: letter, radius: 52),
+          const CircleAvatar(
+            radius: 52,
+            backgroundColor: Color(0xFFEFF1FE),
+            child: Text('🙂', style: TextStyle(fontSize: 56)),
+          ),
           const SizedBox(height: 14),
           // Name + verified badge (Premium members only)
           Row(
@@ -109,8 +107,11 @@ class _ProfileHeaderCard extends StatelessWidget {
                   }
                   return const Padding(
                     padding: EdgeInsets.only(left: 6),
-                    child: Icon(Icons.verified,
-                        color: Color(0xFF4B6EF5), size: 22),
+                    child: Icon(
+                      Icons.verified,
+                      color: Color(0xFF4B6EF5),
+                      size: 22,
+                    ),
                   );
                 },
               ),
@@ -143,127 +144,6 @@ class _ProfileHeaderCard extends StatelessWidget {
       ),
     );
   }
-
-}
-
-// ---------------------------------------------------------------------------
-// Reusable avatar widget (tappable → fullscreen)
-// ---------------------------------------------------------------------------
-
-class _AvatarWidget extends StatelessWidget {
-  final String? encoded;
-  const _AvatarWidget({
-    this.encoded,
-    this.user,
-    required this.letter,
-    this.radius = 40,
-  });
-
-  final User? user;
-  final String letter;
-  final double radius;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasAvatar = user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty;
-
-    Widget avatar;
-    if (encoded != null) {
-      avatar = CircleAvatar(radius: radius,
-        backgroundImage: MemoryImage(base64Decode(encoded!)));
-    } else if (hasAvatar) {
-      avatar = CircleAvatar(
-        radius: radius,
-        backgroundImage: NetworkImage(user!.avatarUrl!),
-        backgroundColor: AppColors.primaryBlue,
-      );
-    } else {
-      avatar = CircleAvatar(
-        radius: radius,
-        backgroundColor: AppColors.primaryBlue,
-        child: Text(
-          letter,
-          style: TextStyle(
-            color: AppColors.white,
-            fontSize: radius * 0.5,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      );
-    }
-
-    return GestureDetector(
-      onTap: () => _showFullscreen(context, user, hasAvatar, letter),
-      child: Stack(
-        children: [
-          avatar,
-
-        ],
-      ),
-    );
-  }
-
-  void _showFullscreen(
-    BuildContext context,
-    User? user,
-    bool hasAvatar,
-    String initials,
-  ) {
-    showDialog(
-      context: context,
-      barrierColor: Colors.black87,
-      builder: (_) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: EdgeInsets.zero,
-        child: Stack(
-          children: [
-            GestureDetector(
-              onTap: () => Navigator.of(context).pop(),
-              child: Container(
-                width: double.infinity,
-                height: double.infinity,
-                color: Colors.transparent,
-              ),
-            ),
-            Center(
-              child: encoded != null
-                  ? ClipOval(child: Image.memory(base64Decode(encoded!),
-                      width: 260, height: 260, fit: BoxFit.cover))
-                  : hasAvatar
-                  ? ClipOval(
-                      child: Image.network(
-                        user!.avatarUrl!,
-                        width: 260,
-                        height: 260,
-                        fit: BoxFit.cover,
-                      ),
-                    )
-                  : CircleAvatar(
-                      radius: 130,
-                      backgroundColor: AppColors.primaryBlue,
-                      child: Text(
-                        initials,
-                        style: const TextStyle(
-                          color: AppColors.white,
-                          fontSize: 64,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-            ),
-            Positioned(
-              top: 48,
-              right: 16,
-              child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white, size: 28),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -280,11 +160,7 @@ class _StatsRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _StatItem(
-          emoji: '⭐',
-          value: _format(local.stars),
-          label: 'Stars',
-        ),
+        _StatItem(emoji: '⭐', value: _format(local.stars), label: 'Stars'),
         _Divider(),
         _StatItem(
           emoji: '👥',
@@ -340,11 +216,7 @@ class _StatItem extends StatelessWidget {
 class _Divider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 44,
-      width: 1,
-      color: AppColors.border,
-    );
+    return Container(height: 44, width: 1, color: AppColors.border);
   }
 }
 

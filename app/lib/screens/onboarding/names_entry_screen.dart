@@ -12,7 +12,7 @@ import '../../services/content_service.dart';
 
 const Color _primaryBlue = Color(0xFF4B6EF5);
 const int _minFriends = LocalGameService.minFriends;
-const int _maxPickedContacts = 10;
+const int _maxPickedContacts = 50;
 const int _maxContacts = 50;
 
 /// Selected contacts only; manual nickname/participant input is retired.

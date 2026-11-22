@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,27 +11,32 @@ import '../../router/app_router.dart';
 import '../../services/local_game_service.dart';
 import '../../services/subscription_service.dart';
 
-/// Best-effort server erasure for logged-in users. Drops the backend account
-/// (profile, hashes, rounds, votes) and the local token plus cached matches.
-/// Local wipe proceeds regardless of the outcome.
+/// Signed-in accounts require explicit server confirmation before local erasure.
+/// On failure the credential is retained so deletion can be retried.
 Future<void> _wipeServerData(WidgetRef ref) async {
-  try {
-    final storage = ref.read(storageServiceProvider);
-    final token = await storage.getToken();
-    if (token != null && token.isNotEmpty) {
-      final api = ref.read(apiServiceProvider);
-      await api
-          .delete('/api/users/me')
-          .timeout(const Duration(seconds: 5));
+  final storage = ref.read(storageServiceProvider);
+  final token = await storage.getToken();
+  if (token != null && token.isNotEmpty) {
+    final response = await ref
+        .read(apiServiceProvider)
+        .delete<Map<String, dynamic>>(
+          '/api/users/me',
+          options: Options(receiveTimeout: const Duration(minutes: 3)),
+        )
+        .timeout(const Duration(minutes: 3));
+    if (response.data?['deleted'] != true) {
+      throw StateError('Account deletion was not confirmed');
     }
-  } catch (_) {
-    // Best effort: local wipe proceeds regardless.
-  } finally {
-    try {
-      await ref.read(storageServiceProvider).clearToken();
-      await ref.read(contactSyncServiceProvider).clearMatches();
-    } catch (_) {}
   }
+  try {
+    await FirebaseAuth.instance.signOut().timeout(const Duration(seconds: 5));
+  } catch (_) {
+    // Firebase may be unavailable in guest/offline builds; backend erasure was
+    // already confirmed for signed-in users. Clear our own persisted data.
+  }
+  await storage.clearPhone();
+  await storage.clearToken();
+  await ref.read(contactSyncServiceProvider).clearMatches();
 }
 
 /// One confirmation shared by every entry point to local game deletion.
@@ -38,8 +46,10 @@ Future<void> showResetGameDialog(
   WidgetRef ref, {
   String title = 'Reset game?',
   String confirmLabel = 'Reset game',
-  String intro = 'Your nickname, participant names, university, photo, saved answers, stars, question history '
-      'and current timer will be deleted from this device. This cannot be undone.',
+  String intro =
+      'Your game profile, participants, university, saved answers, stars, question history '
+      'and timer will be deleted. If signed in, your Flyprox account and its server data will also be deleted. '
+      'This cannot be undone. Your Apple subscription is managed separately.',
 }) async {
   final confirmed = await showDialog<bool>(
     context: context,
@@ -60,20 +70,48 @@ Future<void> showResetGameDialog(
   );
   if (confirmed != true || !context.mounted) return;
 
+  final navigator = Navigator.of(context, rootNavigator: true);
+  final waiting = DialogRoute<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => const PopScope(
+      canPop: false,
+      child: AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 20),
+            Text('Deleting…'),
+          ],
+        ),
+      ),
+    ),
+  );
+  unawaited(navigator.push(waiting));
+  var localCleanupStarted = false;
   try {
     await _wipeServerData(ref);
+    localCleanupStarted = true;
     await LocalGameService.instance.clearAll();
     await SubscriptionService.instance.resetUser();
     await ref.read(storageServiceProvider).clearUser();
     if (!context.mounted) return;
     ref.read(userNotifierProvider.notifier).clearUser();
     ref.read(localProfileProvider.notifier).clear();
+    if (waiting.isActive) navigator.removeRoute(waiting);
     context.go(AppRoutes.phone);
   } catch (_) {
+    if (waiting.isActive) navigator.removeRoute(waiting);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Couldn’t reset the game. Please try again.')),
+      SnackBar(
+        content: Text(
+          localCleanupStarted
+              ? 'Couldn’t finish clearing local data. Please try again.'
+              : 'Couldn’t complete account deletion. Your local progress was kept. Try again or contact support.',
+        ),
+      ),
     );
   }
 }

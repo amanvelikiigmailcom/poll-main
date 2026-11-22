@@ -1,14 +1,8 @@
-import 'dart:convert';
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_picker/image_picker.dart';
 
-
-import '../../models/user.dart';
 import '../../providers/user_provider.dart';
 import '../../services/local_game_service.dart';
 import '../../theme/app_colors.dart';
@@ -25,7 +19,6 @@ class _EditFormState {
     this.username = '',
     this.university = '',
     this.universityYear,
-    this.localAvatarPath,
     this.isHydrated = false,
     this.isSaving = false,
     this.errorMessage,
@@ -35,7 +28,6 @@ class _EditFormState {
   final String username;
   final String university;
   final int? universityYear;
-  final String? localAvatarPath;
   final bool isHydrated;
   final bool isSaving;
   final String? errorMessage;
@@ -46,8 +38,6 @@ class _EditFormState {
     String? university,
     int? universityYear,
     bool clearYear = false,
-    String? localAvatarPath,
-    bool clearLocalAvatar = false,
     bool? isHydrated,
     bool? isSaving,
     String? errorMessage,
@@ -57,10 +47,7 @@ class _EditFormState {
       firstName: firstName ?? this.firstName,
       username: username ?? this.username,
       university: university ?? this.university,
-      universityYear:
-          clearYear ? null : universityYear ?? this.universityYear,
-      localAvatarPath:
-          clearLocalAvatar ? null : localAvatarPath ?? this.localAvatarPath,
+      universityYear: clearYear ? null : universityYear ?? this.universityYear,
       isHydrated: isHydrated ?? this.isHydrated,
       isSaving: isSaving ?? this.isSaving,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
@@ -80,10 +67,8 @@ class _EditFormNotifier extends StateNotifier<_EditFormState> {
     required String username,
     required String university,
     int? universityYear,
-    String? avatar,
   }) {
     state = _EditFormState(
-      localAvatarPath: avatar,
       firstName: firstName,
       username: username,
       university: university,
@@ -95,23 +80,19 @@ class _EditFormNotifier extends StateNotifier<_EditFormState> {
   void setFirstName(String v) => state = state.copyWith(firstName: v);
   void setUsername(String v) => state = state.copyWith(username: v);
   void setUniversity(String v) => state = state.copyWith(university: v);
-  void setUniversityYear(int? year) => state = state.copyWith(
-        universityYear: year,
-        clearYear: year == null,
-      );
-  void setLocalAvatar(String? encoded) =>
-      state = state.copyWith(localAvatarPath: encoded, clearLocalAvatar: encoded == null);
+  void setUniversityYear(int? year) =>
+      state = state.copyWith(universityYear: year, clearYear: year == null);
   void setSaving(bool v) => state = state.copyWith(isSaving: v);
   void setError(String? message) => state = state.copyWith(
-        errorMessage: message,
-        clearError: message == null,
-      );
+    errorMessage: message,
+    clearError: message == null,
+  );
 }
 
 final _editFormProvider =
     StateNotifierProvider.autoDispose<_EditFormNotifier, _EditFormState>((ref) {
-  return _EditFormNotifier();
-});
+      return _EditFormNotifier();
+    });
 
 // ---------------------------------------------------------------------------
 // Screen
@@ -152,18 +133,18 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     username = await game.getUsername() ?? username;
     university = await game.getUniversity() ?? university;
     year = await game.getUniversityYear() ?? year;
-    final avatar = await game.getAvatar();
 
     if (!mounted) return;
     _firstNameCtrl.text = name;
     _usernameCtrl.text = username;
     _universityCtrl.text = university;
-    ref.read(_editFormProvider.notifier).hydrate(
+    ref
+        .read(_editFormProvider.notifier)
+        .hydrate(
           firstName: name,
           username: username,
           university: university,
           universityYear: year,
-          avatar: avatar,
         );
   }
 
@@ -175,35 +156,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    try {
-      final picked = await ImagePicker().pickImage(source: ImageSource.gallery,
-        imageQuality: 70, maxWidth: 256, maxHeight: 256, requestFullMetadata: false);
-      if (picked == null || !mounted) return;
-      final bytes = await picked.readAsBytes();
-      if (bytes.length > 5 * 1024 * 1024) {
-        throw const FormatException('Please choose a smaller photo.');
-      }
-      // Re-encode to a small PNG, removing embedded photo metadata.
-      final codec = await ui.instantiateImageCodec(bytes, targetWidth: 256);
-      try {
-        final frame = await codec.getNextFrame();
-        try {
-          final png = await frame.image.toByteData(format: ui.ImageByteFormat.png);
-          if (png == null || png.lengthInBytes > 512 * 1024) {
-            throw const FormatException('Please choose a smaller photo.');
-          }
-          if (!mounted) return;
-          ref.read(_editFormProvider.notifier).setLocalAvatar(
-            base64Encode(png.buffer.asUint8List(png.offsetInBytes, png.lengthInBytes)));
-        } finally { frame.image.dispose(); }
-      } finally { codec.dispose(); }
-    } catch (_) {
-      if (mounted) { ref.read(_editFormProvider.notifier).setError(
-        'Couldn’t open this photo. Try a different image.'); }
-    }
-  }
-
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
@@ -213,8 +165,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     formNotifier.setError(null);
 
     try {
-      await LocalGameService.instance.saveAvatar(formState.localAvatarPath);
-      await ref.read(localProfileProvider.notifier).save(
+      await ref
+          .read(localProfileProvider.notifier)
+          .save(
             username: formState.username.trim(),
             playerName: formState.firstName.trim(),
             university: formState.university.trim(),
@@ -229,7 +182,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(currentUserProvider);
     final formState = ref.watch(_editFormProvider);
     final userState = ref.watch(userNotifierProvider);
 
@@ -239,8 +191,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         backgroundColor: AppColors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close,
-              color: AppColors.textPrimary, size: 22),
+          icon: const Icon(Icons.close, color: AppColors.textPrimary, size: 22),
           onPressed: () => context.pop(),
         ),
         title: const Text(
@@ -258,20 +209,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           child: Column(
             children: [
               const SizedBox(height: 20),
-              _AvatarSection(
-                user: user,
-                letter: LocalGameService.avatarLetter(
-                  displayName: formState.firstName,
-                  username: formState.username,
-                ),
-                localPath: formState.localAvatarPath,
-                onTap: _pickImage,
+              const CircleAvatar(
+                radius: 48,
+                backgroundColor: Color(0xFFEFF1FE),
+                child: Text('🙂', style: TextStyle(fontSize: 52)),
               ),
-              if (formState.localAvatarPath != null)
-                TextButton(onPressed: () => ref.read(_editFormProvider.notifier).setLocalAvatar(null),
-                  child: const Text('Remove photo')),
-              const Padding(padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: Text('Photo is optional and stays on this device.', textAlign: TextAlign.center)),
               const SizedBox(height: 20),
               _TextFieldsSection(
                 firstNameCtrl: _firstNameCtrl,
@@ -298,7 +240,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   child: Text(
                     formState.errorMessage ?? userState.errorMessage!,
                     style: const TextStyle(
-                        color: AppColors.error, fontSize: 13),
+                      color: AppColors.error,
+                      fontSize: 13,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ),
@@ -327,105 +271,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       ),
     );
   }
-
-}
-
-// ---------------------------------------------------------------------------
-// Avatar section
-// ---------------------------------------------------------------------------
-
-class _AvatarSection extends StatelessWidget {
-  const _AvatarSection({
-    this.user,
-    required this.letter,
-    this.localPath,
-    required this.onTap,
-  });
-
-  final User? user;
-  final String letter;
-  final String? localPath;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final hasNetwork =
-        user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty;
-
-    Widget avatar;
-    if (localPath != null) {
-      // Local file picked by user
-      avatar = CircleAvatar(
-        radius: 48,
-        backgroundImage: MemoryImage(base64Decode(localPath!)),
-        backgroundColor: AppColors.primaryBlue,
-      );
-    } else if (hasNetwork) {
-      avatar = CircleAvatar(
-        radius: 48,
-        backgroundImage: NetworkImage(user!.avatarUrl!),
-        backgroundColor: AppColors.primaryBlue,
-      );
-    } else {
-      avatar = CircleAvatar(
-        radius: 48,
-        backgroundColor: AppColors.primaryBlue,
-        child: Text(
-          letter,
-          style: const TextStyle(
-            color: AppColors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      );
-    }
-
-    return Column(
-      children: [
-        Stack(
-          children: [
-            avatar,
-            Positioned(
-              bottom: 0,
-              right: 0,
-              child: GestureDetector(
-                onTap: onTap,
-                child: Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryBlue,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                        color: AppColors.white, width: 2),
-                  ),
-                  child: const Icon(
-                    Icons.camera_alt,
-                    color: AppColors.white,
-                    size: 15,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        GestureDetector(
-          onTap: onTap,
-          child: const Text(
-            'Change photo',
-            style: TextStyle(
-              color: AppColors.primaryBlue,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
 }
 
 // ---------------------------------------------------------------------------
@@ -509,26 +354,27 @@ class _InputField extends StatelessWidget {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide:
-              const BorderSide(color: AppColors.border, width: 1),
+          borderSide: const BorderSide(color: AppColors.border, width: 1),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
           borderSide: const BorderSide(
-              color: AppColors.primaryBlue, width: 1.5),
+            color: AppColors.primaryBlue,
+            width: 1.5,
+          ),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide:
-              const BorderSide(color: AppColors.error, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide:
-              const BorderSide(color: AppColors.error, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(
-            horizontal: 14, vertical: 14),
+          horizontal: 14,
+          vertical: 14,
+        ),
       ),
     );
   }
@@ -583,10 +429,14 @@ class _UniversitySection extends StatelessWidget {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: const BorderSide(
-                    color: AppColors.primaryBlue, width: 1.5),
+                  color: AppColors.primaryBlue,
+                  width: 1.5,
+                ),
               ),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 14,
+              ),
             ),
             items: const [
               DropdownMenuItem(value: 1, child: Text('1st year')),
@@ -627,7 +477,8 @@ class _SaveButton extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 16),
             elevation: 0,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
           child: isSaving
               ? const SizedBox(
@@ -640,8 +491,7 @@ class _SaveButton extends StatelessWidget {
                 )
               : const Text(
                   'Save',
-                  style: TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
         ),
       ),

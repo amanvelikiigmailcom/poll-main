@@ -27,7 +27,7 @@ final class ContactAccessBridge: NSObject, FlutterPlugin, UIAdaptivePresentation
       result(FlutterError(code: "no_presenter", message: "Cannot open contact selection", details: nil)); return
     }
     let args = call.arguments as? [String: Any] ?? [:]
-    let limit = min(max(args["limit"] as? Int ?? 10, 1), 10)
+    let limit = min(max(args["limit"] as? Int ?? 50, 1), 50)
     pending = result
     let model = ContactAccessModel(store: store, limit: limit)
     let view = ContactAccessSelection(model: model, onCancel: { [weak self] in
@@ -112,12 +112,9 @@ private final class ContactAccessModel: ObservableObject {
     started = true
     if status == .notDetermined {
       do { _ = try await store.requestAccess(for: .contacts) }
-      catch { message = "Contacts access was not granted. You can add names instead." }
+      catch { message = "Contacts access was not granted. You can use example names instead." }
       status = CNContactStore.authorizationStatus(for: .contacts)
       reload(selectInitialLimited: status == .limited) // initial permission UI already selected contacts
-    } else if status == .limited {
-      reload()
-      showAccessPicker = true
     } else { reload() }
   }
 
@@ -128,10 +125,9 @@ private final class ContactAccessModel: ObservableObject {
     generation += 1
     let requestGeneration = generation
     let access = status
-    let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
-    // Full access is not an invitation to enumerate the address book.
-    // Require an actual name query, stop after 50 results, fetch names only.
-    guard access == .limited || (access == .authorized && !text.isEmpty) else {
+    // Browse authorized names immediately. Phone fields are still fetched
+    // only for the explicitly confirmed selection in readSelection().
+    guard access == .limited || access == .authorized else {
       contacts = []; loading = false
       if access == .denied || access == .restricted { selected = [] }
       return
@@ -144,21 +140,19 @@ private final class ContactAccessModel: ObservableObject {
       do {
         let request = CNContactFetchRequest(keysToFetch: [CNContactFormatter.descriptorForRequiredKeys(for: .fullName)])
         request.sortOrder = .userDefault
-        if access == .authorized { request.predicate = CNContact.predicateForContacts(matchingName: text) }
         try store.enumerateContacts(with: request) { contact, stop in
           let name = CNContactFormatter.string(from: contact, style: .fullName) ?? ""
           if !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             rows.append(ContactName(id: contact.identifier, name: name))
           }
-          if access == .authorized && rows.count >= 50 { stop.pointee = true }
         }
       } catch { failed = true }
       DispatchQueue.main.async { [weak self] in
         guard let self, self.generation == requestGeneration else { return }
         self.contacts = rows
-        // Filtering a full-access search must not remove choices from other queries.
+        // Revoked or deleted contacts must never remain selected.
+        self.selected.formIntersection(Set(rows.map(\.id)))
         if access == .limited {
-          self.selected.formIntersection(Set(rows.map(\.id)))
           if self.selectFirstShared {
             self.selected.formUnion(rows.prefix(self.limit).map(\.id))
             self.selectFirstShared = false
@@ -171,13 +165,15 @@ private final class ContactAccessModel: ObservableObject {
   }
 
   var visible: [ContactName] {
-    guard status == .limited, !query.isEmpty else { return contacts }
-    return contacts.filter { $0.name.localizedCaseInsensitiveContains(query) }
+    let text = query.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !text.isEmpty else { return contacts }
+    return contacts.filter { $0.name.localizedStandardContains(text) }
   }
 
   func toggle(_ id: String) {
     if selected.contains(id) { selected.remove(id) }
     else if selected.count < limit { selected.insert(id) }
+    else { message = "You can add up to \(limit) contacts in this selection." }
   }
 }
 
@@ -192,7 +188,9 @@ private struct ContactAccessSelection: View {
     NavigationStack {
       List {
         Section {
-          Text("Choose up to \(model.limit) participants. Only the names you confirm are added to your game.")
+          Text(model.limit == 1
+            ? "Choose one contact to add to your quiz."
+            : "Choose contacts for your quiz. You need at least 4 contacts in total to start. Only the contacts you confirm are added.")
             .font(.subheadline).foregroundStyle(.secondary)
         }
         if model.status == .limited {
@@ -206,7 +204,7 @@ private struct ContactAccessSelection: View {
         }
         if model.status == .denied || model.status == .restricted {
           Section {
-            Text("Contacts access is off. You can cancel and enter nicknames instead.")
+            Text("Contacts access is off. You can cancel and try example names instead.")
             if model.status == .denied {
               Button("Open Settings") {
                 if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
@@ -227,19 +225,19 @@ private struct ContactAccessSelection: View {
               .accessibilityAddTraits(model.selected.contains(contact.id) ? .isSelected : [])
             }
             if !model.loading && model.visible.isEmpty {
-              Text(model.status == .authorized && model.query.isEmpty
-                ? "Search by name to choose contacts."
-                : "No matching shared contacts. Try another name or choose more contacts.")
+              Text(model.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? "No contacts available. Check Contacts access in Settings or choose more contacts."
+                : "No matching contacts. Try another name.")
                 .foregroundStyle(.secondary)
             }
-          } header: { Text("Selected: \(model.selected.count) / \(model.limit)") }
+          } header: { Text("\(model.selected.count) selected") }
         }
         if let message = model.message { Text(message).foregroundStyle(.secondary) }
       }
+      .scrollDismissesKeyboard(.interactively)
       .navigationTitle("Choose contacts")
       .navigationBarTitleDisplayMode(.inline)
       .searchable(text: $model.query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search contacts")
-      .onChange(of: model.query) { _, _ in model.reload() }
       .onChange(of: scenePhase) { _, phase in if phase == .active { model.reload() } }
       .toolbar {
         ToolbarItem(placement: .cancellationAction) { Button("Cancel", action: onCancel) }

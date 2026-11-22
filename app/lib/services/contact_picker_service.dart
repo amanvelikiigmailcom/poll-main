@@ -82,7 +82,7 @@ class ContactPickerService {
         return picked == null ? [] : _dedupe([picked], excludeLower);
       }
       if (_driver.supportsMultiPick) {
-        final picked = await _driver.pickMany();
+        final picked = await _driver.pickMany(maxNames: maxNames);
         if (picked == null) return [];
         return _dedupe(picked, excludeLower).take(maxNames).toList();
       }

@@ -146,7 +146,6 @@ class LocalGameService {
         'participantNames': await getNames(),
         'university': await getUniversity(),
         'universityYear': await getUniversityYear(),
-        'avatarPngBase64': await getAvatar(),
         'stars': await getStars(),
         'completedRounds': await getCompletedRounds(),
         'currentRound': (await getRoundAnswers())
@@ -157,14 +156,10 @@ class LocalGameService {
         )).map((a) => a.toJson()).toList(),
       });
 
-  Future<String?> getAvatar() async => (await _prefs).getString(_avatarKey);
-  Future<void> saveAvatar(String? encoded) async {
+  /// Remove only the retired app-owned Base64 avatar, never gallery originals.
+  Future<void> removeLegacyAvatar() async {
     final prefs = await _prefs;
-    if (encoded == null) {
-      await prefs.remove(_avatarKey);
-    } else {
-      await prefs.setString(_avatarKey, encoded);
-    }
+    if (prefs.containsKey(_avatarKey)) await prefs.remove(_avatarKey);
   }
 
   // ── Optional local profile handle ────────────────────────────────────

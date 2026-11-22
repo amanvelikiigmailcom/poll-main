@@ -13,7 +13,7 @@ class StubContactPickerDriver implements ContactPickerDriver {
   bool get supportsMultiPick => false;
 
   @override
-  Future<List<Contact>?> pickMany() async => null;
+  Future<List<Contact>?> pickMany({int maxNames = 50}) async => null;
 
   @override
   Future<Contact?> pickOne() async => null;

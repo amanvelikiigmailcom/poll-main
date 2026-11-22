@@ -14,7 +14,7 @@ abstract class ContactPickerDriver {
   bool get supportsMultiPick;
 
   /// One multi-select session; null when the user cancels.
-  Future<List<Contact>?> pickMany();
+  Future<List<Contact>?> pickMany({int maxNames = 50});
 
   /// One single-contact session; null when the user cancels.
   Future<Contact?> pickOne();

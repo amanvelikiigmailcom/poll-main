@@ -1,0 +1,48 @@
+{
+  "version": "1.0.2",
+  "versionId": "ef496d1b-1536-4520-abb8-7b39285df6a5",
+  "state": "PREPARE_FOR_SUBMISSION",
+  "releaseType": "MANUAL",
+  "locale": "en-US",
+  "localizationId": "e3953188-2d8e-4ac0-aa1b-febed8e0df4c",
+  "metadata": {
+    "description": "A quick quiz with the people you choose.\n\nFlyprox is a “who’s most likely to…” game for your iPhone. Choose at least four contacts or try ready-made example names, then pick the person who fits each prompt.\n\nHOW TO PLAY\n- Play rounds of 12 questions, with four name cards per question.\n- Shuffle the cards or skip a question.\n- Collect stars when you complete a round.\n- Come back after a 40-minute break, or use the optional sharing shortcut. Sending a message is not required.\n\nYOUR PEOPLE, YOUR CHOICE\nChoose contacts only when you want to add participants. On supported iOS versions you can give access to selected contacts, or use the example names without Contacts access. Profiles use a built-in smiley avatar. There is no in-app chat, public posting feed or profile-photo upload.\n\nOPTIONAL ONLINE PLAY\nYou can continue without an account. Phone sign-in enables friend matching and online votes. Only the contacts you confirm are used for matching: their selected names and phone-number hashes are sent to Flyprox, not your full address book or raw selected-contact numbers. Selecting someone sends no invitation. A matched registered friend may receive a vote notification if they have enabled notifications. Guest answers stay on your device.\n\nPhone sign-in is supported for numbers from the United States, United Kingdom, Canada, New Zealand, Singapore and Hong Kong. Notification permission is optional.\n\nOPTIONAL PREMIUM\nCore play is free. Premium Weekly is an optional auto-renewing subscription, offering full Reveal of your saved round answers, no wait between rounds, double stars and a profile badge. It does not reveal other voters’ identities. The app and Apple’s purchase sheet show your localized price and terms. Manage or cancel subscriptions in your Apple Account settings; use Restore purchases to restore eligible access.\n\nFlyprox is intended for ages 13 and over. Use it for entertainment and respectful play.\n\nPrivacy Policy:\nhttps://distinct-lunaria-d0a.notion.site/41ae779d27428120b9bbfb769e7063f6\n\nTerms of Use:\nhttps://distinct-lunaria-d0a.notion.site/41ae779d27428104bac7d2e41d83015a\n\nSupport:\nhttps://distinct-lunaria-d0a.notion.site/41ae779d2742815494ebfa72e5db4620",
+    "promotionalText": "Choose your people or try example names. Play quick 12-question quizzes, collect stars, and enjoy optional online votes and notifications.",
+    "keywords": "quiz,friends,party,icebreaker,questions,casual,group,stars,polls,whoismostlikely",
+    "whatsNew": "This update adds optional phone sign-in, selected-contact matching, online votes and vote notifications.\n\n- A clearer setup: phone verification or guest play, age check, then contact selection.\n- Search and select contacts, with a minimum of four participants for your quiz.\n- A refreshed home screen in Flyprox blue.\n- Simplified profiles with a built-in smiley avatar and no photo upload.\n- Improved keyboard layouts, subscription-status checks and app-version information.\n- Optional Premium Weekly, with Restore purchases and clear subscription terms.\n\nContacts and notifications remain optional; example names are available for trying the quiz without sharing contacts.",
+    "supportUrl": "https://distinct-lunaria-d0a.notion.site/41ae779d2742815494ebfa72e5db4620",
+    "marketingUrl": "https://distinct-lunaria-d0a.notion.site/41ae779d274281a095c3dd25afefafe2"
+  },
+  "reviewNotes": "REVIEW ACCESS\nPhone: +1 650-555-1234\nSMS verification code: 123456\nThis is a configured Firebase test number; it sends no real SMS and needs no access to a personal phone. US/+1 is the default country code. Core guest play is also available without sign-in.\n\nAPP AND UPDATE\nFlyprox is a 13+ entertainment quiz, not a chat or photo-sharing app. It has no in-app messaging, public posting feed or photo upload. The profile uses a built-in smiley. Version 1.0.2 adds real optional Firebase phone authentication, backend accounts, selected-contact matching, online votes and APNs notifications; it is not a local-only app. Apple handles optional Premium Weekly purchases; Superwall manages subscription access.\n\nREVIEW PATH\n1. Complete or skip the intro. Enter the test phone and code above, or tap Continue without login.\n2. Answer the unselected age question (12 or younger, 13, 14, 15, 16, 17, 18+). An under-13 answer blocks contacts, gameplay and subscriptions for that run. Exact selected age is not retained or uploaded; a local eligibility outcome/check time is stored. Phone/account verification precedes this question; subscription initialization follows an eligible answer.\n3. Choose at least four contacts, or tap Try with example names. There is no manual nickname/participant-name entry in onboarding. In the contact selection screen, tap Add to confirm the selection, then Continue.\n4. Signed-in users may see the optional notification explanation after setup. Enable notifications opens the iOS prompt; Skip/denial is supported. Play a 12-question round from Quiz. Shuffle and Skip are available. Reveal shows this device’s saved answers, not the identity of other voters.\n5. Open Premium or Settings > Premium to inspect the weekly auto-renewing subscription, localized price, terms, Restore purchases, Terms and Privacy links. Use Apple sandbox purchasing during review.\n\nPERMISSIONS AND DATA\nContacts: requested only after tapping a contacts action, to choose quiz participants and match selected friends. iOS 18+ supports limited or full access. Full access displays authorized names with search; limited access displays permitted names with an option to choose more. Only confirmed entries become participants (up to 50 total). Browsing reads names locally; phone fields are fetched for confirmed selections. On iOS 15–17 the one-time picker remains available. The example path needs no Contacts access.\n\nWhen signed in, only confirmed labels and hashes of selected phone numbers are sent for friend matching; the full address book and raw selected-contact numbers are not uploaded. Selecting a contact sends no invitation. A vote push needs a matched different registered account, registered device and notification permission. The same test number on two devices is one account, so it cannot simulate two players. Phone/Firebase processing occurs before the age response. Phone sign-in regions: US, UK, Canada, New Zealand, Singapore and Hong Kong.\n\nNotifications: optional alerts when matched friends vote; the app asks only after Enable notifications. No camera, photo-library, microphone, location or tracking permission is requested by this quiz flow. External WhatsApp/Instagram sharing opens an external app and is user-controlled.\n\nQuestion reporting prepares an email with the question/ID, excluding participant names and answers. The user decides whether to send it. Settings contains privacy/support links and Delete account.",
+  "demoAccountRequired": true,
+  "demoAccountPhone": "+16505551234",
+  "links": {
+    "privacy": "https://distinct-lunaria-d0a.notion.site/41ae779d27428120b9bbfb769e7063f6",
+    "terms": "https://distinct-lunaria-d0a.notion.site/41ae779d27428104bac7d2e41d83015a",
+    "support": "https://distinct-lunaria-d0a.notion.site/41ae779d2742815494ebfa72e5db4620",
+    "marketing": "https://distinct-lunaria-d0a.notion.site/41ae779d274281a095c3dd25afefafe2"
+  },
+  "status": "Draft text saved and read back; final build/screenshots/App Privacy/device verification still pending. Not submitted.",
+  "appInformation": {
+    "appInfoId": "d473d8c2-a549-4d7d-9716-edd9446cfd01",
+    "appInfoLocalizationId": "425143d3-2f31-4bf4-9105-79aa6f503ef3",
+    "name": "Flyprox",
+    "subtitle": "Quick quizzes with your people",
+    "privacyPolicyUrl": "https://distinct-lunaria-d0a.notion.site/41ae779d27428120b9bbfb769e7063f6"
+  },
+  "copyright": "2026 HIDAVO, TOO",
+  "buildAttached": false,
+  "inheritedScreenshotSets": 3,
+  "inheritedScreenshotCount": 9,
+  "ageRatingReadOnlySnapshot": {
+    "messagingAndChat": false,
+    "userGeneratedContent": false,
+    "socialMedia": false,
+    "ageAssurance": false,
+    "ageRatingOverride": "THIRTEEN_PLUS",
+    "ageRatingOverrideV2": "THIRTEEN_PLUS",
+    "appStoreAgeRating": "TWELVE_PLUS",
+    "changedByThisTask": false,
+    "note": "Existing content-frequency declarations were not audited against the full question bank."
+  }
+}

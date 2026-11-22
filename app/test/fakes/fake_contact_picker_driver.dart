@@ -26,7 +26,7 @@ class FakeContactPickerDriver implements ContactPickerDriver {
   bool get supportsMultiPick => multiPick;
 
   @override
-  Future<List<Contact>?> pickMany() async {
+  Future<List<Contact>?> pickMany({int maxNames = 50}) async {
     pickManyCalls++;
     return manyResult;
   }
@@ -47,7 +47,7 @@ class ThrowingContactPickerDriver implements ContactPickerDriver {
   bool get supportsMultiPick => true;
 
   @override
-  Future<List<Contact>?> pickMany() => throw StateError('no native side');
+  Future<List<Contact>?> pickMany({int maxNames = 50}) => throw StateError('no native side');
 
   @override
   Future<Contact?> pickOne() => throw StateError('no native side');

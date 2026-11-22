@@ -17,7 +17,7 @@ void main() {
   test('iOS uses modern contact access with a bounded selection', () async {
     messenger.setMockMethodCallHandler(modern, (call) async {
       expect(call.method, 'pickContacts');
-      expect(call.arguments, {'limit': 10});
+      expect(call.arguments, {'limit': 50});
       return [
         {
           'fullName': 'Selected friend',
@@ -76,6 +76,60 @@ void main() {
         NativeContactPickerDriver(isIOS: true).pickMany(),
         throwsA(isA<PlatformException>()),
       );
+    },
+  );
+  test(
+    'remaining capacity reaches the native picker instead of an old ten-contact cap',
+    () async {
+      messenger.setMockMethodCallHandler(modern, (call) async {
+        expect(call.arguments, {'limit': 4});
+        return List.generate(
+          4,
+          (i) => {'fullName': 'Remaining $i', 'phoneNumbers': <String>[]},
+        );
+      });
+      final result = await NativeContactPickerDriver(
+        isIOS: true,
+      ).pickMany(maxNames: 4);
+      expect(result?.map((c) => c.fullName).toList(), [
+        'Remaining 0',
+        'Remaining 1',
+        'Remaining 2',
+        'Remaining 3',
+      ]);
+    },
+  );
+
+  test(
+    'single contact mode still requests exactly one native selection',
+    () async {
+      messenger.setMockMethodCallHandler(modern, (call) async {
+        expect(call.arguments, {'limit': 1});
+        return [
+          {'fullName': 'One person', 'phoneNumbers': <String>[]},
+        ];
+      });
+      expect(
+        (await NativeContactPickerDriver(isIOS: true).pickOne())?.fullName,
+        'One person',
+      );
+    },
+  );
+
+  test(
+    'native selection never exceeds the server fifty-contact capacity',
+    () async {
+      messenger.setMockMethodCallHandler(modern, (call) async {
+        expect(call.arguments, {'limit': 50});
+        return List.generate(
+          50,
+          (i) => {'fullName': 'Friend $i', 'phoneNumbers': <String>[]},
+        );
+      });
+      final result = await NativeContactPickerDriver(
+        isIOS: true,
+      ).pickMany(maxNames: 200);
+      expect(result, hasLength(50));
     },
   );
 }

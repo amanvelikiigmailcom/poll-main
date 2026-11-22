@@ -3,6 +3,7 @@ import 'services/question_bank_service.dart';
 import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
 import 'theme/navigation_icons.dart';
 import 'services/content_service.dart';
+import 'services/local_game_service.dart';
 import 'services/game_settings.dart';
 import 'providers/service_providers.dart';
 import 'services/storage_service.dart';
@@ -39,6 +41,7 @@ Future<void> main() async {
   // ── Storage ───────────────────────────────────────────────────────────────
   final storageService = StorageService();
   await storageService.init();
+  await LocalGameService.instance.removeLegacyAvatar();
   await GameSettings.instance.load();
   await ContentService.instance.load();
   await QuestionBankService.instance.load();
@@ -71,8 +74,24 @@ Future<void> _initializePhoneAuth() async {
     await Firebase.initializeApp().timeout(const Duration(seconds: 10));
   } catch (e) {
     debugPrint('Firebase unavailable, phone login disabled: $e');
+    return;
   }
 
+  // Appwrite sends plain APNs messages, without FCM's gcm.message_id.
+  // FlutterFire does not forward these to onMessage. Its native iOS delegate
+  // still applies these presentation options to both APNs and FCM messages.
+  // This configures presentation only; it does not request OS permission.
+  try {
+    await FirebaseMessaging.instance
+        .setForegroundNotificationPresentationOptions(
+          alert: true,
+          badge: true,
+          sound: true,
+        )
+        .timeout(const Duration(seconds: 5));
+  } catch (e) {
+    debugPrint('Foreground notification presentation unavailable: $e');
+  }
 }
 
 Future<void> _initializeEligibleServices() async {

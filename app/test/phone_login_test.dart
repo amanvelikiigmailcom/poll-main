@@ -1,4 +1,5 @@
 import 'fakes/eligible_player.dart';
+import 'package:flyprox_app/services/content_service.dart';
 import 'package:flyprox_app/services/age_gate_service.dart';
 import 'package:flyprox_app/services/onboarding_flow.dart';
 import 'fakes/fake_age_gate_store.dart';
@@ -73,6 +74,7 @@ void main() {
   setUp(markEligiblePlayer);
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    ContentService.instance.debugClear();
     useFakeSecureStorage();
   });
 
@@ -284,7 +286,11 @@ void main() {
   testWidgets(
     'new player verifies SMS, chooses age, then reaches contacts without an early push prompt',
     (tester) async {
-      AgeGateService.instance.debugStore(InMemoryAgeGateStore());
+      final legacy = InMemoryAgeGateStore()
+        ..values['age_gate_status'] = 'verified';
+      AgeGateService.instance.debugStore(legacy);
+      await AgeGateService.instance.load();
+      expect(AgeGateService.instance.status, AgeGateStatus.unknown);
       AgeGateService.instance.statusListenable.value = AgeGateStatus.unknown;
       OnboardingFlow.instance.restart();
       addTearDown(() async {
@@ -332,25 +338,34 @@ void main() {
     },
   );
 
-  testWidgets('SMS code screen remains usable with keyboard on a small phone', (tester) async {
-    tester.view.physicalSize=const Size(320,568);
-    tester.view.devicePixelRatio=1;
-    tester.view.viewInsets=const FakeViewPadding(bottom:260);
+  testWidgets('SMS code screen remains usable with keyboard on a small phone', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1;
+    tester.view.viewInsets = const FakeViewPadding(bottom: 260);
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetViewInsets);
-    await mountNames(tester,phoneAuth:makeService(driver:FakePhoneAuthDriver(),api:MockApiService(),storage:MockStorageService()));
-    await tester.enterText(find.byType(TextField),'6505551234');
+    await mountNames(
+      tester,
+      phoneAuth: makeService(
+        driver: FakePhoneAuthDriver(),
+        api: MockApiService(),
+        storage: MockStorageService(),
+      ),
+    );
+    await tester.enterText(find.byType(TextField), '6505551234');
     await tester.pump();
     await tester.ensureVisible(find.text('Send code'));
     await tester.tap(find.text('Send code'));
     await pumpRoute(tester);
-    expect(find.text('Enter the code'),findsOneWidget);
-    expect(tester.takeException(),isNull);
+    expect(find.text('Enter the code'), findsOneWidget);
+    expect(tester.takeException(), isNull);
     await tester.ensureVisible(find.text('Verify'));
     await pumpRoute(tester);
-    expect(find.text('Verify').hitTestable(),findsOneWidget);
-    expect(tester.takeException(),isNull);
+    expect(find.text('Verify').hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -387,6 +402,34 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('How old are you?'), findsOneWidget);
       expect(find.text('Add your contacts'), findsNothing);
+    },
+  );
+  testWidgets(
+    'server guest switch removes the exit on number and code screens',
+    (tester) async {
+      addTearDown(ContentService.instance.debugClear);
+      await mountNames(
+        tester,
+        phoneAuth: makeService(
+          driver: FakePhoneAuthDriver(),
+          api: MockApiService(),
+          storage: MockStorageService(),
+        ),
+      );
+      expect(find.text('Continue without login'), findsOneWidget);
+      ContentService.instance.debugSetOverrides({'guest_enabled': 'false'});
+      await tester.pump();
+      expect(find.text('Continue without login'), findsNothing);
+      await tester.enterText(find.byType(TextField), '6505551234');
+      await tester.pump();
+      await tester.tap(find.text('Send code'));
+      await pumpRoute(tester);
+      expect(find.text('Enter the code'), findsOneWidget);
+      expect(find.text('Continue without login'), findsNothing);
+      ContentService.instance.debugSetOverrides({'guest_enabled': 'true'});
+      await tester.pump();
+      expect(find.text('Continue without login'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
     },
   );
 }

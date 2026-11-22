@@ -22,12 +22,12 @@ class NativeContactPickerDriver implements ContactPickerDriver {
   @override
   bool get supportsMultiPick => _isIOS;
 
-  Future<List<Contact>?> _pick({required bool single}) async {
+  Future<List<Contact>?> _pick({required bool single, int maxNames = 50}) async {
     if (_isIOS) {
       try {
         final rows = await accessChannel.invokeListMethod<dynamic>(
           'pickContacts',
-          {'limit': single ? 1 : 10},
+          {'limit': single ? 1 : maxNames.clamp(1, 50)},
         );
         return (rows ?? []).map((raw) {
           final row = Map<String, dynamic>.from(raw as Map);
@@ -48,7 +48,7 @@ class NativeContactPickerDriver implements ContactPickerDriver {
   }
 
   @override
-  Future<List<Contact>?> pickMany() => _pick(single: false);
+  Future<List<Contact>?> pickMany({int maxNames = 50}) => _pick(single: false, maxNames: maxNames);
 
   @override
   Future<Contact?> pickOne() async {

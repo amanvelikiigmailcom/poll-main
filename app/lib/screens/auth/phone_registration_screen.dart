@@ -53,8 +53,11 @@ class _PhoneRegistrationScreenState
   void _next() {
     FocusManager.instance.primaryFocus?.unfocus();
     OnboardingFlow.instance.completePhoneStep();
-    context.go(AgeGateService.instance.status == AgeGateStatus.verified
-        ? AppRoutes.namesEntry : AppRoutes.age);
+    context.go(
+      AgeGateService.instance.status == AgeGateStatus.verified
+          ? AppRoutes.namesEntry
+          : AppRoutes.age,
+    );
   }
 
   bool _sending = false;
@@ -86,8 +89,17 @@ class _PhoneRegistrationScreenState
     );
   }
 
+  void _continueAsGuest() {
+    if (ContentService.instance.flag('guest_enabled')) _next();
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: ContentService.instance,
+    builder: (context, _) => _buildScreen(context),
+  );
+
+  Widget _buildScreen(BuildContext context) {
     final loading = ref.watch(authNotifierProvider.select((s) => s.isLoading));
     final supported = ref
         .read(authNotifierProvider.notifier)
@@ -238,7 +250,7 @@ class _PhoneRegistrationScreenState
                       if (ContentService.instance.flag('guest_enabled')) ...[
                         const SizedBox(height: 8),
                         OutlinedButton(
-                          onPressed: _next,
+                          onPressed: _continueAsGuest,
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white,
                             side: const BorderSide(color: Colors.white70),

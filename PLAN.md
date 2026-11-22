@@ -1,5 +1,20 @@
 # Flyprox — план работ (обновлено 2026-11-22)
 
+## Активно: исправления после тестирования build 10 → build 11
+
+Последняя команда: закончить исправления, сразу собрать и загрузить; записать контекст для нового агента. Предыдущая пауза отменена. User wants deadline before25th; не добавлять несогласованные фичи.
+
+- [x] Legacy Premium result больше не пропускает общий age gate; миграционные тесты.
+- [x] Full contacts list сразу + search, limited subset + Choose more; max10 убран, total50, minimum4.
+- [x] Foreground APNs presentation options включены; provider/token/payload проверены. Видимость на iPhone ещё требует подтверждения.
+- [x] Фото UI/SDK/permission удалены, 🙂; legacy app-owned image cleaned, gallery untouched.
+- [x] guest_enabled и example_names_enabled позволяют скрыть оба guest exits и examples с сервера; tests.
+- [x] Home redesign blue/white завершён;320px/large text tests, cooldown preserved.
+- [x] ASC1.0.2 draft texts/App Information/review/demo fields записаны и перечитаны. Build пока unattached,9 screenshots требуют сверки, App Privacy UI не подтверждён.
+- [x] Account erasure pagination/provider cleanup и client false-success исправлены;33 backend tests. Реальных prod DELETE не делали.
+- [ ] Final tests/analyze/source commit, backend deploy, Archive/export/upload11, VALID/IN_BETA_TESTING.
+- [ ] Обновить Notion с учётом build11 после доступности, дописать финальные IDs/checks, связать финальный build с черновиком. Публичный review submit — только с честной проверкой обязательных полей/скриншотов.
+
 ## Текущий выпуск: новый onboarding → build 10
 
 Последняя команда владельца: продолжать по плану, **в конце собрать билд**. Прежняя пауза отменена. Публичный App Store submit не входит в задачу.

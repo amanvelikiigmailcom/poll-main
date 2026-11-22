@@ -468,32 +468,19 @@ class _VoteScreenState extends State<VoteScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 6,
             children: [
-              Text(
-                'Question ${_currentIndex + 1} of $_totalQuestions',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const Spacer(),
-              // Stars indicator
-              const Row(
-                children: [
-                  Text('⭐', style: TextStyle(fontSize: 14)),
-                  SizedBox(width: 4),
-                  Text(
-                    '+${LocalGameService.starsPerRound} / round',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primaryBlue,
-                    ),
-                  ),
-                ],
-              ),
+              Text('Question ${_currentIndex + 1} of $_totalQuestions',
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary)),
+              const Text('⭐ +${LocalGameService.starsPerRound}',
+                semanticsLabel: '${LocalGameService.starsPerRound} stars per completed round',
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
+                  color: AppColors.primaryBlue)),
             ],
           ),
           const SizedBox(height: 8),

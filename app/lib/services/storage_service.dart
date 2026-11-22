@@ -76,6 +76,8 @@ class StorageService {
     await _prefs.setString(_phoneKey, phone);
   }
 
+  Future<void> clearPhone() async => _prefs.remove(_phoneKey);
+
   String? getPhone() {
     return _prefs.getString(_phoneKey);
   }

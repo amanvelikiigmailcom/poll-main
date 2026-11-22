@@ -142,7 +142,6 @@ final currentUserProvider = Provider<User?>((ref) {
 
 class LocalProfile {
   const LocalProfile({
-    this.avatar,
     this.username = '',
     this.playerName = '',
     this.university = '',
@@ -152,7 +151,6 @@ class LocalProfile {
     this.isLoaded = false,
   });
 
-  final String? avatar;
   final String username;
   final String playerName;
   final String university;
@@ -179,7 +177,6 @@ class LocalProfileNotifier extends StateNotifier<LocalProfile> {
   Future<void> refresh() async {
     final generation = ++_refreshGeneration;
     final game = LocalGameService.instance;
-    final avatar = await game.getAvatar();
     final username = await game.getUsername() ?? '';
     final playerName = await game.getPlayerName() ?? '';
     final university = await game.getUniversity() ?? '';
@@ -188,7 +185,6 @@ class LocalProfileNotifier extends StateNotifier<LocalProfile> {
     final peopleCount = (await game.getNames()).length;
     if (!mounted || generation != _refreshGeneration) return;
     state = LocalProfile(
-      avatar: avatar,
       username: username,
       playerName: playerName,
       university: university,

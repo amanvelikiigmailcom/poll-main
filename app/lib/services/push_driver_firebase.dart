@@ -65,6 +65,8 @@ class FirebasePushDriver implements PushDriver {
     }
   }
 
+  // FlutterFire emits only FCM payloads here. Plain Appwrite/APNs alerts are
+  // presented by iOS using the options configured at Firebase startup.
   @override
   Stream<PushMessage> get onForegroundMessage {
     try {

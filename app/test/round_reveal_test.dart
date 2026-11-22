@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flyprox_app/providers/service_providers.dart';
-import 'package:flyprox_app/providers/user_provider.dart';
 import 'package:flyprox_app/services/storage_service.dart';
 import 'package:flyprox_app/router/app_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -45,7 +44,7 @@ void main() {
     final game = LocalGameService.instance;
     await game.savePlayerAndFriends(
         playerName: 'Player', friends: ['Alex', 'Sam', 'Jordan']);
-    await game.saveAvatar('encoded-test-photo');
+    await (await SharedPreferences.getInstance()).setString('local_avatar','encoded-test-photo');
     await game.recordAnswer(const RoundAnswer(
         questionId: 'q1', question: 'Who?', voter: 'Player', choice: 'Alex'));
     await game.recordAnswer(const RoundAnswer(
@@ -55,7 +54,7 @@ void main() {
     expect(await game.getRoundAnswers(), isEmpty);
     expect((await game.getRoundAnswers(completed: true)).single.choice, 'Sam');
     final exported = jsonDecode(await game.exportLocalData()) as Map;
-    expect(exported['avatarPngBase64'], 'encoded-test-photo');
+    expect(exported.containsKey('avatarPngBase64'), isFalse);
     expect((exported['lastRound'] as List).single['choice'], 'Sam');
     await game.recordAnswer(const RoundAnswer(
         questionId: 'q2', question: 'Next?', voter: 'Player'));
@@ -64,7 +63,7 @@ void main() {
         (await game.getRoundAnswers(completed: true)).single.questionId, 'q2');
     expect((await game.getRoundAnswers(completed: true)).single.choice, isNull);
     await game.clearAll();
-    expect(await game.getAvatar(), isNull);
+    expect((await SharedPreferences.getInstance()).getString('local_avatar'), isNull);
     expect(await game.getRoundAnswers(), isEmpty);
     expect(await game.getRoundAnswers(completed: true), isEmpty);
   });
@@ -81,41 +80,28 @@ void main() {
     expect(settings.reduceMotion, isTrue);
   });
 
-  testWidgets(
-      'saved photo survives profile reload and can be removed without resetting the game',
-      (tester) async {
-    const png =
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6dtcAAAAASUVORK5CYII=';
-    final game = LocalGameService.instance;
-    await game.savePlayerAndFriends(
-        username: 'player',
-        playerName: 'Player',
-        friends: ['Alex', 'Sam', 'Jordan']);
-    await game.saveAvatar(png);
-    final storage = StorageService();
-    await storage.init();
-    final container = ProviderContainer(
-        overrides: [storageServiceProvider.overrideWithValue(storage)]);
-    addTearDown(container.dispose);
-    await container.read(localProfileProvider.notifier).refresh();
-    expect(container.read(localProfileProvider).avatar, png);
+  testWidgets('retired photos are cleared without wiping progress; profile has only a smiley', (tester) async {
+    final game=LocalGameService.instance;
+    await game.savePlayerAndFriends(playerName:'Player',friends:['Alex','Sam','Jordan','Taylor']);
+    final prefs=await SharedPreferences.getInstance();
+    await prefs.setString('local_avatar','legacy-base64-photo');
+    await game.removeLegacyAvatar();
+    expect(prefs.getString('local_avatar'),isNull);
+    expect(await game.getPlayerName(),'Player');
+    expect(await game.getNames(),hasLength(4));
+    final storage=StorageService();await storage.init();
     appRouter.go(AppRoutes.editProfile);
-    await tester.pumpWidget(UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp.router(routerConfig: appRouter)));
+    await tester.pumpWidget(ProviderScope(overrides:[storageServiceProvider.overrideWithValue(storage)],
+      child:MaterialApp.router(routerConfig:appRouter)));
     await tester.pumpAndSettle();
-    expect(find.text('Remove photo'), findsOneWidget);
-    await tester.tap(find.text('Remove photo'));
+    expect(find.text('🙂'),findsOneWidget);
+    expect(find.text('Change photo'),findsNothing);
+    expect(find.text('Remove photo'),findsNothing);
+    expect(find.byIcon(Icons.camera_alt),findsNothing);
+    appRouter.go(AppRoutes.profile);
     await tester.pumpAndSettle();
-    expect(await game.getAvatar(), png); // Form changes apply on Save.
-    await tester.ensureVisible(find.text('Save'));
-    await tester.tap(find.text('Save'));
-    await tester.pumpAndSettle();
-    expect(await game.getAvatar(), isNull);
-    expect(container.read(localProfileProvider).avatar, isNull);
-    expect(await game.getPlayerName(), 'Player');
-    expect(await game.getNames(), hasLength(3));
-    expect(tester.takeException(), isNull);
+    expect(find.text('🙂'),findsOneWidget);
+    expect(tester.takeException(),isNull);
     await tester.pumpWidget(const SizedBox());
   });
 

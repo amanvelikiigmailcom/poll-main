@@ -199,6 +199,25 @@ void main() {
     },
   );
 
+  testWidgets(
+    'more than ten selected contacts reach the game without truncation',
+    (tester) async {
+      final contacts = List.generate(17, (i) => Contact(fullName: 'Friend $i'));
+      ContactPickerService.instance.debugDriver(
+        FakeContactPickerDriver(manyResult: contacts),
+      );
+      addTearDown(ContactPickerService.instance.resetDriverForTest);
+      await openContacts(tester);
+      await tester.tap(find.text('Choose from contacts'));
+      await tester.pumpAndSettle();
+      expect(find.text('17 contacts selected · Ready to play'), findsOneWidget);
+      await tester.ensureVisible(find.text('Continue'));
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+      expect(await LocalGameService.instance.getNames(), hasLength(17));
+    },
+  );
+
   testWidgets('cancelled contacts leave the count unchanged', (tester) async {
     final driver = FakeContactPickerDriver();
     ContactPickerService.instance.debugDriver(driver);

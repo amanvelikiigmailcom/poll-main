@@ -43,8 +43,9 @@ class AgeGateService {
 
   AgeGateStore _store;
 
-  static const String _statusKey = 'age_gate_status';
-  static const String _checkedAtKey = 'age_gate_checked_at';
+  static const String _statusKey = 'onboarding_age_gate_status_v1';
+  static const String _legacyStatusKey = 'age_gate_status';
+  static const String _checkedAtKey = 'onboarding_age_gate_checked_at_v1';
 
   /// Minimum age for using the application. 12 and under are blocked.
   static const int minAge = 13;
@@ -65,10 +66,16 @@ class AgeGateService {
   Future<void> load() async {
     OnboardingFlow.instance.restart();
     try {
-      final saved = _parse(await _store.read(_statusKey));
+      final raw = await _store.read(_statusKey);
+      final saved = _parse(raw);
+      // Legacy Premium eligibility is not consent to the new onboarding gate.
+      // Preserve a previous refusal only to replay intro; never import a pass.
+      final legacyBlocked =
+          raw == null &&
+          _parse(await _store.read(_legacyStatusKey)) == AgeGateStatus.blocked;
       // A refusal blocks this run. A fresh launch replays onboarding and asks
-      // again, as requested; no phone/contacts/SDK session starts meanwhile.
-      replayIntroOnLaunch = saved == AgeGateStatus.blocked;
+      // again, as requested; contacts/gameplay remain inaccessible until eligible.
+      replayIntroOnLaunch = saved == AgeGateStatus.blocked || legacyBlocked;
       statusListenable.value = replayIntroOnLaunch
           ? AgeGateStatus.unknown
           : saved;
