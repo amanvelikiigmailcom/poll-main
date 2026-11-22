@@ -1,5 +1,15 @@
 # Flyprox — план работ (обновлено 2026-11-23)
 
+## Активно: Казахстан в App Store → TestFlight1.0.2(13)
+
+Владелец явно попросил добавить Казахстан в разрешённые страны App Store, затем собрать билд после готовности. PATCH KAZ выполнен, повторный GET всех175 территорий подтвердил ровно7: CAN,GBR,HKG,KAZ,NZL,SGP,USA. Это storefront, не SMS policy: Firebase/PhoneRegions остаются US,GB,CA,NZ,SG,HK. Подписка не менялась. Future territories flag у приложения остаётся true.
+
+- [x] KAZ добавлен, API read-back всех175:7 enabled,168 disabled.
+- [x] Номер1.0.2+13. Код тот же, что в build12 (196 tests/analyze22info); новых функций не добавлять.
+- [x] pub get / pod install успешны, Podfile.lock==Pods/Manifest.lock; владелец подтвердил, что казахстанский SMS-код не нужен, будет тестовый вход.
+- [ ] Archive/export13, подписанный IPA checks.
+- [ ] Upload, VALID/IN_BETA_TESTING, внутренняя группа и What to Test.
+
 ## Активно: TestFlight 1.0.2(12)
 
 Команда владельца: «делай билд». Включить contact-only voting, userNNNNNN и редактируемый ник после контактов, изоляцию тестов. Пол не добавлялся. Исходные исправления: 54214ff. ASC проверен: последний номер11, следующий12 свободен.
