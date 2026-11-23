@@ -13,6 +13,10 @@ class InviteApi extends ApiService {
   InviteApi(super.storage);
   int credits = 1, redeemCalls = 0, reads = 0;
   bool loseRedeemResponse = false, offline = false, claimFails = false;
+  ApiException? claimError;
+  bool composeFails = false, createFailsOnce = false;
+  String accountId = 'account-a';
+  Future<void> Function()? duringClaim;
   String? redeemedKey;
   Future<void> Function()? duringRedeem;
   final posts = <(String, dynamic)>[];
@@ -31,7 +35,7 @@ class InviteApi extends ApiService {
       requestOptions: RequestOptions(path: path),
       data:
           <String, dynamic>{
-                'userId': 'account-a',
+                'userId': accountId,
                 'balance': credits,
                 'earned': 1,
                 'used': 1 - credits,
@@ -74,7 +78,21 @@ class InviteApi extends ApiService {
       result = {'redeemed': true, 'cooldownKey': redeemedKey};
     } else if (path.endsWith('/claim')) {
       if (claimFails) throw const ApiException('Offline');
+      if (claimError != null) throw claimError!;
+      if (duringClaim != null) await duringClaim!();
       result = {'claimed': true};
+    } else if (path.endsWith('/compose-result')) {
+      if (composeFails) throw const ApiException('Connection lost');
+    } else if (path == '/api/invites') {
+      if (createFailsOnce) {
+        createFailsOnce = false;
+        throw const ApiException('Connection lost');
+      }
+      result = {
+        'code': 'ABC234',
+        'url': 'https://api.flyprox.com/i/ABC234',
+        'ownerUserId': accountId,
+      };
     }
     return Response<T>(
       requestOptions: RequestOptions(path: path),
@@ -255,6 +273,137 @@ void main() {
             .containsKey('code'),
         false,
       );
+    },
+  );
+
+  test(
+    'switching accounts during claim cannot clear the code or spend a pass for the next user',
+    () async {
+      await storage.savePhone('+16505550000');
+      await game.completeRound();
+      await InviteCodeStore.save('ABC234', 'typed');
+      await InviteCodeStore.accept();
+      api.duringClaim = () async {
+        await storage.saveToken('session-b');
+        await storage.savePhone('+16505550001');
+        api.accountId = 'account-b';
+      };
+      expect(await service.completeRegistration(), false);
+      expect(await InviteCodeStore.code(), 'ABC234');
+      expect(await InviteCodeStore.needsAttention(), true);
+      expect(api.redeemCalls, 0);
+      expect(await game.secondsUntilNextRound(), greaterThan(0));
+    },
+  );
+
+  test(
+    'an expired code needs correction; a server outage remains retryable',
+    () async {
+      await InviteCodeStore.save('ABC234', 'typed');
+      await InviteCodeStore.accept();
+      api.claimError = const ApiException('Unavailable', statusCode: 503);
+      await expectLater(
+        service.completeRegistration(),
+        throwsA(isA<ApiException>()),
+      );
+      expect(await service.registrationPending(), true);
+      expect(await InviteCodeStore.needsAttention(), false);
+      api.claimError = const ApiException('Expired', statusCode: 410);
+      await expectLater(service.claimPending(), throwsA(isA<ApiException>()));
+      expect(await InviteCodeStore.code(), 'ABC234');
+      expect(await service.registrationPending(), false);
+      expect(await InviteCodeStore.needsAttention(), true);
+      await InviteCodeStore.save('DEF678', 'typed');
+      expect(await InviteCodeStore.needsAttention(), false);
+    },
+  );
+
+  test(
+    'a successful old claim never discards a different code entered while waiting',
+    () async {
+      await InviteCodeStore.save('ABC234', 'typed');
+      await InviteCodeStore.accept();
+      api.duringClaim = () async {
+        await InviteCodeStore.save('DEF678', 'typed');
+        await InviteCodeStore.accept();
+      };
+      expect(await service.claimPending(), true);
+      expect(await InviteCodeStore.code(), 'DEF678');
+      expect(await InviteCodeStore.accepted(), true);
+    },
+  );
+
+  test(
+    'sent compose telemetry survives an outage and restart, but never flushes as another account',
+    () async {
+      api.credits = 0;
+      await game.completeRound();
+      await service.refresh();
+      api.composeFails = true;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            InvitationService.messages,
+            (_) async => 'sent',
+          );
+      expect(
+        await service.compose({
+          'code': 'ABC234',
+          'url': 'https://api.flyprox.com/i/ABC234',
+        }),
+        'sent',
+      );
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getStringList('invite_compose_queue_v1'), hasLength(1));
+      expect(
+        prefs.getStringList('invite_compose_queue_v1').toString(),
+        isNot(contains('session-a')),
+      );
+      service.dispose();
+      service = InvitationService(api, storage);
+      api.composeFails = false;
+      api.accountId = 'account-b';
+      await storage.saveToken('session-b');
+      await service.refresh();
+      expect(prefs.getStringList('invite_compose_queue_v1'), hasLength(1));
+      expect(
+        api.posts.where((p) => p.$1.endsWith('compose-result')),
+        hasLength(1),
+      );
+      api.accountId = 'account-a';
+      await storage.saveToken('session-a');
+      await service.refresh();
+      expect(prefs.getStringList('invite_compose_queue_v1'), isEmpty);
+      expect(
+        api.posts.where((p) => p.$1.endsWith('compose-result')),
+        hasLength(2),
+      );
+      expect(api.redeemCalls, 0);
+      expect(await game.secondsUntilNextRound(), greaterThan(0));
+    },
+  );
+
+  test(
+    'create retry reuses its request ID after restart and never persists the selected raw number',
+    () async {
+      await storage.savePhone('+16505550000');
+      const selected = '+16505550123';
+      api.createFailsOnce = true;
+      await expectLater(
+        service.create(phone: selected),
+        throwsA(isA<ApiException>()),
+      );
+      final prefs = await SharedPreferences.getInstance();
+      expect(
+        prefs.getKeys().map((key) => prefs.get(key).toString()).join(),
+        isNot(contains(selected)),
+      );
+      service.dispose();
+      service = InvitationService(api, storage);
+      expect((await service.create(phone: selected))['code'], 'ABC234');
+      final requests = api.posts.where((p) => p.$1 == '/api/invites').toList();
+      expect(requests, hasLength(2));
+      expect(requests.first.$2['requestId'], requests.last.$2['requestId']);
+      expect(prefs.getString('invite_creation_request_v1'), isNull);
     },
   );
 }

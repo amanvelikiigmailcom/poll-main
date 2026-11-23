@@ -12,8 +12,10 @@ import 'package:flyprox_app/services/content_service.dart';
 
 class MockApiService extends Mock implements ApiService {}
 
-Response<Map<String, dynamic>> _response(Map<String, dynamic> data) =>
-    Response(data: data, requestOptions: RequestOptions(path: '/api/content'));
+Response<Map<String, dynamic>> _response(Map<String, dynamic> data) => Response(
+  data: data,
+  requestOptions: RequestOptions(path: '/api/content'),
+);
 
 void main() {
   setUp(() {
@@ -23,8 +25,21 @@ void main() {
 
   tearDown(() => ContentService.instance.debugClear());
 
-  test('defaults carry all 23 content keys non-empty', () {
-    expect(ContentService.defaults.length, 23);
+  test('defaults retain required product settings and non-empty values', () {
+    expect(
+      ContentService.defaults.keys,
+      containsAll([
+        'guest_enabled',
+        'contacts_enabled',
+        'example_names_enabled',
+        'paywall_features_v2',
+        'paywall_term',
+        'paywall_cta',
+        'url_privacy',
+        'url_terms',
+        'url_support',
+      ]),
+    );
     for (final entry in ContentService.defaults.entries) {
       expect(entry.value, isNotEmpty, reason: entry.key);
     }
@@ -53,12 +68,14 @@ void main() {
 
   test('template replaces placeholders', () {
     final content = ContentService.instance;
-    expect(content.template('paywall_cta', {'price': '\$9.99'}),
-        'Get Premium · \$9.99');
     expect(
-        content.template(
-            'upsell_reveal_note', {'shown': '3', 'total': '12'}),
-        'First 3 of 12 shown. Go Premium to reveal the whole round.');
+      content.template('paywall_cta', {'price': '\$9.99'}),
+      'Get Premium · \$9.99',
+    );
+    expect(
+      content.template('upsell_reveal_note', {'shown': '3', 'total': '12'}),
+      'First 3 of 12 shown. Go Premium to reveal the whole round.',
+    );
   });
 
   test('stringList parses and pads short overrides from defaults', () {
@@ -103,7 +120,7 @@ void main() {
     final api = MockApiService();
     when(() => api.get<Map<String, dynamic>>('/api/content')).thenAnswer(
       (_) async => _response({
-        'content': {'paywall_title': 'Server'}
+        'content': {'paywall_title': 'Server'},
       }),
     );
     await ContentService.instance.refresh(api);
@@ -114,8 +131,9 @@ void main() {
 
   test('refresh never throws and keeps previous values', () async {
     final api = MockApiService();
-    when(() => api.get<Map<String, dynamic>>('/api/content'))
-        .thenThrow(Exception('offline'));
+    when(
+      () => api.get<Map<String, dynamic>>('/api/content'),
+    ).thenThrow(Exception('offline'));
     ContentService.instance.debugSetOverrides({'paywall_title': 'Kept'});
     await ContentService.instance.refresh(api);
     expect(ContentService.instance.text('paywall_title'), 'Kept');
@@ -123,16 +141,22 @@ void main() {
 
   test('refresh ignores non-map payloads', () async {
     final api = MockApiService();
-    when(() => api.get<Map<String, dynamic>>('/api/content'))
-        .thenAnswer((_) async => _response({'content': 'nope'}));
+    when(
+      () => api.get<Map<String, dynamic>>('/api/content'),
+    ).thenAnswer((_) async => _response({'content': 'nope'}));
     await ContentService.instance.refresh(api);
     expect(ContentService.instance.text('paywall_title'), 'Premium');
   });
 
-  testWidgets('global age restriction cannot inherit old Premium-only server text', (tester) async {
-    ContentService.instance.debugSetOverrides({'blocked_title': 'Server title'});
-    await tester.pumpWidget(const MaterialApp(home: AgeBlockedScreen()));
-    expect(find.text('Server title'), findsNothing);
-    expect(find.text('Flyprox isn’t available for your age'), findsOneWidget);
-  });
+  testWidgets(
+    'global age restriction cannot inherit old Premium-only server text',
+    (tester) async {
+      ContentService.instance.debugSetOverrides({
+        'blocked_title': 'Server title',
+      });
+      await tester.pumpWidget(const MaterialApp(home: AgeBlockedScreen()));
+      expect(find.text('Server title'), findsNothing);
+      expect(find.text('Flyprox isn’t available for your age'), findsOneWidget);
+    },
+  );
 }

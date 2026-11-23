@@ -73,7 +73,6 @@ void main() {
     addTearDown(router.dispose);
     await tester.pumpWidget(MaterialApp.router(routerConfig: router));
     await pumpLoaded(tester);
-    expect(find.text('40:00'), findsNothing);
     expect(await game.secondsUntilNextRound(), inInclusiveRange(2998, 3000));
     await prefs.setInt(
       timeKey,

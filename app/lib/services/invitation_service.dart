@@ -143,9 +143,22 @@ class InvitationService extends ChangeNotifier {
   Future<bool> claimPending() =>
       _claiming ??= _claimPending().whenComplete(() => _claiming = null);
   Future<bool> _claimPending() async {
-    if ((await storage.getToken())?.isNotEmpty != true) return false;
-    await syncProfile();
+    final token = await storage.getToken();
+    if (token == null || token.isEmpty) return false;
     final code = await InviteCodeStore.code();
+    // A successful response belongs to the session that sent it. Switching
+    // accounts must not clear attribution or trigger a redemption for the
+    // next account. Require confirmation before reusing its pending code.
+    Future<bool> sameAccount() async {
+      if (await storage.getToken() == token) return true;
+      if (code != null && await InviteCodeStore.code() == code) {
+        await InviteCodeStore.requireAttention();
+      }
+      return false;
+    }
+
+    await syncProfile();
+    if (!await sameAccount()) return false;
     if (code != null && !await InviteCodeStore.accepted()) return false;
     final source = await InviteCodeStore.source();
     late Map<String, dynamic> data;
@@ -155,6 +168,7 @@ class InvitationService extends ChangeNotifier {
         data: {if (code != null) 'code': code, 'source': source},
       )).data!;
     } on ApiException catch (e) {
+      if (!await sameAccount()) return false;
       if ([400, 403, 404, 409, 410].contains(e.statusCode)) {
         await (await SharedPreferences.getInstance()).remove(
           'invite_registration_pending_v1',
@@ -165,6 +179,7 @@ class InvitationService extends ChangeNotifier {
       }
       rethrow;
     }
+    if (!await sameAccount()) return false;
     await (await SharedPreferences.getInstance()).remove(
       'invite_registration_pending_v1',
     );
@@ -185,6 +200,7 @@ class InvitationService extends ChangeNotifier {
           /* Attribution is already durable in the claim. */
         }
       }
+      if (!await sameAccount()) return false;
       if (await InviteCodeStore.code() == code) await InviteCodeStore.clear();
       await refresh();
       return true;
