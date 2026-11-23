@@ -8,8 +8,9 @@
 - [x] Серверные блоки в contacts/candidates/votes; очистка аккаунта синхронизирована с social mutations. Смена ника не меняет friendship ID; background invitation sync ник не переписывает.
 - [x] For parents обновлён и доступен из Settings, без недоказанного обещания аудита всех вопросов. Likes — отдельное честное coming-soon состояние до отдельной задачи.
 - [x] Новые важные HTTP/Flutter tests; локальное визуальное превью поиска осмотрено. Финальный полный прогон:224/224 Flutter,78/78 backend; анализатор0 errors/0 warnings/22 прежних info. Облачных сборок и production writes не было.
-- [ ] Подтверждение production push/deploy/пяти новых таблиц/конфигурации. Не запускать cloud build или public submit. Не включать школьные рекомендации/не мигрировать школы и приглашения автоматически.
-- [ ] Проверить реальную Appwrite uniqueness/index compatibility и два аккаунта на устройствах после согласованного rollout. Публичные privacy изменения отдельно.
+- [x] Владелец отдельно подтвердил push обоих репозиториев,5таблиц/индексов и deploy/configuration. Выполнено:app d01b81c,backend68b3b32; systemd service active, runtime flags1; публичные health/content/questions200, social без auth401. Cloud build/public submit не запускались; школы/6invite tables/HMAC не включались.
+- [x] Реальная Appwrite schema/unique/query проверка:7групп на изолированных QA IDs,24attempted rows очищены без ошибок; итог5social tables=0. Поправлен mismatch varchar vs ошибочно ожидаемый string; regression сначала упал, после исправления78/78 backend tests.
+- [ ] Два реальных аккаунта и iPhone QA после отдельной сборки; публичные privacy изменения и расписание quota cleanup отдельно. Без новой сборки установленный TestFlight13 не содержит новые экраны.
 
 Подробности: docs/social-release.md. Это новая задача, не автоматическое снятие ограничений других rollout.
 

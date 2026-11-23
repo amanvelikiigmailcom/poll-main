@@ -1,6 +1,6 @@
-# Friends and navigation — local implementation, 2026-11-23
+# Friends and navigation — production backend, 2026-11-23
 
-This release is not deployed. Cloud builds/TestFlight uploads remain prohibited. Production changes require the owner's confirmation. The previously paused invitation rollout is separate.
+The owner explicitly approved both pushes, five additive tables/indexes, backend deployment and social configuration. Backend source68b3b32 is deployed and active; Flutter source d01b81c is pushed. No app build/TestFlight upload was started, so installed beta13 does not contain this UI. Invitation HMAC remains absent; its six tables were not migrated. Schools and recommendations remain dormant.
 
 ## Product
 
@@ -42,19 +42,17 @@ All /api/social operations require the existing bearer session and return Cache-
 
 No caller-supplied owner/userId is trusted. Lists use indexed membership/direction filters before pagination. No directory/full-profile serializer is reused for public cards.
 
-## Release procedure (not executed)
+## Executed rollout and remaining release work
 
-1. Review diff and run both full check commands. Review new tests, not just their result.
-2. Confirm five additive private tables/indexes, backend push/deploy and production configuration changes with owner. Public privacy updates are a separate publication; prepare matching text before external release. Keep SOCIAL_ENABLED unset until ready. No cloud build.
-3. After authorized push (last commit contains [ci skip]), update backend checkout using fast-forward only. Preserve production secrets and invitation configuration. No full npm setup, no schools import and no invitation migration implicitly.
-4. Run `node scripts/setup-social.js --apply` in the server repo; wait for every column/index and read-back verification. Default `node scripts/setup-social.js` is read-only and fails if absent or mismatched. Never drop/recreate tables or indexes to bypass mismatch.
-5. Verify one Node writer, configure SOCIAL_SINGLE_WRITER=1 and SOCIAL_ENABLED=1 privately, restart only flyprox-backend. Check health and authenticated APIs with explicitly authorized test accounts, never real SMS/APNs or destructive real-account tests by default.
-6. Verify DB unique-index behavior against the actual self-hosted version using dedicated test accounts/data. Unit/provider fakes do not prove real Appwrite uniqueness or query index compatibility. If this fails, leave the feature disabled.
-7. Arrange daily expired quota cleanup after separate scheduler authorization: `node scripts/prune-social-limits.js --apply`. Default run is read-only. Only social_limits rows expired more than 24h ago are eligible. Never FLUSHDB or touch Appwrite internal Redis keys.
-8. Process reports in the private Appwrite console; each includes owner/target IDs, reason and creation time. No automatic sanctions, moderation SLA or live alerts are promised. Establish review frequency before public launch.
-9. Publish accurate privacy text/App Privacy metadata as separately authorized. App release/device QA remains separate; do not claim installed TestFlight contains this feature.
+- Both main branches pushed without force, last commits carry [ci skip]. Server checkout fast-forwarded from c102de6 to social source68b3b32, preserving production credentials and data. Exactly one existing API writer was verified before enabling the feature.
+- `node scripts/setup-social.js --apply` created the five private tables, all required columns and unique/query indexes. Installed Appwrite returns column type `varchar`, not the previously mocked `string`; corrected verifier in68b3b32 after a failing regression test, then78/78 full backend tests passed. Read-only verification passed against the actual schema. Nothing was dropped/recreated.
+- Actual database smoke passed seven groups: private readiness; concurrent canonical username uniqueness; indexed incoming/outgoing/ownership/consent; pair uniqueness/OR membership/count; rename/report; block/unblock; decline cooldown. Identity lookup was isolated to synthetic QA IDs, while all social persistence used the real Appwrite adapter. No Auth users, profile/session rows, real phones, SMS, APNs or game data were created or changed.24 attempted temporary rows were cleaned up with zero errors; a second read confirmed all five social tables had zero rows. This is not authenticated real-account/device E2E QA.
+- Enabled SOCIAL_ENABLED=1 and SOCIAL_SINGLE_WRITER=1 with dedicated systemd user override `~/.config/systemd/user/flyprox-backend.service.d/social-friends.conf`. Original .env/credentials unchanged. Reloaded systemd user configuration and restarted only flyprox-backend. Runtime process flags verified1; service active/running.
+- Public checks: /health200, /api/content200 with22keys, /api/questions?limit=1 returns200 and one question. /api/social/me and search without authentication return401. No real account was impersonated for HTTP testing.
 
-Rollback: disable social feature and deploy prior backend code after authorization. Retain the new tables. Disabling does not erase data and must not be presented as permanent account deletion.
+Remaining release work: physical iPhone/two-account QA and a separately authorized app build; accurate public privacy/App Privacy publication; establish private report-review frequency; obtain scheduler authorization for daily `node scripts/prune-social-limits.js --apply`. Cleanup script default is read-only and only targets social quota rows expired over24h ago. No timer/cron was installed by this rollout. No provider erasure or public compliance guarantee is implied.
+
+Rollback: disable the social-specific systemd override and restart backend after authorization. Retain the new tables. Disabling does not erase data or mean account deletion. Multiple API writers still require a separately reviewed distributed CAS/transaction design.
 
 ## Verification
 
@@ -67,3 +65,5 @@ Full commands: `python3 scripts/checks.py` in poll-main, `npm run check:summary`
 Final local validation: 224/224 Flutter tests, analyzer 0 errors / 0 warnings / 22 baseline infos; 78/78 backend tests and server syntax check passed. Last Flutter logs: /var/folders/n4/fwvw8mbx4554wtn5kn6dyg300000gn/T/flyprox-checks-069geiau/. Backend logs: /var/folders/n4/fwvw8mbx4554wtn5kn6dyg300000gn/T/flyprox-checks-lxukp852/. Local visual preview: /tmp/flyprox-social-search.png (widget render, not device proof).
 
 Editorial finding: existing bundled questions include classic11 ("most playfully toxic") and classic12 ("most epic fail"). The bank was not rewritten in this task. Do not publish an exclusively-positive-content promise before a separate editorial pass and synchronized server/fallback update.
+
+Production schema fix validation: backend78/78, syntax passed; log /var/folders/n4/fwvw8mbx4554wtn5kn6dyg300000gn/T/flyprox-checks-12j0844d/. No Flutter source changed during the server rollout; last full Flutter result remains224/224 and22 baseline infos.
