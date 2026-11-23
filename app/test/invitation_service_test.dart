@@ -18,6 +18,7 @@ class InviteApi extends ApiService {
   String accountId = 'account-a';
   Future<void> Function()? duringClaim;
   String? redeemedKey;
+  String? replyCooldownKey;
   Future<void> Function()? duringRedeem;
   final posts = <(String, dynamic)>[];
   final gate = Completer<void>();
@@ -75,7 +76,10 @@ class InviteApi extends ApiService {
         loseRedeemResponse = false;
         throw const ApiException('Connection lost');
       }
-      result = {'redeemed': true, 'cooldownKey': redeemedKey};
+      result = {
+        'redeemed': true,
+        'cooldownKey': replyCooldownKey ?? redeemedKey,
+      };
     } else if (path.endsWith('/claim')) {
       if (claimFails) throw const ApiException('Offline');
       if (claimError != null) throw claimError!;
@@ -404,6 +408,73 @@ void main() {
       expect(requests, hasLength(2));
       expect(requests.first.$2['requestId'], requests.last.$2['requestId']);
       expect(prefs.getString('invite_creation_request_v1'), isNull);
+    },
+  );
+
+  for (final result in ['unavailable', 'failed']) {
+    test(
+      'Messages $result never unlocks a wait or reports a successful send',
+      () async {
+        api.credits = 0;
+        await game.completeRound();
+        await service.refresh();
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(
+              InvitationService.messages,
+              (_) async => result,
+            );
+        expect(
+          await service.compose({
+            'code': 'ABC234',
+            'url': 'https://api.flyprox.com/i/ABC234',
+          }),
+          result,
+        );
+        expect(api.redeemCalls, 0);
+        expect(await game.secondsUntilNextRound(), greaterThan(0));
+        final events = api.posts
+            .where((post) => post.$1.endsWith('compose-result'))
+            .toList();
+        if (result == 'unavailable') {
+          expect(events, isEmpty);
+        } else {
+          expect(events.single.$2['result'], 'failed');
+        }
+        expect(events.any((post) => post.$2['result'] == 'sent'), false);
+      },
+    );
+  }
+
+  test(
+    'changing account while a redemption is in flight cannot unlock the next users wait',
+    () async {
+      await game.completeRound();
+      api.duringRedeem = () async {
+        await storage.saveToken('session-b');
+        api.accountId = 'account-b';
+      };
+      await service.refresh();
+      expect(api.redeemCalls, 1);
+      expect(await game.secondsUntilNextRound(), greaterThan(0));
+      expect(service.balance, isNull);
+    },
+  );
+
+  test(
+    'a success response for a different cooldown cannot unlock this waiting period',
+    () async {
+      await game.completeRound();
+      final key = await game.cooldownKey();
+      api.replyCooldownKey = (int.parse(key!) - 1000).toString();
+      await service.refresh();
+      expect(await game.secondsUntilNextRound(), greaterThan(0));
+      await service.refresh();
+      expect(await game.secondsUntilNextRound(), 0);
+      expect(
+        api.redeemCalls,
+        1,
+        reason: 'Recover from the confirmed ledger without a second spend',
+      );
     },
   );
 }
