@@ -12,3 +12,6 @@ google-services.json
 
 # Мусор
 .DS_Store
+
+# Local Python test-runner cache
+__pycache__/
