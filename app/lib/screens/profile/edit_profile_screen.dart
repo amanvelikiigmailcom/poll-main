@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../providers/user_provider.dart';
 import '../../services/local_game_service.dart';
+import '../../services/api_service.dart';
 import '../../providers/service_providers.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/common/university_picker_field.dart';
@@ -167,6 +168,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
     final formNotifier = ref.read(_editFormProvider.notifier);
     final formState = ref.read(_editFormProvider);
+    if (formState.isSaving) return;
     formNotifier.setSaving(true);
     formNotifier.setError(null);
 
@@ -196,8 +198,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       }
       if (mounted) context.pop();
     } catch (e) {
+      if (!mounted) return;
       formNotifier.setSaving(false);
-      formNotifier.setError(e.toString());
+      formNotifier.setError(
+        e is ApiException
+            ? e.message
+            : 'Couldn’t save your profile. Try again.',
+      );
     }
   }
 

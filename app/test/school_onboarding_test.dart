@@ -108,6 +108,50 @@ void main() {
       expect(values, containsAll([1946, 2000, 2026, 2030, 2041]));
     },
   );
+
+  test(
+    'names accept common scripts and punctuation but reject invalid lengths',
+    () {
+      for (final name in ['O’Connor', 'Jean-Luc', 'José', 'Әлия']) {
+        expect(
+          LocalGameService.validateProfileName(name, 'first name'),
+          isNull,
+        );
+      }
+      expect(
+        LocalGameService.validateProfileName('   ', 'first name'),
+        'Enter your first name',
+      );
+      expect(
+        LocalGameService.validateProfileName('A\nB', 'last name'),
+        contains('without line breaks'),
+      );
+      expect(
+        LocalGameService.validateProfileName(
+          List.filled(65, 'a').join(),
+          'last name',
+        ),
+        contains('64'),
+      );
+    },
+  );
+
+  testWidgets('missing campus request identifies every required field', (
+    tester,
+  ) async {
+    await mount(tester);
+    await profile(tester);
+    await tester.ensureVisible(find.text('I can’t find my campus'));
+    await tester.tap(find.text('I can’t find my campus'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Prepare email'));
+    await tester.tap(find.text('Prepare email'));
+    await tester.pumpAndSettle();
+    expect(find.text('Enter the campus name.'), findsOneWidget);
+    expect(find.text('Enter the city.'), findsOneWidget);
+    expect(find.text('Enter the state or region.'), findsOneWidget);
+    expect(find.text('Choose your graduation year.'), findsOneWidget);
+  });
   testWidgets(
     'two forms precede contacts; school city/region and graduation year persist before continuing',
     (tester) async {
@@ -118,6 +162,9 @@ void main() {
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
       expect(find.text('About you'), findsOneWidget);
+      expect(find.text('Enter your first name'), findsOneWidget);
+      expect(find.text('Enter your last name'), findsOneWidget);
+      expect(find.text('Choose a gender to continue.'), findsOneWidget);
       await profile(tester);
       expect(find.text('Choose your campus'), findsOneWidget);
       expect((await service.read())['gender'], 'nonbinary');
@@ -125,7 +172,13 @@ void main() {
       await tester.pump(const Duration(milliseconds: 350));
       await tester.pumpAndSettle();
       expect(find.text('Austin · Texas · US'), findsOneWidget);
+      await tester.ensureVisible(find.text('Central High'));
       await tester.tap(find.text('Central High'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Continue'));
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+      expect(find.text('Choose your graduation year.'), findsOneWidget);
       await tester.ensureVisible(find.byKey(const Key('graduation-year')));
       await tester.tap(find.byKey(const Key('graduation-year')));
       await tester.pumpAndSettle();

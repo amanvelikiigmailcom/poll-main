@@ -58,9 +58,7 @@ class FirebasePhoneAuthDriver implements PhoneAuthDriver {
       );
     } catch (e) {
       if (!completer.isCompleted) {
-        throw e is PhoneAuthException
-            ? e
-            : PhoneAuthException(_friendly(e));
+        throw e is PhoneAuthException ? e : PhoneAuthException(_friendly(e));
       }
     }
     return completer.future;
@@ -105,8 +103,7 @@ class FirebasePhoneAuthDriver implements PhoneAuthDriver {
         case 'network-request-failed':
           return 'No internet connection.';
         default:
-          final msg = e.message?.trim();
-          if (msg != null && msg.isNotEmpty) return msg;
+          break;
       }
     }
     return 'Phone login failed. Try again.';

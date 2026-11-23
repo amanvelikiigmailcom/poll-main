@@ -6,12 +6,19 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../providers/service_providers.dart';
 import '../../router/app_router.dart';
 import '../../services/content_service.dart';
+import '../../services/api_service.dart';
 import '../../services/local_game_service.dart';
 import '../../services/onboarding_details_service.dart';
 import 'profile_details_screen.dart';
 
 class SchoolSetupScreen extends ConsumerStatefulWidget {
-  const SchoolSetupScreen({super.key});
+  const SchoolSetupScreen({
+    super.key,
+    this.profileCampus,
+    this.campusSessionKey,
+  });
+  final Map<String, dynamic>? profileCampus;
+  final String? campusSessionKey;
   @override
   ConsumerState<SchoolSetupScreen> createState() => _SchoolSetupScreenState();
 }
@@ -26,6 +33,8 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
   String? error;
   List<Map<String, dynamic>> schools = [];
   Map<String, dynamic>? selected;
+  Map? get _previous => widget.profileCampus?['school'] as Map?;
+  bool get _editing => widget.profileCampus != null;
   @override
   void initState() {
     super.initState();
@@ -33,11 +42,13 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
   }
 
   Future<void> _load() async {
-    final data = await ref.read(onboardingDetailsProvider).read();
+    final data =
+        widget.profileCampus ??
+        await ref.read(onboardingDetailsProvider).read();
     if (!mounted) return;
     setState(() {
       country = data['country'] as String? ?? 'US';
-      selected = data['school'] is Map
+      selected = !_editing && data['school'] is Map
           ? Map<String, dynamic>.from(data['school'] as Map)
           : null;
       year.text = data['graduationYear']?.toString() ?? '';
@@ -65,15 +76,22 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
 
   Future<void> _search(int expected, {bool more = false}) async {
     if (!mounted || expected != generation) return;
-    final owner = await ref.read(storageServiceProvider).getToken();
+    final term = query.text.trim();
+    if (term.length < 3) return;
+    final storage = ref.read(storageServiceProvider);
     setState(() => searching = true);
     try {
+      final owner = await storage.getToken();
+      if (!mounted || expected != generation) return;
       final data = await ref
           .read(onboardingDetailsProvider)
-          .search(query.text.trim(), cursor: more ? cursor : '');
-      if (!mounted ||
-          expected != generation ||
-          owner != await ref.read(storageServiceProvider).getToken()) {
+          .search(
+            term,
+            cursor: more ? cursor : '',
+            countryOverride: _editing ? country : null,
+          );
+      final currentOwner = await storage.getToken();
+      if (!mounted || expected != generation || owner != currentOwner) {
         return;
       }
       setState(() {
@@ -111,6 +129,52 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
     });
     try {
       final service = ref.read(onboardingDetailsProvider);
+      if (_editing) {
+        final campus = selected!;
+        final previous = _previous;
+        if (previous?['id'] == campus['id']) {
+          throw const ApiException(
+            'This is already your campus. Choose a different one.',
+          );
+        }
+        final confirmed =
+            previous == null ||
+            await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Use your one campus change?'),
+                    content: Text(
+                      'From ${previous['name']}\nTo ${campus['name']}\n\nYou won’t be able to change it again.',
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: const Text('Cancel'),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('Confirm change'),
+                      ),
+                    ],
+                  ),
+                ) ==
+                true;
+        if (!mounted) return;
+        if (!confirmed) {
+          setState(() => saving = false);
+          return;
+        }
+        await service.changeCampus(
+          campusId: campus['id'] as String,
+          year: int.parse(year.text),
+          countryCode: country,
+          confirmChange: previous != null,
+          expectedCampusId: previous?['id'] as String?,
+          sessionKey: widget.campusSessionKey!,
+        );
+        if (mounted) Navigator.of(context).pop(true);
+        return;
+      }
       if (skip) {
         await service.skipSchool();
       } else {
@@ -126,11 +190,13 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
       } else {
         context.go(AppRoutes.namesEntry);
       }
-    } catch (_) {
+    } catch (failure) {
       if (mounted) {
         setState(() {
           saving = false;
-          error = 'Couldn’t save your campus. Please try again.';
+          error = failure is ApiException
+              ? failure.message
+              : 'Couldn’t save your campus. Please try again.';
         });
       }
     }
@@ -164,14 +230,20 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: ContentService.instance,
     builder: (context, _) => SetupFormPage(
-      title: 'Choose your campus',
+      title: _editing && _previous != null
+          ? 'Change campus'
+          : 'Choose your campus',
       subtitle:
           '${['US', 'CA'].contains(country)
               ? 'United States & Canada'
               : country == 'GB'
               ? 'United Kingdom · England directory'
               : country}\nChoose your campus and graduation year.',
-      back: saving ? null : () => context.go(AppRoutes.profileDetails),
+      back: saving
+          ? null
+          : () => _editing
+                ? Navigator.of(context).pop()
+                : context.go(AppRoutes.profileDetails),
       children: [
         if (loading)
           const Center(child: CircularProgressIndicator(color: Colors.white))
@@ -259,21 +331,41 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
           ),
           const SizedBox(height: 12),
           if (error != null)
-            Text(error!, style: const TextStyle(color: Colors.white)),
-          TextButton(
-            onPressed: saving ? null : _missing,
-            child: const Text(
-              'I can’t find my campus',
-              style: TextStyle(color: Colors.white),
+            Semantics(
+              liveRegion: true,
+              child: Text(error!, style: const TextStyle(color: Colors.white)),
             ),
-          ),
+          if (error == 'Couldn’t load campuses. Try again.')
+            TextButton(
+              onPressed: searching
+                  ? null
+                  : () => _search(generation, more: cursor.isNotEmpty),
+              child: const Text(
+                'Retry search',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          if (!_editing)
+            TextButton(
+              onPressed: saving ? null : _missing,
+              child: const Text(
+                'I can’t find my campus',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
           const SizedBox(height: 12),
           ElevatedButton(
             onPressed: saving || selected == null ? null : () => _next(),
             style: setupButton(),
-            child: Text(saving ? 'Please wait…' : 'Continue'),
+            child: Text(
+              saving
+                  ? 'Please wait…'
+                  : _editing
+                  ? 'Save campus'
+                  : 'Continue',
+            ),
           ),
-          if (ContentService.instance.flag('school_skip_enabled'))
+          if (!_editing && ContentService.instance.flag('school_skip_enabled'))
             TextButton(
               key: const Key('skip-school'),
               onPressed: saving ? null : () => _next(skip: true),
@@ -282,10 +374,11 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
                 style: TextStyle(color: Colors.white),
               ),
             ),
-          const Text(
-            'Voting opens after you choose a campus. Skipping lets you finish setting up your profile.',
-            style: TextStyle(color: Colors.white70, height: 1.4),
-          ),
+          if (!_editing)
+            const Text(
+              'Voting opens after you choose a campus. Skipping lets you finish setting up your profile.',
+              style: TextStyle(color: Colors.white70, height: 1.4),
+            ),
         ],
       ],
     ),
@@ -307,6 +400,7 @@ class _MissingSchoolScreenState extends ConsumerState<MissingSchoolScreen> {
       year = TextEditingController();
   final form = GlobalKey<FormState>();
   String? error;
+  bool saving = false;
   @override
   void initState() {
     super.initState();
@@ -325,15 +419,20 @@ class _MissingSchoolScreenState extends ConsumerState<MissingSchoolScreen> {
   }
 
   Future<void> _email() async {
-    if (!(form.currentState?.validate() ?? false)) return;
-    final service = ref.read(onboardingDetailsProvider);
-    await service.draft({
-      'missingSchool': name.text.trim(),
-      'missingCity': city.text.trim(),
-      'missingRegion': region.text.trim(),
-      'graduationYear': int.tryParse(year.text),
+    if (saving || !(form.currentState?.validate() ?? false)) return;
+    setState(() {
+      saving = true;
+      error = null;
     });
+    FocusManager.instance.primaryFocus?.unfocus();
+    final service = ref.read(onboardingDetailsProvider);
     try {
+      await service.draft({
+        'missingSchool': name.text.trim(),
+        'missingCity': city.text.trim(),
+        'missingRegion': region.text.trim(),
+        'graduationYear': int.tryParse(year.text),
+      });
       await service.requestSchool(
         name: name.text,
         city: city.text,
@@ -342,12 +441,14 @@ class _MissingSchoolScreenState extends ConsumerState<MissingSchoolScreen> {
       );
     } catch (_) {
       if (mounted) {
-        setState(
-          () => error = 'Couldn’t save your campus request. Please try again.',
-        );
+        setState(() {
+          saving = false;
+          error = 'Couldn’t save your campus request. Try again.';
+        });
       }
       return;
     }
+    if (!mounted) return;
     final uri = OnboardingDetailsService.schoolEmail(
       email: ContentService.instance.text('support_email'),
       name: name.text,
@@ -365,6 +466,8 @@ class _MissingSchoolScreenState extends ConsumerState<MissingSchoolScreen> {
               'Couldn’t open Mail. You can email ${ContentService.instance.text('support_email')} with the campus details below.',
         );
       }
+    } finally {
+      if (mounted) setState(() => saving = false);
     }
   }
 
@@ -395,44 +498,46 @@ class _MissingSchoolScreenState extends ConsumerState<MissingSchoolScreen> {
             ),
             const SizedBox(height: 16),
             for (final field in [
-              (name, 'Campus name'),
-              (city, 'City'),
-              (region, 'State / region'),
-              (year, 'Graduation year'),
+              (name, 'Campus name', 'Enter the campus name.', 256),
+              (city, 'City', 'Enter the city.', 128),
+              (region, 'State / region', 'Enter the state or region.', 128),
+              (year, 'Graduation year', '', 4),
             ])
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: field.$1 == year
-                    ? GraduationYearPicker(controller: year)
+                    ? GraduationYearPicker(controller: year, enabled: !saving)
                     : TextFormField(
                         controller: field.$1,
-                        maxLength: field.$1 == year ? 4 : 128,
+                        enabled: !saving,
+                        maxLength: field.$4,
                         style: const TextStyle(fontSize: 16),
                         decoration: setupInput(field.$2),
-                        keyboardType: field.$1 == year
-                            ? TextInputType.number
-                            : TextInputType.text,
                         validator: (v) {
-                          if (v == null || v.trim().isEmpty) {
-                            return 'Please fill in this field.';
+                          final value = v?.trim() ?? '';
+                          if (value.isEmpty) return field.$3;
+                          if (value.length > field.$4) {
+                            return 'Use ${field.$4} characters or fewer.';
                           }
-                          if (field.$1 == year) {
-                            final n = int.tryParse(v);
-                            if (n == null ||
-                                !OnboardingDetailsService.validYear(n)) {
-                              return 'Enter a valid graduation year.';
-                            }
+                          if (RegExp(r'[\x00-\x1f\x7f]').hasMatch(value)) {
+                            return 'Remove line breaks or tabs.';
                           }
                           return null;
                         },
                       ),
               ),
             if (error != null)
-              Text(error!, style: const TextStyle(color: Colors.white)),
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  error!,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
             ElevatedButton(
-              onPressed: _email,
+              onPressed: saving ? null : _email,
               style: setupButton(),
-              child: const Text('Prepare email'),
+              child: Text(saving ? 'Preparing…' : 'Prepare email'),
             ),
           ],
         ),

@@ -97,6 +97,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
   String? gender;
   bool loading = true, saving = false;
   String? error;
+  bool genderRequired = false;
   @override
   void initState() {
     super.initState();
@@ -132,11 +133,10 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
   }
 
   Future<void> _save() async {
-    if (saving || !(form.currentState?.validate() ?? false)) return;
-    if (gender == null) {
-      setState(() => error = 'Choose a gender to continue.');
-      return;
-    }
+    if (saving) return;
+    final validNames = form.currentState?.validate() ?? false;
+    setState(() => genderRequired = gender == null);
+    if (!validNames || gender == null) return;
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
       saving = true;
@@ -182,6 +182,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
               TextFormField(
                 key: const Key('onboarding-first-name'),
                 controller: first,
+                autofillHints: const [AutofillHints.givenName],
                 enabled: !saving,
                 maxLength: 64,
                 textCapitalization: TextCapitalization.words,
@@ -195,6 +196,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
               TextFormField(
                 key: const Key('onboarding-last-name'),
                 controller: last,
+                autofillHints: const [AutofillHints.familyName],
                 enabled: !saving,
                 maxLength: 64,
                 textCapitalization: TextCapitalization.words,
@@ -216,7 +218,10 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                     onPressed: saving
                         ? null
                         : () {
-                            setState(() => gender = option.$1);
+                            setState(() {
+                              gender = option.$1;
+                              genderRequired = false;
+                            });
                             _draft();
                           },
                     style: OutlinedButton.styleFrom(
@@ -239,6 +244,14 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
                         ),
                       ],
                     ),
+                  ),
+                ),
+              if (genderRequired)
+                Semantics(
+                  liveRegion: true,
+                  child: const Text(
+                    'Choose a gender to continue.',
+                    style: TextStyle(color: Colors.white),
                   ),
                 ),
               if (error != null)

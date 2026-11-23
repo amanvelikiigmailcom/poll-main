@@ -88,7 +88,13 @@ void main() {
     await mount(tester);
     final field = find.byKey(const Key('onboarding-username'));
     expect(tester.widget<TextFormField>(field).controller!.text, 'user234432');
-    for (final invalid in ['', 'ab', 'bad name', 'имя']) {
+    for (final invalid in [
+      '',
+      'ab',
+      'bad name',
+      'имя',
+      List.filled(33, 'a').join(),
+    ]) {
       await tester.enterText(field, invalid);
       await tester.ensureVisible(find.text('Continue'));
       await tester.tap(find.text('Continue'));

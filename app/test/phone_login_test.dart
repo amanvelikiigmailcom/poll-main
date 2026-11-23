@@ -75,8 +75,41 @@ void main() {
     ContentService.instance.debugClear();
   });
 
+  testWidgets('changing country revalidates and keeps the entered number', (
+    tester,
+  ) async {
+    final driver = FakePhoneAuthDriver();
+    await mountNames(
+      tester,
+      phoneAuth: makeService(
+        driver: driver,
+        api: MockApiService(),
+        storage: MockStorageService(),
+      ),
+    );
+    await tester.enterText(find.byType(TextField), '6505551234');
+    await tester.pump();
+    final field = tester.widget<IntlPhoneField>(find.byType(IntlPhoneField));
+    expect(field.initialCountryCode, 'US');
+    expect(field.countries?.length, 6);
+    field.onCountryChanged!(
+      PhoneRegions.countries.singleWhere((c) => c.code == 'GB'),
+    );
+    await tester.pump();
+    await tester.ensureVisible(find.text('Send code'));
+    await tester.tap(find.text('Send code'));
+    await pumpRoute(tester);
+    expect(driver.sendCalls, 0);
+    expect(
+      find.text('Check the number and the selected country code.'),
+      findsOneWidget,
+    );
+    expect(field.controller!.text, '6505551234');
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets(
-    'changing country recomputes the dial code for the existing number',
+    'empty and malformed phone never send; formatted paste can be corrected',
     (tester) async {
       final driver = FakePhoneAuthDriver();
       await mountNames(
@@ -87,28 +120,86 @@ void main() {
           storage: MockStorageService(),
         ),
       );
-      await tester.enterText(find.byType(TextField), '6505551234');
-      await tester.pump();
-      final field = tester.widget<IntlPhoneField>(find.byType(IntlPhoneField));
-      expect(field.initialCountryCode, 'US');
-      expect(field.countries?.length, 6);
-      field.onCountryChanged!(
-        PhoneRegions.countries.singleWhere((c) => c.code == 'GB'),
+      Future<void> submit() async {
+        await tester.ensureVisible(find.text('Send code'));
+        await tester.tap(find.text('Send code'));
+        await pumpRoute(tester);
+      }
+
+      await submit();
+      expect(find.text('Enter your phone number.'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), '650');
+      await submit();
+      expect(
+        find.textContaining('Enter the full phone number'),
+        findsOneWidget,
       );
-      await tester.pump();
+      await tester.enterText(find.byType(TextField), '650x');
+      await submit();
+      expect(
+        find.text('Check the number and the selected country code.'),
+        findsOneWidget,
+      );
+      expect(driver.sendCalls, 0);
+      await tester.enterText(find.byType(TextField), '+1 (650) 555-1234');
+      await submit();
+      expect(driver.lastPhone, '+16505551234');
+      expect(driver.sendCalls, 1);
+      expect(find.byType(Pinput), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'SMS field explains incomplete and wrong codes without losing the input',
+    (tester) async {
+      final driver = FakePhoneAuthDriver()
+        ..confirmError = const PhoneAuthException('Wrong code. Try again.');
+      await mountNames(
+        tester,
+        phoneAuth: makeService(
+          driver: driver,
+          api: MockApiService(),
+          storage: MockStorageService(),
+        ),
+      );
+      await tester.enterText(find.byType(TextField), '6505551234');
       await tester.ensureVisible(find.text('Send code'));
       await tester.tap(find.text('Send code'));
       await pumpRoute(tester);
-      expect(driver.lastPhone, '+446505551234');
-      await tester.pumpWidget(const SizedBox());
+      await tester.ensureVisible(find.text('Verify'));
+      await tester.tap(find.text('Verify'));
+      await pumpRoute(tester);
+      expect(find.text('Enter all 6 digits from the SMS.'), findsOneWidget);
+      expect(driver.confirmCalls, 0);
+      final pin = tester.widget<Pinput>(find.byType(Pinput)).controller!;
+      pin.text = '012345';
+      await pumpRoute(tester);
+      if (driver.confirmCalls == 0) {
+        await tester.ensureVisible(find.text('Verify'));
+        await tester.tap(find.text('Verify'));
+        await pumpRoute(tester);
+      }
+      expect(find.textContaining('Wrong code. Try again.'), findsOneWidget);
+      expect(pin.text, '012345');
+      expect(driver.confirmCalls, 1);
+      await tester.ensureVisible(find.text('Resend code'));
+      await tester.tap(find.text('Resend code'));
+      await pumpRoute(tester);
+      expect(find.text('A new code is on its way.'), findsOneWidget);
+      expect(pin.text, isEmpty);
+      expect(driver.sendCalls, 2);
     },
   );
 
   for (final sample in [
-    ('GB', '07911123456', '+447911123456'),
+    // Example mobile from the parser's GB metadata; the provider is fake.
+    ('GB', '07400123456', '+447400123456'),
     ('NZ', '0211234567', '+64211234567'),
+    ('CA', '(416) 555-0123', '+14165550123'),
+    ('SG', '8123 4567', '+6581234567'),
+    ('HK', '9123 4567', '+85291234567'),
   ]) {
-    testWidgets('national trunk zero is normalized for ${sample.$1}', (
+    testWidgets('national phone format is normalized for ${sample.$1}', (
       tester,
     ) async {
       final driver = FakePhoneAuthDriver();

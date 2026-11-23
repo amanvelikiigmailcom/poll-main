@@ -128,13 +128,16 @@ class _InvitationCodeScreenState extends ConsumerState<InvitationCodeScreen> {
       }
       final claimed = await service.claimPending();
       if (!mounted) return;
+      if (!claimed) {
+        setState(
+          () => _error =
+              'Couldn’t apply this invitation. Check the code and try again.',
+        );
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            claimed
-                ? 'Invitation applied. Your wait pass is ready.'
-                : 'No matching invitation found.',
-          ),
+        const SnackBar(
+          content: Text('Invitation applied. Your wait pass is ready.'),
         ),
       );
       context.go(AppRoutes.invite);

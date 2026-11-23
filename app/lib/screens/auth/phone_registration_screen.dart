@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
-import 'package:intl_phone_field/phone_number.dart';
 import '../../config/phone_regions.dart';
 import '../../providers/service_providers.dart';
-import '../../services/contact_sync_service.dart';
-import 'package:phone_numbers_parser/phone_numbers_parser.dart' show IsoCode;
+import 'package:phone_numbers_parser/phone_numbers_parser.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../router/app_router.dart';
@@ -30,8 +27,9 @@ class _PhoneRegistrationScreenState
   static const _primaryBlue = Color(0xFF4B6EF5);
 
   final _phoneController = TextEditingController();
-  String _completePhone = '';
   String _selectedCountry = PhoneRegions.defaultCountry;
+  String? _fieldError;
+  String? _sendError;
 
   @override
   void dispose() {
@@ -39,17 +37,23 @@ class _PhoneRegistrationScreenState
     super.dispose();
   }
 
-  String _internationalNumber(String raw, String country, String dialCode) {
-    var national = raw.trim();
-    if ((country == 'GB' || country == 'NZ') && national.startsWith('0')) {
-      national = national.substring(1);
+  String? _internationalNumber(String raw, String country) {
+    final compact = raw.trim().replaceAll(RegExp(r'[\s().\-–]'), '');
+    if (!RegExp(r'^\+?[0-9]{1,15}$').hasMatch(compact)) return null;
+    try {
+      final region = IsoCode.fromJson(country);
+      final parsed = compact.startsWith('+')
+          ? PhoneNumber.parse(compact)
+          : PhoneNumber.parse(compact, destinationCountry: region);
+      if (parsed.isoCode != region ||
+          !parsed.isValid() ||
+          !RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(parsed.international)) {
+        return null;
+      }
+      return parsed.international;
+    } catch (_) {
+      return null;
     }
-    if (national.isEmpty) return '';
-    return ContactSyncService.normalizePhone(
-          national,
-          defaultRegion: IsoCode.fromJson(country),
-        ) ??
-        '+$dialCode$national';
   }
 
   Future<void> _next() async {
@@ -67,33 +71,61 @@ class _PhoneRegistrationScreenState
   bool _sending = false;
 
   Future<void> _submit() async {
-    if (_completePhone.isEmpty || _sending) return;
+    if (_sending) return;
+    final country = _selectedCountry;
+    final raw = _phoneController.text;
+    final phone = _internationalNumber(raw, country);
+    if (phone == null) {
+      setState(() {
+        _sendError = null;
+        _fieldError = switch (raw.trim()) {
+          '' => 'Enter your phone number.',
+          final value
+              when RegExp(r'^\+?[0-9\s().\-–]+$').hasMatch(value) &&
+                  value.replaceAll(RegExp(r'\D'), '').length < 8 =>
+            'Enter the full phone number, including the area code if needed.',
+          _ => 'Check the number and the selected country code.',
+        };
+      });
+      return;
+    }
     FocusManager.instance.primaryFocus?.unfocus();
-    setState(() => _sending = true);
-    await ref.read(onboardingDetailsProvider).setCountry(_selectedCountry);
-    if (!mounted) return;
-    final notifier = ref.read(authNotifierProvider.notifier);
-    final result = await notifier.sendFirebaseCode(_completePhone);
-    if (!mounted) return;
-    setState(() => _sending = false);
-    if (result.autoIdToken != null && result.success) {
-      _next();
-      return;
+    setState(() {
+      _sending = true;
+      _fieldError = null;
+      _sendError = null;
+    });
+    try {
+      await ref.read(onboardingDetailsProvider).setCountry(country);
+      if (!mounted) return;
+      final result = await ref
+          .read(authNotifierProvider.notifier)
+          .sendFirebaseCode(phone);
+      if (!mounted) return;
+      if (result.autoIdToken != null && result.success) {
+        await _next();
+      } else if (result.success && result.verificationId != null) {
+        context.push(
+          AppRoutes.otp,
+          extra: {
+            'phone': phone,
+            'country': country,
+            'verificationId': result.verificationId,
+          },
+        );
+      } else {
+        setState(
+          () => _sendError =
+              result.message ?? 'Couldn’t send the code. Try again.',
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _sendError = 'Couldn’t send the code. Try again.');
+      }
+    } finally {
+      if (mounted) setState(() => _sending = false);
     }
-    if (result.success && result.verificationId != null) {
-      context.push(
-        AppRoutes.otp,
-        extra: {
-          'phone': _completePhone,
-          'country': _selectedCountry,
-          'verificationId': result.verificationId,
-        },
-      );
-      return;
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(result.message ?? 'Couldn’t send the code.')),
-    );
   }
 
   void _continueAsGuest() {
@@ -170,37 +202,40 @@ class _PhoneRegistrationScreenState
                         ),
                         child: IntlPhoneField(
                           controller: _phoneController,
-                          decoration: const InputDecoration(
+                          enabled: !_sending,
+                          decoration: InputDecoration(
                             hintText: 'Phone number',
                             border: InputBorder.none,
+                            errorText: _fieldError,
+                            errorMaxLines: 3,
                           ),
                           initialCountryCode: PhoneRegions.defaultCountry,
                           countries: PhoneRegions.countries,
                           // Preserve national trunk zeros until normalization.
                           // The package limit otherwise truncates UK/NZ input.
                           disableLengthCheck: true,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            LengthLimitingTextInputFormatter(15),
-                          ],
                           onCountryChanged: (country) => setState(() {
                             _selectedCountry = country.code;
-                            _completePhone = _internationalNumber(
-                              _phoneController.text,
-                              country.code,
-                              country.fullCountryCode,
-                            );
+                            _fieldError = null;
+                            _sendError = null;
                           }),
-                          onChanged: (PhoneNumber phone) => setState(() {
-                            _selectedCountry = phone.countryISOCode;
-                            _completePhone = _internationalNumber(
-                              phone.number,
-                              phone.countryISOCode,
-                              phone.countryCode.replaceFirst('+', ''),
-                            );
+                          onChanged: (_) => setState(() {
+                            _fieldError = null;
+                            _sendError = null;
                           }),
                         ),
                       ),
+                      if (_sendError case final message?)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Semantics(
+                            liveRegion: true,
+                            child: Text(
+                              message,
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ),
                       if (!supported) ...[
                         const SizedBox(height: 16),
                         Container(
@@ -229,12 +264,7 @@ class _PhoneRegistrationScreenState
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed:
-                              available &&
-                                  _completePhone.isNotEmpty &&
-                                  !_sending
-                              ? _submit
-                              : null,
+                          onPressed: available && !_sending ? _submit : null,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: _primaryBlue,

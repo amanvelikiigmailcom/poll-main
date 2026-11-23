@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
@@ -30,6 +31,10 @@ class OnboardingDetailsService extends ChangeNotifier {
     final token = await storage.getToken();
     // Session scoping prevents a new token briefly reusing the previous
     // account's cached phone/profile while login persistence is still running.
+    return _sessionKey(token);
+  }
+
+  String _sessionKey(String? token) {
     final identity = token?.isNotEmpty == true ? 'session:$token' : 'guest';
     return 'onboarding_details_v1_${sha256.convert(utf8.encode(identity))}';
   }
@@ -83,6 +88,7 @@ class OnboardingDetailsService extends ChangeNotifier {
         'status': data['status'],
         'country': data['country'],
         'graduationYear': data['graduationYear'],
+        'campusChangeUsed': data['campusChangeUsed'],
         'stage':
             prior['stage'] ??
             (data['profileComplete'] == true ? 'school' : 'profile'),
@@ -185,6 +191,72 @@ class OnboardingDetailsService extends ChangeNotifier {
     );
   }
 
+  Future<({Map<String, dynamic> data, String? sessionKey})>
+  campusProfile() async {
+    final token = await storage.getToken();
+    if (token == null || token.isEmpty) {
+      return (data: await read(), sessionKey: null);
+    }
+    final response = await api.get<Map<String, dynamic>>(
+      '/api/onboarding',
+      options: Options(headers: {'Authorization': 'Bearer $token'}),
+    );
+    if (token != await storage.getToken()) {
+      throw const ApiException('Account changed. Try again.');
+    }
+    return (data: response.data ?? {}, sessionKey: _sessionKey(token));
+  }
+
+  Future<void> changeCampus({
+    required String campusId,
+    required int year,
+    required String countryCode,
+    required bool confirmChange,
+    required String? expectedCampusId,
+    required String sessionKey,
+  }) async {
+    if (!validYear(year)) throw const ApiException('Choose a graduation year.');
+    final token = await storage.getToken();
+    if (token == null || token.isEmpty) {
+      throw const ApiException('Sign in to change your campus.');
+    }
+    if (_sessionKey(token) != sessionKey) {
+      throw const ApiException('Account changed. Reopen campus settings.');
+    }
+    final response = await api.put<Map<String, dynamic>>(
+      '/api/onboarding',
+      data: {
+        'step': 'change-school',
+        'country': countryCode,
+        'schoolId': campusId,
+        'graduationYear': year,
+        'confirmChange': confirmChange,
+        'expectedCampusId': expectedCampusId,
+      },
+      options: Options(headers: {'Authorization': 'Bearer $token'}),
+    );
+    final result = response.data;
+    if (token != await storage.getToken()) {
+      throw const ApiException('Account changed. Try again.');
+    }
+    if (result?['status'] != 'selected' ||
+        (result?['school'] as Map?)?['id'] != campusId) {
+      throw const ApiException('Couldn’t confirm the campus. Try again.');
+    }
+    final key = _sessionKey(token);
+    final next = _writes.then((_) async {
+      final prefs = await SharedPreferences.getInstance();
+      if (token != await storage.getToken()) return;
+      final raw = prefs.getString(key);
+      final prior = raw == null
+          ? <String, dynamic>{}
+          : jsonDecode(raw) as Map<String, dynamic>;
+      await _persist({...prior, ...?result, 'stage': 'done'}, key);
+    });
+    _writes = next.catchError((Object _) {});
+    await next;
+  }
+
   Future<void> skipSchool() async {
     if (!ContentService.instance.flag('school_skip_enabled')) {
       throw const ApiException('Skipping school is disabled.');
@@ -238,8 +310,12 @@ class OnboardingDetailsService extends ChangeNotifier {
     return data['stage'] == null || data['status'] == 'selected';
   }
 
-  Future<Map<String, dynamic>> search(String q, {String cursor = ''}) async {
-    final countryCode = await country();
+  Future<Map<String, dynamic>> search(
+    String q, {
+    String cursor = '',
+    String? countryOverride,
+  }) async {
+    final countryCode = countryOverride ?? await country();
     final response = await api.get<Map<String, dynamic>>(
       '/api/schools',
       queryParameters: {'country': countryCode, 'q': q, 'cursor': cursor},

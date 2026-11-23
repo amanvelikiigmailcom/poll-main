@@ -64,7 +64,10 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
       return;
     }
     FocusManager.instance.primaryFocus?.unfocus();
-    setState(() => _saving = true);
+    setState(() {
+      _saving = true;
+      _submissionError = null;
+    });
     try {
       var name = _controller.text.trim();
       final storage = ref.read(storageServiceProvider);
@@ -104,18 +107,16 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
       context.go(needsPush ? AppRoutes.pushPrompt : AppRoutes.home);
     } catch (error) {
       if (!mounted) return;
-      setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            error is ApiException
-                ? error.message
-                : 'Couldn’t save your username. Try again.',
-          ),
-        ),
-      );
+      setState(() {
+        _saving = false;
+        _submissionError = error is ApiException
+            ? error.message
+            : 'Couldn’t save your username. Try again.';
+      });
     }
   }
+
+  String? _submissionError;
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -178,8 +179,10 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
                   decoration: InputDecoration(
                     labelText: 'Username',
                     prefixText: '@',
-                    helperText: 'At least 3 characters: letters, numbers or _',
+                    helperText: '3–32 characters: A–Z, numbers or _',
                     helperMaxLines: 3,
+                    errorText: _submissionError,
+                    errorMaxLines: 4,
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
@@ -188,6 +191,11 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
                   ),
                   validator: (value) =>
                       LocalGameService.validateUsername(value ?? ''),
+                  onChanged: (_) {
+                    if (_submissionError != null) {
+                      setState(() => _submissionError = null);
+                    }
+                  },
                   onFieldSubmitted: (_) => _continue(),
                 ),
               ],

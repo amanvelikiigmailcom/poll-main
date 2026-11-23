@@ -1,5 +1,4 @@
 import '../../widgets/common/friends_link.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,10 +6,17 @@ import 'package:go_router/go_router.dart';
 import '../../models/user.dart';
 import '../../providers/user_provider.dart';
 import '../../router/app_router.dart';
+import '../../services/api_service.dart';
+import '../../services/local_game_service.dart';
 import '../../services/subscription_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/common/wait_pass_card.dart';
 import '../../providers/service_providers.dart';
+import '../registration/school_setup_screen.dart';
+
+final _campusProfileProvider = FutureProvider.autoDispose((ref) {
+  return ref.watch(onboardingDetailsProvider).campusProfile();
+});
 
 // ---------------------------------------------------------------------------
 // Screen
@@ -37,6 +43,7 @@ class ProfileScreen extends ConsumerWidget {
                 color: AppColors.primaryBlue,
                 onRefresh: () async {
                   await ref.read(localProfileProvider.notifier).refresh();
+                  ref.invalidate(_campusProfileProvider);
                   await ref.read(invitationServiceProvider).refresh();
                 },
                 child: SingleChildScrollView(
@@ -44,6 +51,7 @@ class ProfileScreen extends ConsumerWidget {
                   child: Column(
                     children: [
                       _ProfileHeaderCard(user: user, local: local),
+                      const _CampusProfileRow(),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 16),
                         child: WaitPassCard(),
@@ -128,22 +136,21 @@ class _ProfileHeaderCard extends StatelessWidget {
           ),
           if (username.isNotEmpty) ...[
             const SizedBox(height: 4),
-            InkWell(
-              onTap: () async {
-                await Clipboard.setData(ClipboardData(text: username));
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Username copied')),
-                  );
-                }
-              },
-              child: Text(
-                username,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AppColors.textSecondary,
-                ),
+            TextButton.icon(
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (_) => _UsernameEditor(initial: login),
               ),
+              icon: const Icon(Icons.edit_outlined, size: 16),
+              label: Text(username, textAlign: TextAlign.center),
+            ),
+          ] else ...[
+            TextButton(
+              onPressed: () => showDialog<void>(
+                context: context,
+                builder: (_) => const _UsernameEditor(initial: ''),
+              ),
+              child: const Text('Edit username'),
             ),
           ],
           if (universityInfo.isNotEmpty) ...[
@@ -161,6 +168,191 @@ class _ProfileHeaderCard extends StatelessWidget {
           _StatsRow(local: local),
         ],
       ),
+    );
+  }
+}
+
+class _UsernameEditor extends ConsumerStatefulWidget {
+  const _UsernameEditor({required this.initial});
+  final String initial;
+
+  @override
+  ConsumerState<_UsernameEditor> createState() => _UsernameEditorState();
+}
+
+class _UsernameEditorState extends ConsumerState<_UsernameEditor> {
+  final form = GlobalKey<FormState>();
+  late final controller = TextEditingController(text: widget.initial);
+  String? error;
+  bool saving = false;
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (saving || !(form.currentState?.validate() ?? false)) return;
+    setState(() {
+      saving = true;
+      error = null;
+    });
+    try {
+      var name = controller.text.trim();
+      final storage = ref.read(storageServiceProvider);
+      final social = ref.read(socialServiceProvider);
+      final token = await storage.getToken();
+      if (!mounted) return;
+      if (token?.isNotEmpty == true) name = await social.saveHandle(name);
+      if (!mounted) return;
+      if (token != await storage.getToken()) {
+        throw const ApiException('Account changed. Try again.');
+      }
+      if (!mounted) return;
+      await LocalGameService.instance.saveUsername(name);
+      if (!mounted) return;
+      await ref.read(localProfileProvider.notifier).refresh();
+      if (mounted) Navigator.pop(context);
+    } catch (failure) {
+      if (mounted) {
+        setState(() {
+          saving = false;
+          error = failure is ApiException
+              ? failure.message
+              : 'Couldn’t save your username. Try again.';
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    scrollable: true,
+    title: const Text('Edit username'),
+    content: Form(
+      key: form,
+      child: TextFormField(
+        controller: controller,
+        enabled: !saving,
+        autocorrect: false,
+        enableSuggestions: false,
+        textInputAction: TextInputAction.done,
+        decoration: InputDecoration(
+          prefixText: '@',
+          labelText: 'Username',
+          helperText: '3–32 characters: A–Z, numbers or _',
+          helperMaxLines: 3,
+          errorText: error,
+          errorMaxLines: 4,
+        ),
+        validator: (value) => LocalGameService.validateUsername(value ?? ''),
+        onChanged: (_) {
+          if (error != null) setState(() => error = null);
+        },
+        onFieldSubmitted: (_) => _save(),
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: saving ? null : () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: saving ? null : _save,
+        child: Text(saving ? 'Saving…' : 'Save username'),
+      ),
+    ],
+  );
+}
+
+class _CampusProfileRow extends ConsumerWidget {
+  const _CampusProfileRow();
+
+  Future<void> _edit(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> data,
+    String sessionKey,
+  ) async {
+    if (data['school'] != null) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Change campus'),
+          content: const Text(
+            'You can change your campus only once. Looking at other campuses won’t use your change.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Find a new campus'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !context.mounted) return;
+    }
+    if (!context.mounted) return;
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => SchoolSetupScreen(
+          profileCampus: data,
+          campusSessionKey: sessionKey,
+        ),
+      ),
+    );
+    if (context.mounted) ref.invalidate(_campusProfileProvider);
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final result = ref.watch(_campusProfileProvider);
+    final info = result.asData?.value;
+    final campus = info?.data['school'] as Map?;
+    final name = campus?['name'] as String? ?? '';
+    final location = [
+      campus?['city'],
+      campus?['region'],
+    ].whereType<String>().where((part) => part.isNotEmpty).join(' · ');
+    final used = info?.data['campusChangeUsed'] == true;
+    return ListTile(
+      title: const Text('Campus'),
+      subtitle: Text(
+        result.isLoading
+            ? 'Loading…'
+            : result.hasError
+            ? 'Couldn’t load your campus.'
+            : [
+                if (campus == null)
+                  'No campus selected'
+                else if (name.isNotEmpty)
+                  name
+                else
+                  'Campus selected',
+                if (location.isNotEmpty) location,
+                if (used)
+                  'Campus change used'
+                else if (info != null && info.sessionKey == null)
+                  'Sign in to edit your campus.',
+              ].join('\n'),
+      ),
+      trailing: result.hasError
+          ? TextButton(
+              onPressed: () => ref.invalidate(_campusProfileProvider),
+              child: const Text('Retry'),
+            )
+          : info?.sessionKey != null && !used
+          ? TextButton(
+              onPressed: () =>
+                  _edit(context, ref, info!.data, info.sessionKey!),
+              child: Text(campus == null ? 'Choose' : 'Edit'),
+            )
+          : null,
     );
   }
 }

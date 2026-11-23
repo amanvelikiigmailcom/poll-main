@@ -192,13 +192,13 @@ class LocalGameService {
   /// Local rules only (no backend): latin letters, digits, `_`, min length.
   static String? validateUsername(String raw) {
     final v = raw.trim();
-    if (v.isEmpty) return 'Create username';
+    if (v.isEmpty) return 'Enter a username';
     if (v.length > 32) return 'Use 32 characters or fewer';
     if (v.length < minUsernameLength) {
       return 'At least $minUsernameLength characters';
     }
     if (!usernamePattern.hasMatch(v)) {
-      return 'Only letters, numbers and _';
+      return 'Use A–Z, numbers or _';
     }
     return null;
   }
@@ -411,7 +411,10 @@ class LocalGameService {
   static String? validateProfileName(String value, String label) {
     final name = value.trim();
     if (name.isEmpty) return 'Enter your $label';
-    if (name.length > 64 || RegExp(r'[\x00-\x1f\x7f]').hasMatch(name)) return 'Enter a valid $label';
+    if (name.length > 64) return 'Use 64 characters or fewer for your $label';
+    if (RegExp(r'[\x00-\x1f\x7f]').hasMatch(name)) {
+      return 'Enter your $label without line breaks or tabs';
+    }
     return null;
   }
 

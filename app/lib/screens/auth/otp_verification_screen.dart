@@ -1,5 +1,6 @@
 import '../../providers/service_providers.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pinput/pinput.dart';
@@ -34,6 +35,8 @@ class _OTPVerificationScreenState extends ConsumerState<OTPVerificationScreen> {
   String? _verificationId;
   bool _verifying = false;
   bool _resending = false;
+  String? _codeError;
+  String? _notice;
 
   @override
   void initState() {
@@ -50,24 +53,44 @@ class _OTPVerificationScreenState extends ConsumerState<OTPVerificationScreen> {
   Future<void> _verify() async {
     final code = _pinController.text.trim();
     final verificationId = _verificationId;
-    if (code.length != 6 || verificationId == null || _verifying) return;
+    if (_verifying || _resending) return;
+    if (verificationId == null) {
+      setState(() => _codeError = 'Request a new code to continue.');
+      return;
+    }
+    if (!RegExp(r'^[0-9]{6}$').hasMatch(code)) {
+      setState(() => _codeError = 'Enter all 6 digits from the SMS.');
+      return;
+    }
     FocusManager.instance.primaryFocus?.unfocus();
-    setState(() => _verifying = true);
-    final result = await ref
-        .read(authNotifierProvider.notifier)
-        .verifyFirebaseCode(
-          verificationId: verificationId,
-          code: code,
-          phone: widget.phone,
+    setState(() {
+      _verifying = true;
+      _codeError = null;
+      _notice = null;
+    });
+    try {
+      final result = await ref
+          .read(authNotifierProvider.notifier)
+          .verifyFirebaseCode(
+            verificationId: verificationId,
+            code: code,
+            phone: widget.phone,
+          );
+      if (!mounted) return;
+      if (result.success) {
+        await _afterLogin();
+      } else {
+        setState(
+          () => _codeError =
+              result.message ?? 'Couldn’t verify the code. Try again.',
         );
-    if (!mounted) return;
-    setState(() => _verifying = false);
-    if (result.success) {
-      await _afterLogin();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.message ?? 'Wrong code. Try again.')),
-      );
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _codeError = 'Couldn’t verify the code. Try again.');
+      }
+    } finally {
+      if (mounted) setState(() => _verifying = false);
     }
   }
 
@@ -92,28 +115,36 @@ class _OTPVerificationScreenState extends ConsumerState<OTPVerificationScreen> {
 
   Future<void> _resend() async {
     if (_resending || _verifying) return;
-    setState(() => _resending = true);
-    final result = await ref
-        .read(authNotifierProvider.notifier)
-        .sendFirebaseCode(widget.phone);
-    if (!mounted) return;
-    setState(() => _resending = false);
-    if (result.autoIdToken != null && result.success) {
-      await _afterLogin();
-      return;
-    }
-    if (result.success && result.verificationId != null) {
-      setState(() {
-        _verificationId = result.verificationId;
-        _pinController.clear();
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('A new code is on its way.')),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.message ?? 'Couldn’t resend the code.')),
-      );
+    setState(() {
+      _resending = true;
+      _notice = null;
+      _codeError = null;
+    });
+    try {
+      final result = await ref
+          .read(authNotifierProvider.notifier)
+          .sendFirebaseCode(widget.phone);
+      if (!mounted) return;
+      if (result.autoIdToken != null && result.success) {
+        await _afterLogin();
+      } else if (result.success && result.verificationId != null) {
+        setState(() {
+          _verificationId = result.verificationId;
+          _pinController.clear();
+          _notice = 'A new code is on its way.';
+        });
+      } else {
+        setState(
+          () => _codeError =
+              result.message ?? 'Couldn’t resend the code. Try again.',
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _codeError = 'Couldn’t resend the code. Try again.');
+      }
+    } finally {
+      if (mounted) setState(() => _resending = false);
     }
   }
 
@@ -174,6 +205,16 @@ class _OTPVerificationScreenState extends ConsumerState<OTPVerificationScreen> {
                       Pinput(
                         length: 6,
                         controller: _pinController,
+                        enabled: !_verifying && !_resending,
+                        autofillHints: const [AutofillHints.oneTimeCode],
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        onChanged: (_) {
+                          if (_codeError != null) {
+                            setState(() => _codeError = null);
+                          }
+                        },
                         autofocus: true,
                         onCompleted: (_) => _verify(),
                         defaultPinTheme: PinTheme(
@@ -193,10 +234,24 @@ class _OTPVerificationScreenState extends ConsumerState<OTPVerificationScreen> {
                           ),
                         ),
                       ),
+                      if ((_codeError ?? _notice) case final message?)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Semantics(
+                            liveRegion: true,
+                            child: Text(
+                              message,
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ),
                       const SizedBox(height: 16),
                       Center(
                         child: TextButton(
-                          onPressed: _resending ? null : _resend,
+                          onPressed:
+                              _resending || _verifying || widget.phone.isEmpty
+                              ? null
+                              : _resend,
                           child: Text(
                             _resending ? 'Sending…' : 'Resend code',
                             style: const TextStyle(
@@ -211,9 +266,7 @@ class _OTPVerificationScreenState extends ConsumerState<OTPVerificationScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
-                          onPressed: _verificationId == null || _verifying
-                              ? null
-                              : _verify,
+                          onPressed: _verifying || _resending ? null : _verify,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: _primaryBlue,
