@@ -1,13 +1,10 @@
 # Flyprox — план работ (обновлено 2026-11-23)
 
-## Пуши и Activity — локальная реализация 24.11.2026
+## Пуши и Activity — backend production 24.11.2026
 
-Согласованный scope: надёжная backend очередь/APNs, реальные preferences, vote/timer60/invite hooks/friends/verified Premium/inactivity/sign-in/moderation, один native review. Исключения владельца: suspicious/Terms/admin/repeat/removeFirebase/Meili. Settings → Activity получает реальные campus events20→скролл→20, максимум200, graduationYear, English/наш дизайн. Региональный allowlist управляется backend CLI без панели; по умолчанию все регионы открыты.
+Владелец подтвердил rollout и Superwall OAuth. Выполнены7private tables+indexes, school_location и onboarding_details.campusChanges, real DB acceptance с fake provider и полным QA cleanup. Runtime913b4fb active: APNs queue/preferences/Activity workers enabled, existing school/social flags сохранены; source cutover не переотправляет старые уведомления и сохраняет ещё действующие таймеры. Superwall project44902/app60567, signed V2 webhook настроен; forged401/signed unresolved200 ignored проверены через публичный URL.4real country/state/city/fulltext query shapes прошли; single-rule AND/OR исправлен и покрыт регрессией. Регионы остаются открытыми.
 
-Новые тесты и детали: docs/notifications-and-activity.md. Пока НЕ live: требуются7private tables+school_location index, signed Superwall webhook credentials и production activation. School-mode/whole-round source развивается параллельно; Activity также читает completed contact rounds только с доказательством campus на timestamp голоса (обе enrollment $updatedAt<=vote). Без этого исторические события пропускаются. Никакого cloud build. Shuffle/skip2 и weekly received-voter disclosures — отдельный игровой этап (нынешний Full Reveal только свои ответы); не считать выполненными.
-
-
-
+Settings → Activity:20→скролл→20, максимум200, graduationYear, English/наш дизайн. Изолированные131backend/258Flutter/analyze0errors0warnings22baselineinfo. Коммиты запушены [ci skip], новый cloud/TestFlight build НЕ запускался. Не считать реальные покупки/device-delivery проверенными. Исключения владельца и invitation hold сохранены. Shuffle/skip2 и weekly incoming-voter disclosures — отдельный игровой этап; нынешний Full Reveal только свои ответы. Подробности:docs/notifications-and-activity.md.
 
 ## Новые формы профиля и школы — 24.11.2026
 

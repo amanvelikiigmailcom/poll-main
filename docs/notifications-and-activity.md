@@ -1,6 +1,6 @@
 # Notifications and campus Activity — 24 November 2026
 
-Local implementation; no production migration, worker activation, Superwall webhook registration or new app build has been performed for this release.
+Backend deployed and enabled on 24 November 2026, runtime913b4fb. Owner explicitly approved migration/QA/deploy and provided Superwall OAuth. Client source is pushed; no new cloud/TestFlight build was started.
 
 ## Approved scope
 
@@ -28,7 +28,7 @@ POST /api/webhooks/superwall receives the original JSON bytes before express.jso
 
 Expiry notice is for a currently active subscription with auto-renew disabled and <=24h left; renewal/current state cancels an obsolete warning. The weekly plan's 3-day warning was intentionally replaced by this shorter window. SDK identify uses the server UUID for StoreKit appAccountToken, serializes identity changes and resets aliases between accounts. Existing anonymous subscriptions require actual provider alias resolution; do not guess ownership from a phone or device.
 
-Webhook configuration requires a private Superwall administrative API credential and the endpoint's separate signing secret. CLI OAuth was unavailable in this session; checked project .env, ~/envs/global.env and backend production .env contain no Superwall/Svix variable names. No secret value was printed. The app's public SDK key is not an administrative API credential. Pending owner-supplied file path/authentication and production approval.
+Superwall OAuth is now authenticated. Project44902/app60567/bundlecom.flyprox.flyproxApp verified; created V2 endpoint ep_3MWIfHVPnq8WIkkBchgM4QvcBgu at https://api.flyprox.com/api/webhooks/superwall. App Store routing and revenue provider were preserved. Signing secret is stored privately in ~/.config/flyprox-notifications.env on the server (mode600); it is separate from OAuth/admin credentials and was not printed. Public receiver checks: forged signature401; signed unresolved owner200 ignored without a user event. No actual purchase or manual device push was used for acceptance.
 
 ## Campus Activity
 
@@ -48,8 +48,14 @@ Read-only examples in backend repo: `node scripts/campus-access.js --show`; `--l
 
 Permanent tests cover domains plus real localhost HTTP/auth/adapters with fake providers, signed/forged/stale billing, anonymous payloads, review once, expired leases, lost acknowledgements, provider timeouts/outages, blocks, >100-row erasure, source pagination, timer/pass/campus guards, Activity isolation/20-per-page/200 cap and Flutter account switching/retry/scroll/320px double text. They do not prove production Appwrite index behavior or physical iPhone/APNs delivery. No real SMS, purchase or push is sent by tests. Run both repositories' full compact checks before commit.
 
-Activation package for explicit approval: push owned commits [ci skip]; create six notification tables plus activity_events, the additional school_location index and the optional integer onboarding_details.campusChanges required by the preceding committed campus-edit release; verify actual index/query contracts and isolated cleanup; configure the scoped signed Superwall webhook and private systemd flags; restart existing single backend writer and smoke-test. No cloud/TestFlight build or broadcast, no regional restriction unless separately named. Production read-only metadata confirms content_items.value is varchar8192 and that school_location and campusChanges are currently absent. The prepared scripts/verify-notification-rollout.js is read-only by default; --exercise uses isolated IDs only in the seven new tables, fake identities/provider, real keyset/index/queue queries and verified cleanup, with no Auth/profile/SMS/APNs writes. It has not been run against production before migration approval.
+Completed activation: seven private tables and all indexes, school_location index and onboarding_details.campusChanges. Runtime913b4fb uses /home/myuser/projects/flyprox_backend/releases/notifications-913b4fb/src/server.js via zz-notifications-activity.conf; original .env is untouched. Notifications and Activity flags, SCHEMA_READY and SINGLE_WRITER are1; existing school/social flags remain1; invitation rollout remains held. Private EnvironmentFile contains only the verified billing scope and signing secret. Root repository HEAD does not identify runtime source; check systemd ExecStart.
+
+Ran scripts/verify-notification-rollout.js --exercise before enabling workers: real schema/query/prefs/dedup/review/billing snapshot/Activity20+2 acceptance passed, fake identities/provider, no Auth/profiles/SMS/APNs writes, all QA rows removed and absence verified. Four real country/state/city+fulltext filter shapes also passed. Real Appwrite rejected a one-operand OR; fixed913b4fb and added fake-provider regression validation for both one-operand AND/OR. No location policy was changed, all regions stay open.
+
+Initial activation stopped the single API writer and seeded3source checkpoints from the cutover instant, preventing historical immediate vote/friend pushes from replaying. One still-valid round timer was retained. Re-deploy kept existing checkpoints instead of moving them. prepare-notification-cutover.js is preview-only unless --apply --writer-stopped; tested dry-run/no writes, pagination105 profiles, stale/invalid/future timers and rerun preservation. Workers now update checkpoints normally. Health/content/questions/school search200, unauthorized Activity/preferences401. No cloud build, broadcast or regional restriction was performed.
 
 The discussion of two shuffle/two skips per round and paid-period-based disclosure quotas is a separate game change, not implemented by Activity. Current Premium reveals this device's own answers, not received voters' names; a new received-vote reveal flow needs a precise weekly quota and verified billing-period boundaries. Do not sell that capability before it works or reintroduce an absolute anonymity promise.
 
 Verified isolated release snapshot: **129 backend tests**, server syntax clean; **258 Flutter tests**, analyzer0 errors/0 warnings/22 existing infos. Shared working-tree checks also passed263 Flutter/134 backend before subsequent unrelated edits. No production/device delivery check or cloud build.
+
+Final backend release after the real-provider regression: **131 backend tests** passed; client remains **258 tests**, analyzer0 errors/0 warnings/22 baseline infos.
