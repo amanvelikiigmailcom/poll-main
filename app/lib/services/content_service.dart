@@ -28,7 +28,8 @@ class ContentService extends ChangeNotifier {
     'paywall_term': '{price} / week · 1-week auto-renewing subscription',
     'paywall_features':
         '["Full Reveal — all 12 answers every round","Stars ×2 for every completed round","✓ badge in your profile"]',
-    'paywall_features_v2': '["Full Reveal — all 12 answers every round","Stars ×2 for every completed round","✓ badge in your profile"]',
+    'paywall_features_v2':
+        '["Full Reveal — all 12 answers every round","Stars ×2 for every completed round","✓ badge in your profile"]',
     'paywall_cta': 'Get Premium · {price}',
     'upsell_timer_button': 'Premium benefits',
     'upsell_reveal_note':
@@ -47,11 +48,13 @@ class ContentService extends ChangeNotifier {
     'url_marketing':
         'https://distinct-lunaria-d0a.notion.site/41ae779d274281a095c3dd25afefafe2',
     'support_email': 'support@flyprox.com',
+    'school_skip_enabled': 'true',
     'guest_enabled': 'true',
     'contacts_enabled': 'true',
     'example_names_enabled': 'true',
     'example_names_button': 'Try with example names',
-    'example_names_description': 'Want to try first? Use example names without sharing contacts.',
+    'example_names_description':
+        'Want to try first? Use example names without sharing contacts.',
   };
 
   Map<String, String> _overrides = {};

@@ -15,7 +15,6 @@ import 'fakes/test_app.dart';
 import 'package:flyprox_app/services/local_game_service.dart';
 import 'package:flyprox_app/services/storage_service.dart';
 
-
 class DeletionApi extends Mock implements ApiService {}
 
 Future<ProviderContainer> mountResetApp(
@@ -211,6 +210,23 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Continue without login'));
       await tester.pumpAndSettle();
+      expect(find.text('About you'), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const Key('onboarding-first-name')),
+        'New',
+      );
+      await tester.enterText(
+        find.byKey(const Key('onboarding-last-name')),
+        'Player',
+      );
+      await tester.ensureVisible(find.text('Female'));
+      await tester.tap(find.text('Female'));
+      await tester.ensureVisible(find.text('Continue'));
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const Key('skip-school')));
+      await tester.tap(find.byKey(const Key('skip-school')));
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Try with example names'));
       await tester.tap(find.text('Try with example names'));
       await tester.pumpAndSettle();
@@ -218,7 +234,7 @@ void main() {
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
       final name = container.read(localProfileProvider).playerName;
-      expect(name, matches(RegExp(r'^user[0-9]{6}$')));
+      expect(name, 'New Player');
       testAppRouter.go(AppRoutes.profile);
       await tester.pumpAndSettle();
       expect(find.text(name), findsOneWidget);

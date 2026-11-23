@@ -117,6 +117,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('@aman_23'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
+    testAppRouter = createAppRouter();
+    addTearDown(testAppRouter.dispose);
     await mount(tester, route: AppRoutes.splash);
     expect(
       testAppRouter.routeInformationProvider.value.uri.path,

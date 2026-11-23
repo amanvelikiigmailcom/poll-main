@@ -1,8 +1,11 @@
+import '../screens/registration/profile_details_screen.dart';
+import '../screens/registration/school_setup_screen.dart';
+import '../providers/service_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../screens/social/social_screen.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../screens/onboarding/names_entry_screen.dart';
 import '../screens/registration/username_screen.dart';
@@ -12,7 +15,6 @@ import '../screens/auth/invitation_code_screen.dart';
 import '../services/invite_code_store.dart';
 import '../screens/auth/otp_verification_screen.dart';
 import '../screens/onboarding/push_prompt_screen.dart';
-import '../providers/service_providers.dart';
 import '../screens/voting/vote_screen.dart';
 import '../screens/voting/star_received_screen.dart';
 import '../screens/voting/timer_screen.dart';
@@ -52,6 +54,9 @@ abstract final class AppRoutes {
   static const splash = '/';
   static const onboarding = '/onboarding';
   static const namesEntry = '/names';
+  static const profileDetails = '/profile-details';
+  static const schoolSetup = '/school-setup';
+  static const schoolWaiting = '/school-waiting';
   static const username = '/username';
   static const age = '/age';
   static const ageBlocked = '/age-blocked';
@@ -112,7 +117,7 @@ class _SplashRedirect extends ConsumerStatefulWidget {
   ConsumerState<_SplashRedirect> createState() => _SplashRedirectState();
 }
 
-FutureOr<String?> _ageRedirect(BuildContext context, GoRouterState state) {
+Future<String?> _ageRedirect(BuildContext context, GoRouterState state) async {
   final age = AgeGateService.instance;
   final path = state.uri.path;
   const information = {
@@ -143,13 +148,56 @@ FutureOr<String?> _ageRedirect(BuildContext context, GoRouterState state) {
         ? AppRoutes.age
         : AppRoutes.phone;
   }
+  final setup = ProviderScope.containerOf(
+    context,
+    listen: false,
+  ).read(onboardingDetailsProvider);
+  final details = await setup.read();
+  const setupExempt = {
+    AppRoutes.phone,
+    AppRoutes.otp,
+    AppRoutes.invitationCode,
+    AppRoutes.onboarding,
+    AppRoutes.privacy,
+    AppRoutes.terms,
+    AppRoutes.forParents,
+  };
+  if (!setupExempt.contains(path)) {
+    final stage = details['stage'];
+    if (stage == null &&
+        {AppRoutes.schoolSetup, AppRoutes.schoolWaiting}.contains(path)) {
+      return AppRoutes.profileDetails;
+    }
+    if (stage == 'profile' && path != AppRoutes.profileDetails) {
+      return AppRoutes.profileDetails;
+    }
+    if (stage == 'school' &&
+        path != AppRoutes.schoolSetup &&
+        path != AppRoutes.profileDetails) {
+      return AppRoutes.schoolSetup;
+    }
+    if (stage == 'contacts' &&
+        !{
+          AppRoutes.namesEntry,
+          AppRoutes.username,
+          AppRoutes.schoolSetup,
+          AppRoutes.profileDetails,
+        }.contains(path)) {
+      return await LocalGameService.instance.hasEnoughNames()
+          ? AppRoutes.username
+          : AppRoutes.namesEntry;
+    }
+    if (path == AppRoutes.vote && !await setup.votingAllowed()) {
+      return AppRoutes.schoolWaiting;
+    }
+  }
   if (path == AppRoutes.age || path == AppRoutes.ageBlocked) {
     return LocalGameService.instance.hasEnoughNames().then(
       (ready) async => ready
           ? (await LocalGameService.instance.isUsernameSetupPending()
                 ? AppRoutes.username
                 : AppRoutes.home)
-          : AppRoutes.namesEntry,
+          : AppRoutes.profileDetails,
     );
   }
   return null;
@@ -198,6 +246,18 @@ GoRouter createAppRouter({bool showInvitationIntro = true}) => GoRouter(
   ]),
   redirect: _ageRedirect,
   routes: [
+    GoRoute(
+      path: AppRoutes.profileDetails,
+      builder: (_, __) => const ProfileDetailsScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.schoolSetup,
+      builder: (_, __) => const SchoolSetupScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.schoolWaiting,
+      builder: (_, __) => const SchoolWaitingScreen(),
+    ),
     GoRoute(path: AppRoutes.age, builder: (_, __) => const AgePickerScreen()),
     GoRoute(
       path: AppRoutes.ageBlocked,

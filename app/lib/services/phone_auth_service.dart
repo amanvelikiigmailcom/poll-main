@@ -43,22 +43,27 @@ class PhoneAuthService {
     required ApiService api,
     required StorageService storage,
     required PhoneAuthDriver driver,
-  })  : _api = api,
-        _storage = storage,
-        _driver = driver;
+  }) : _api = api,
+       _storage = storage,
+       _driver = driver;
 
   bool get isAvailable => _driver.isAvailable;
 
   Future<PhoneCodeResult> sendCode(String phone) async {
     try {
-      final sent = await _driver.sendCode(phone).timeout(
-        const Duration(seconds: 90),
-        onTimeout: () => throw const PhoneAuthException(
-            'The code request timed out. Try again or continue without login.'),
-      );
+      final sent = await _driver
+          .sendCode(phone)
+          .timeout(
+            const Duration(seconds: 90),
+            onTimeout: () => throw const PhoneAuthException(
+              'The code request timed out. Try again or continue without login.',
+            ),
+          );
       if (sent.verificationId == null && sent.autoIdToken == null) {
         return const PhoneCodeResult(
-            success: false, message: 'Couldn’t send the code. Try again.');
+          success: false,
+          message: 'Couldn’t send the code. Try again.',
+        );
       }
       return PhoneCodeResult(
         success: true,
@@ -69,7 +74,9 @@ class PhoneAuthService {
       return PhoneCodeResult(success: false, message: e.message);
     } catch (_) {
       return const PhoneCodeResult(
-          success: false, message: 'Couldn’t send the code. Try again.');
+        success: false,
+        message: 'Couldn’t send the code. Try again.',
+      );
     }
   }
 
@@ -80,23 +87,29 @@ class PhoneAuthService {
   }) async {
     try {
       final idToken = await _driver.confirmCode(
-          verificationId: verificationId, smsCode: code);
+        verificationId: verificationId,
+        smsCode: code,
+      );
       return loginWithIdToken(idToken, phone: phone);
     } on PhoneAuthException catch (e) {
       return PhoneLoginResult(success: false, message: e.message);
     } catch (_) {
       return const PhoneLoginResult(
-          success: false, message: 'Verification failed. Try again.');
+        success: false,
+        message: 'Verification failed. Try again.',
+      );
     }
   }
 
   /// Exchanges a Firebase ID token for a backend session. Never throws.
-  Future<PhoneLoginResult> loginWithIdToken(String idToken,
-      {String? phone}) async {
+  Future<PhoneLoginResult> loginWithIdToken(
+    String idToken, {
+    String? phone,
+  }) async {
     try {
       final response = await _api.post<Map<String, dynamic>>(
         '/api/auth/firebase',
-        data: {'idToken': idToken},
+        data: {'idToken': idToken, 'schoolOnboardingVersion': 1},
       );
       final data = response.data ?? {};
       final token = data['token'] as String?;
@@ -118,7 +131,9 @@ class PhoneAuthService {
       return PhoneLoginResult(success: false, message: e.message);
     } catch (_) {
       return const PhoneLoginResult(
-          success: false, message: 'Login failed. Try again.');
+        success: false,
+        message: 'Login failed. Try again.',
+      );
     }
   }
 }

@@ -52,15 +52,19 @@ void main() {
 
   group('verifyCode', () {
     test('exchanges the id token for a backend session', () async {
-      when(() => api.post<Map<String, dynamic>>(
-            '/api/auth/firebase',
-            data: any(named: 'data'),
-          )).thenAnswer((_) async => _json({
-                'token': 'backend-token',
-                'isNewUser': true,
-              }));
+      when(
+        () => api.post<Map<String, dynamic>>(
+          '/api/auth/firebase',
+          data: any(named: 'data'),
+        ),
+      ).thenAnswer(
+        (_) async => _json({'token': 'backend-token', 'isNewUser': true}),
+      );
       final r = await svc.verifyCode(
-          verificationId: 'vid-1', code: '123456', phone: '+77071234567');
+        verificationId: 'vid-1',
+        code: '123456',
+        phone: '+77071234567',
+      );
       expect(r.success, isTrue);
       expect(r.isNewUser, isTrue);
       expect(driver.lastVerificationId, 'vid-1');
@@ -68,10 +72,15 @@ void main() {
       verify(() => storage.saveToken('backend-token')).called(1);
       verify(() => storage.savePhone('+77071234567')).called(1);
       final captured =
-          verify(() => api.post<Map<String, dynamic>>('/api/auth/firebase',
-              data: captureAny(named: 'data'))).captured.single
+          verify(
+                () => api.post<Map<String, dynamic>>(
+                  '/api/auth/firebase',
+                  data: captureAny(named: 'data'),
+                ),
+              ).captured.single
               as Map<String, dynamic>;
       expect(captured['idToken'], 'id-token-1');
+      expect(captured['schoolOnboardingVersion'], 1);
     });
 
     test('wrong code fails before any backend call', () async {
@@ -79,16 +88,22 @@ void main() {
       final r = await svc.verifyCode(verificationId: 'vid-1', code: '000000');
       expect(r.success, isFalse);
       expect(r.message, 'Wrong code. Try again.');
-      verifyNever(() => api.post<Map<String, dynamic>>(
-          '/api/auth/firebase', data: any(named: 'data')));
+      verifyNever(
+        () => api.post<Map<String, dynamic>>(
+          '/api/auth/firebase',
+          data: any(named: 'data'),
+        ),
+      );
       verifyNever(() => storage.saveToken(any()));
     });
 
     test('backend errors surface as messages', () async {
-      when(() => api.post<Map<String, dynamic>>(
-            '/api/auth/firebase',
-            data: any(named: 'data'),
-          )).thenThrow(const ApiException('No internet connection.'));
+      when(
+        () => api.post<Map<String, dynamic>>(
+          '/api/auth/firebase',
+          data: any(named: 'data'),
+        ),
+      ).thenThrow(const ApiException('No internet connection.'));
       final r = await svc.verifyCode(verificationId: 'vid-1', code: '123456');
       expect(r.success, isFalse);
       expect(r.message, 'No internet connection.');
@@ -96,10 +111,12 @@ void main() {
     });
 
     test('missing token in a 200 response is a failure', () async {
-      when(() => api.post<Map<String, dynamic>>(
-            '/api/auth/firebase',
-            data: any(named: 'data'),
-          )).thenAnswer((_) async => _json({'message': 'Denied'}));
+      when(
+        () => api.post<Map<String, dynamic>>(
+          '/api/auth/firebase',
+          data: any(named: 'data'),
+        ),
+      ).thenAnswer((_) async => _json({'message': 'Denied'}));
       final r = await svc.verifyCode(verificationId: 'vid-1', code: '123456');
       expect(r.success, isFalse);
       expect(r.message, 'Denied');

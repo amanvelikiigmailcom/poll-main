@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 /// Gender options for a user profile.
-enum Gender { male, female, other }
+enum Gender { male, female, other, nonbinary }
 
 /// Premium subscription tier.
 enum PremiumType { none, pro, max }
@@ -96,8 +96,7 @@ class User extends Equatable {
       friendsCount: json['friendsCount'] as int? ?? 0,
       votesReceived: json['votesReceived'] as int? ?? 0,
       isPremium: json['isPremium'] as bool? ?? false,
-      premiumType:
-          _premiumTypeFromString(json['premiumType'] as String?),
+      premiumType: _premiumTypeFromString(json['premiumType'] as String?),
       premiumExpiry: json['premiumExpiry'] != null
           ? DateTime.tryParse(json['premiumExpiry'] as String)
           : null,
@@ -111,31 +110,31 @@ class User extends Equatable {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'phoneNumber': phoneNumber,
-        'firstName': firstName,
-        'lastName': lastName,
-        'username': username,
-        'gender': _genderToString(gender),
-        'age': age,
-        'grade': grade,
-        'gradeClass': gradeClass,
-        'schoolId': schoolId,
-        'schoolName': schoolName,
-        'cityId': cityId,
-        'cityName': cityName,
-        'avatarUrl': avatarUrl,
-        'starsCount': starsCount,
-        'friendsCount': friendsCount,
-        'votesReceived': votesReceived,
-        'isPremium': isPremium,
-        'premiumType': _premiumTypeToString(premiumType),
-        'premiumExpiry': premiumExpiry?.toIso8601String(),
-        'isVerified': isVerified,
-        'referralCode': referralCode,
-        'isProfileComplete': isProfileComplete,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'phoneNumber': phoneNumber,
+    'firstName': firstName,
+    'lastName': lastName,
+    'username': username,
+    'gender': _genderToString(gender),
+    'age': age,
+    'grade': grade,
+    'gradeClass': gradeClass,
+    'schoolId': schoolId,
+    'schoolName': schoolName,
+    'cityId': cityId,
+    'cityName': cityName,
+    'avatarUrl': avatarUrl,
+    'starsCount': starsCount,
+    'friendsCount': friendsCount,
+    'votesReceived': votesReceived,
+    'isPremium': isPremium,
+    'premiumType': _premiumTypeToString(premiumType),
+    'premiumExpiry': premiumExpiry?.toIso8601String(),
+    'isVerified': isVerified,
+    'referralCode': referralCode,
+    'isProfileComplete': isProfileComplete,
+    'createdAt': createdAt.toIso8601String(),
+  };
 
   // ---------------------------------------------------------------------------
   // copyWith
@@ -203,6 +202,8 @@ class User extends Equatable {
     switch (value) {
       case 'female':
         return Gender.female;
+      case 'nonbinary':
+        return Gender.nonbinary;
       case 'other':
         return Gender.other;
       default:
@@ -216,6 +217,8 @@ class User extends Equatable {
         return 'male';
       case Gender.female:
         return 'female';
+      case Gender.nonbinary:
+        return 'nonbinary';
       case Gender.other:
         return 'other';
     }
@@ -245,29 +248,29 @@ class User extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        phoneNumber,
-        firstName,
-        lastName,
-        username,
-        gender,
-        age,
-        grade,
-        gradeClass,
-        schoolId,
-        schoolName,
-        cityId,
-        cityName,
-        avatarUrl,
-        starsCount,
-        friendsCount,
-        votesReceived,
-        isPremium,
-        premiumType,
-        premiumExpiry,
-        isVerified,
-        referralCode,
-        isProfileComplete,
-        createdAt,
-      ];
+    id,
+    phoneNumber,
+    firstName,
+    lastName,
+    username,
+    gender,
+    age,
+    grade,
+    gradeClass,
+    schoolId,
+    schoolName,
+    cityId,
+    cityName,
+    avatarUrl,
+    starsCount,
+    friendsCount,
+    votesReceived,
+    isPremium,
+    premiumType,
+    premiumExpiry,
+    isVerified,
+    referralCode,
+    isProfileComplete,
+    createdAt,
+  ];
 }

@@ -172,6 +172,18 @@ class LocalGameService {
     return u;
   }
 
+  /// Names and handles are separate: a full name must never prefill @username.
+  Future<String> ensureUsername() async {
+    final existing = await getUsername();
+    if (existing != null) return existing;
+    final player = await getPlayerName();
+    final handle = player != null && validateUsername(player) == null
+        ? player
+        : 'user${100000 + _random.nextInt(900000)}';
+    await saveUsername(handle);
+    return handle;
+  }
+
   Future<void> saveUsername(String username) async {
     final prefs = await _prefs;
     await prefs.setString(_usernameKey, username.trim());

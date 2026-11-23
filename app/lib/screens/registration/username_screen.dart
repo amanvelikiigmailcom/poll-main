@@ -35,7 +35,7 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
 
   Future<void> _prefill() async {
     final game = LocalGameService.instance;
-    final name = await game.getUsername() ?? await game.ensurePlayerName();
+    final name = await game.ensureUsername();
     final fullName = await game.getFullName();
     final cached = ref.read(storageServiceProvider).getUser();
     if (!mounted) return;
@@ -94,6 +94,7 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
       final needsPush =
           loggedIn && await ref.read(pushServiceProvider).needsPrompt();
       await game.setUsernameSetupPending(false);
+      await ref.read(onboardingDetailsProvider).finish();
       if (!mounted) return;
       if (invitationNotice != null) {
         ScaffoldMessenger.of(
@@ -152,7 +153,7 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
               ),
               const SizedBox(height: 12),
               const Text(
-                'Add your first and last name and choose a username. Your first name is shared with the friend whose invitation you activate. Your name is never added to voting cards.',
+                'Choose a username so friends can find you. Your first name is shared with the friend whose invitation you activate. Your name is never added to voting cards.',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,
@@ -165,46 +166,6 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
                   child: CircularProgressIndicator(color: Colors.white),
                 )
               else ...[
-                TextFormField(
-                  key: const Key('onboarding-first-name'),
-                  controller: _firstName,
-                  enabled: !_saving,
-                  textCapitalization: TextCapitalization.words,
-                  textInputAction: TextInputAction.next,
-                  maxLength: 64,
-                  style: const TextStyle(fontSize: 16),
-                  decoration: const InputDecoration(
-                    labelText: 'First name',
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) => LocalGameService.validateProfileName(
-                    value ?? '',
-                    'first name',
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  key: const Key('onboarding-last-name'),
-                  controller: _lastName,
-                  enabled: !_saving,
-                  textCapitalization: TextCapitalization.words,
-                  textInputAction: TextInputAction.next,
-                  maxLength: 64,
-                  style: const TextStyle(fontSize: 16),
-                  decoration: const InputDecoration(
-                    labelText: 'Last name',
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) => LocalGameService.validateProfileName(
-                    value ?? '',
-                    'last name',
-                  ),
-                ),
-                const SizedBox(height: 16),
                 TextFormField(
                   key: const Key('onboarding-username'),
                   controller: _controller,

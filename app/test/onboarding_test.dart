@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart';
+import 'package:flyprox_app/services/api_service.dart';
 import 'fakes/eligible_player.dart';
 import 'dart:convert';
 import 'package:flutter_native_contact_picker/model/contact.dart';
@@ -21,10 +23,37 @@ import 'package:flyprox_app/theme/app_theme.dart';
 Future<StorageService> mountApp(WidgetTester tester) async {
   final storage = StorageService();
   await storage.init();
+  final api = ApiService(storage);
+  api.dio.interceptors.add(
+    InterceptorsWrapper(
+      onRequest: (request, handler) => handler.resolve(
+        Response(
+          requestOptions: request,
+          data: request.path == '/api/schools'
+              ? {
+                  'schools': [
+                    {
+                      'id': 'US-CCD-1',
+                      'name': 'Test High',
+                      'city': 'Austin',
+                      'region': 'TX',
+                      'country': 'US',
+                    },
+                  ],
+                  'available': true,
+                }
+              : <String, dynamic>{},
+        ),
+      ),
+    ),
+  );
   testAppRouter.go(AppRoutes.splash);
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [storageServiceProvider.overrideWithValue(storage)],
+      overrides: [
+        storageServiceProvider.overrideWithValue(storage),
+        apiServiceProvider.overrideWithValue(api),
+      ],
       child: MaterialApp.router(
         routerConfig: testAppRouter,
         theme: AppTheme.lightTheme,
@@ -46,6 +75,40 @@ void main() {
 
   tearDown(() => ContentService.instance.debugClear());
 
+  Future<void> completeDetails(WidgetTester tester) async {
+    expect(find.text('About you'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const Key('onboarding-first-name')),
+      'Aman',
+    );
+    await tester.enterText(
+      find.byKey(const Key('onboarding-last-name')),
+      'Smith',
+    );
+    await tester.ensureVisible(find.text('Male'));
+    await tester.tap(find.text('Male'));
+    await tester.ensureVisible(find.text('Continue'));
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('school-search')), 'Test');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Test High'));
+    await tester.ensureVisible(find.byKey(const Key('graduation-year')));
+    await tester.tap(find.byKey(const Key('graduation-year')));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('2030'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text('2030').last);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Continue'));
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+  }
+
   testWidgets(
     'first launch opens intro; Skip persists across a fresh app mount',
     (tester) async {
@@ -59,6 +122,8 @@ void main() {
         AppRoutes.phone,
       );
       await tester.pumpWidget(const SizedBox());
+      testAppRouter = createAppRouter(showInvitationIntro: false);
+      addTearDown(testAppRouter.dispose);
       await mountApp(tester);
       expect(
         testAppRouter.routeInformationProvider.value.uri.path,
@@ -133,20 +198,13 @@ void main() {
       expect(find.text('Log in with phone'), findsOneWidget);
       await tester.tap(find.text('Continue without login'));
       await tester.pumpAndSettle();
+      await completeDetails(tester);
       expect(find.text('Add your contacts'), findsOneWidget);
       expect(find.text('Create username'), findsNothing);
       await tester.ensureVisible(find.text('Try with example names'));
       await tester.tap(find.text('Try with example names'));
       await tester.pumpAndSettle();
       expect(find.text('Choose your username'), findsOneWidget);
-      await tester.enterText(
-        find.byKey(const Key('onboarding-first-name')),
-        'Aman',
-      );
-      await tester.enterText(
-        find.byKey(const Key('onboarding-last-name')),
-        'Smith',
-      );
       await tester.ensureVisible(find.text('Continue'));
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
@@ -160,6 +218,8 @@ void main() {
       expect(await game.getNames(), ['Alex', 'Sam', 'Jordan', 'Taylor']);
       expect((await game.generateRound(languageCode: 'en')).length, 12);
       await tester.pumpWidget(const SizedBox());
+      testAppRouter = createAppRouter(showInvitationIntro: false);
+      addTearDown(testAppRouter.dispose);
       await mountApp(tester);
       expect(
         testAppRouter.routeInformationProvider.value.uri.path,
@@ -175,6 +235,7 @@ void main() {
     await tester.ensureVisible(find.text('Continue without login'));
     await tester.tap(find.text('Continue without login'));
     await tester.pumpAndSettle();
+    await completeDetails(tester);
   }
 
   testWidgets(
@@ -215,14 +276,6 @@ void main() {
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
       expect(find.text('Choose your username'), findsOneWidget);
-      await tester.enterText(
-        find.byKey(const Key('onboarding-first-name')),
-        'Aman',
-      );
-      await tester.enterText(
-        find.byKey(const Key('onboarding-last-name')),
-        'Smith',
-      );
       await tester.ensureVisible(find.text('Continue'));
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
@@ -264,8 +317,9 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
+      expect(await LocalGameService.instance.getPlayerName(), 'Aman Smith');
       expect(
-        await LocalGameService.instance.getPlayerName(),
+        await LocalGameService.instance.getUsername(),
         matches(RegExp(r'^user[0-9]{6}$')),
       );
       expect(await LocalGameService.instance.getNames(), [
@@ -361,12 +415,13 @@ void main() {
   testWidgets(
     'examples preserve an existing custom nickname and sample friends',
     (tester) async {
-      await LocalGameService.instance.savePlayerName('wish');
+      await LocalGameService.instance.saveUsername('wish');
       await openContacts(tester);
       await tester.ensureVisible(find.text('Try with example names'));
       await tester.tap(find.text('Try with example names'));
       await tester.pumpAndSettle();
-      expect(await LocalGameService.instance.getPlayerName(), 'wish');
+      expect(await LocalGameService.instance.getUsername(), 'wish');
+      expect(await LocalGameService.instance.getPlayerName(), 'Aman Smith');
       expect(await LocalGameService.instance.getNames(), [
         'Alex',
         'Sam',

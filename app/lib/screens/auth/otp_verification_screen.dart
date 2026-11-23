@@ -1,3 +1,4 @@
+import '../../providers/service_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -72,12 +73,19 @@ class _OTPVerificationScreenState extends ConsumerState<OTPVerificationScreen> {
 
   Future<void> _afterLogin() async => _next();
 
-  void _next() {
+  Future<void> _next() async {
+    final country = GoRouterState.of(context).extra;
+    if (country is Map && country['country'] is String) {
+      await ref
+          .read(onboardingDetailsProvider)
+          .setCountry(country['country'] as String);
+    }
+    if (!mounted) return;
     FocusManager.instance.primaryFocus?.unfocus();
     OnboardingFlow.instance.completePhoneStep();
     context.go(
       AgeGateService.instance.status == AgeGateStatus.verified
-          ? AppRoutes.namesEntry
+          ? AppRoutes.profileDetails
           : AppRoutes.age,
     );
   }

@@ -27,6 +27,7 @@ class _MainTabState extends ConsumerState<MainTab> {
   int _starsCount = 0;
   int _peopleCount = 0;
   bool _hasProgress = false;
+  bool _schoolWaiting = false;
 
   @override
   void initState() {
@@ -41,12 +42,14 @@ class _MainTabState extends ConsumerState<MainTab> {
   }
 
   Future<void> _loadState() async {
+    final waiting = !await ref.read(onboardingDetailsProvider).votingAllowed();
     final remaining = await LocalGameService.instance.secondsUntilNextRound();
     final stars = await LocalGameService.instance.getStars();
     final progress = await LocalGameService.instance.loadRoundProgress();
     final people = (await LocalGameService.instance.getNames()).length;
     if (!mounted) return;
     setState(() {
+      _schoolWaiting = waiting;
       _starsCount = stars;
       _hasProgress = progress != null;
       _peopleCount = people;
@@ -104,6 +107,9 @@ class _MainTabState extends ConsumerState<MainTab> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(onboardingDetailsProvider, (_, __) {
+      if (mounted) _loadState();
+    });
     ref.listen(invitationServiceProvider, (_, __) {
       if (mounted) _loadState();
     });
@@ -146,8 +152,38 @@ class _MainTabState extends ConsumerState<MainTab> {
                   height: 260,
                   child: Center(child: CircularProgressIndicator()),
                 ),
-              if (_tabState == _HomeTabState.timerActive) _buildTimerCard(),
-              if (_tabState == _HomeTabState.voteAvailable)
+              if (_schoolWaiting)
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: _heroDecoration,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Choose your campus to play',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Voting opens after you select your campus. If it is missing, send its details to our team.',
+                        style: TextStyle(color: Colors.white, height: 1.4),
+                      ),
+                      const SizedBox(height: 20),
+                      _heroButton(
+                        'Choose your campus',
+                        () => context.go(AppRoutes.schoolSetup),
+                        Icons.school_outlined,
+                      ),
+                    ],
+                  ),
+                ),
+              if (!_schoolWaiting && _tabState == _HomeTabState.timerActive)
+                _buildTimerCard(),
+              if (!_schoolWaiting && _tabState == _HomeTabState.voteAvailable)
                 _buildVoteCard(decorative),
               const SizedBox(height: 20),
               IntrinsicHeight(

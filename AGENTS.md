@@ -1,5 +1,15 @@
 # Flyprox — инструкции агенту
 
+## Новые формы профиля и школы — 24.11.2026, локально
+
+Прямая команда владельца: сохранить существующий сине-белый дизайн, добавить после возраста две формы: имя/фамилия/пол (Female/Male/Non-binary), затем школа/кампус + календарный год выпуска. Контакты → ник → optional push остаются после них; имя/фамилия больше не повторяются на шаге ника. Имя и @username независимы, не подставлять full name в ник.
+
+US/CA — одна выдача без дополнительного выбора страны; GB — отдельная по выбранной телефонной стране. Карточки содержат город/регион. Реальные исходники:124688 US +27195 England=151883; английский GIAS не покрывает весь UK, канадский источник пока отсутствует. Не выдумывать канадские/другие школы. Missing-school форма сохраняет signed-in заявку по account ID и открывает подготовленное письмо в support_email с названием, страной, городом/регионом/годом; отправляет пользователь. Без выбранной реальной школы голосование закрыто, включая direct route/API. school_skip_enabled=false скрывает Skip for now и запрещает skip на сервере; пропуск завершает setup, сохраняя ожидание школы. Existing legacy accounts без новой записи не блокируются автоматически.
+
+Все авторитетные данные связаны постоянными ID: существующие profiles(firstName,lastName,gender,schoolId/schoolName), новая private onboarding_details(accountId,status,country,schoolId,graduationYear,requestedSchool/City/Region), новая private school_directory(country-source-externalId,name,country,city,region,searchText). Cohort/status/fulltext indexes; никаких новых колонок profiles. Guest данные локальные. Session drafts изолированы; account deletion чистит новую запись и заявки. Reset game не должен снимать school gate.
+
+SCHOOL_ONBOARDING_ENABLED по умолчанию off. Подготовлены additive migration/import, но production schema/import/deploy/push/новые билды для этой задачи НЕ выполнялись. Это требует отдельного подтверждения по общим AGENTS.md; старое разрешение social rollout не включает новые таблицы школ. Точные источники, схема, команды, проверки/ограничения:docs/onboarding-schools.md. Сохранять параллельные изменения голосования/round submission в рабочей копии.
+
 ## Друзья и навигация — 23.11.2026, backend на production
 
 Этот раздел заменяет историческую навигацию Home·Quiz·Profile·Settings ниже. Реализуется Home·Search·Likes·Profile·Settings, единые Phosphor regular/fill. Вопросы/результат/таймер относятся к Home; отдельного Quiz нет. StatefulShellRoute сохраняет поиск и текущий раунд между вкладками. Friends находится в Settings, профиль ссылается на тот же список. For parents и Blocked users доступны в Settings. Likes пока честный coming-soon, не подключать старые mock voter screens. Friends of friends / From school пока пустые, без запросов и выдуманных данных.

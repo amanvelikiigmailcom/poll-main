@@ -1,0 +1,504 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../providers/service_providers.dart';
+import '../../router/app_router.dart';
+import '../../services/content_service.dart';
+import '../../services/local_game_service.dart';
+import '../../services/onboarding_details_service.dart';
+import 'profile_details_screen.dart';
+
+class SchoolSetupScreen extends ConsumerStatefulWidget {
+  const SchoolSetupScreen({super.key});
+  @override
+  ConsumerState<SchoolSetupScreen> createState() => _SchoolSetupScreenState();
+}
+
+class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
+  final query = TextEditingController(), year = TextEditingController();
+  final form = GlobalKey<FormState>();
+  Timer? debounce;
+  int generation = 0;
+  String country = 'US', cursor = '';
+  bool loading = true, searching = false, saving = false, available = true;
+  String? error;
+  List<Map<String, dynamic>> schools = [];
+  Map<String, dynamic>? selected;
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final data = await ref.read(onboardingDetailsProvider).read();
+    if (!mounted) return;
+    setState(() {
+      country = data['country'] as String? ?? 'US';
+      selected = data['school'] is Map
+          ? Map<String, dynamic>.from(data['school'] as Map)
+          : null;
+      year.text = data['graduationYear']?.toString() ?? '';
+      loading = false;
+    });
+  }
+
+  void _changed(String value) {
+    debounce?.cancel();
+    generation++;
+    setState(() {
+      schools = [];
+      cursor = '';
+      error = null;
+      searching = false;
+      selected = null;
+    });
+    if (value.trim().length < 3) return;
+    final expected = generation;
+    debounce = Timer(
+      const Duration(milliseconds: 300),
+      () => _search(expected),
+    );
+  }
+
+  Future<void> _search(int expected, {bool more = false}) async {
+    if (!mounted || expected != generation) return;
+    final owner = await ref.read(storageServiceProvider).getToken();
+    setState(() => searching = true);
+    try {
+      final data = await ref
+          .read(onboardingDetailsProvider)
+          .search(query.text.trim(), cursor: more ? cursor : '');
+      if (!mounted ||
+          expected != generation ||
+          owner != await ref.read(storageServiceProvider).getToken()) {
+        return;
+      }
+      setState(() {
+        schools = [
+          if (more) ...schools,
+          ...(data['schools'] as List? ?? []).map(
+            (e) => Map<String, dynamic>.from(e as Map),
+          ),
+        ];
+        cursor = data['nextCursor'] as String? ?? '';
+        available = data['available'] != false;
+        searching = false;
+        error = null;
+      });
+    } catch (_) {
+      if (mounted && expected == generation) {
+        setState(() {
+          searching = false;
+          error = 'Couldn’t load campuses. Try again.';
+        });
+      }
+    }
+  }
+
+  Future<void> _next({bool skip = false}) async {
+    if (saving) return;
+    if (!skip &&
+        (selected == null || !(form.currentState?.validate() ?? false))) {
+      return;
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      saving = true;
+      error = null;
+    });
+    try {
+      final service = ref.read(onboardingDetailsProvider);
+      if (skip) {
+        await service.skipSchool();
+      } else {
+        await service.selectSchool(selected!, int.parse(year.text));
+      }
+      final hasNames = await LocalGameService.instance.hasEnoughNames();
+      final pendingUsername = await LocalGameService.instance
+          .isUsernameSetupPending();
+      if (!mounted) return;
+      if (hasNames && !pendingUsername) {
+        await service.finish();
+        if (mounted) context.go(AppRoutes.home);
+      } else {
+        context.go(AppRoutes.namesEntry);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          saving = false;
+          error = 'Couldn’t save your campus. Please try again.';
+        });
+      }
+    }
+  }
+
+  Future<void> _missing() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    await ref.read(onboardingDetailsProvider).draft({
+      'missingSchool': query.text.trim(),
+      'graduationYear': int.tryParse(year.text),
+    });
+    if (mounted) {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => MissingSchoolScreen(country: country),
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    generation++;
+    debounce?.cancel();
+    query.dispose();
+    year.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: ContentService.instance,
+    builder: (context, _) => SetupFormPage(
+      title: 'Choose your campus',
+      subtitle:
+          '${['US', 'CA'].contains(country)
+              ? 'United States & Canada'
+              : country == 'GB'
+              ? 'United Kingdom · England directory'
+              : country}\nChoose your campus and graduation year.',
+      back: saving ? null : () => context.go(AppRoutes.profileDetails),
+      children: [
+        if (loading)
+          const Center(child: CircularProgressIndicator(color: Colors.white))
+        else ...[
+          TextField(
+            key: const Key('school-search'),
+            controller: query,
+            enabled: !saving,
+            onChanged: _changed,
+            style: const TextStyle(fontSize: 16),
+            decoration: setupInput('Search campuses by name, city or region'),
+          ),
+          const SizedBox(height: 12),
+          if (searching)
+            const Center(child: CircularProgressIndicator(color: Colors.white)),
+          if (query.text.trim().length < 3 && selected == null)
+            const Text(
+              'Enter at least 3 characters.',
+              style: TextStyle(color: Colors.white70),
+            ),
+          if (!searching &&
+              schools.isEmpty &&
+              query.text.trim().length >= 3 &&
+              error == null)
+            Text(
+              available
+                  ? 'No matching campuses. Try another name or region.'
+                  : 'The campus directory for this country is not available yet.',
+              style: const TextStyle(color: Colors.white),
+            ),
+          for (final school in schools)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: OutlinedButton(
+                onPressed: saving
+                    ? null
+                    : () => setState(() => selected = school),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: selected?['id'] == school['id']
+                      ? onboardingBlue
+                      : Colors.white,
+                  backgroundColor: selected?['id'] == school['id']
+                      ? Colors.white
+                      : Colors.transparent,
+                  side: const BorderSide(color: Colors.white70),
+                  padding: const EdgeInsets.all(16),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(school['name'] as String),
+                    Text(
+                      [
+                        school['city'],
+                        school['region'],
+                        school['country'],
+                      ].where((s) => s != null && s != '').join(' · '),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (cursor.isNotEmpty)
+            TextButton(
+              onPressed: searching
+                  ? null
+                  : () => _search(generation, more: true),
+              child: const Text(
+                'Load more',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          if (selected != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Text(
+                'Selected: ${selected!['name']}\n${selected!['city']} · ${selected!['region']}',
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          const SizedBox(height: 16),
+          Form(
+            key: form,
+            child: GraduationYearPicker(controller: year, enabled: !saving),
+          ),
+          const SizedBox(height: 12),
+          if (error != null)
+            Text(error!, style: const TextStyle(color: Colors.white)),
+          TextButton(
+            onPressed: saving ? null : _missing,
+            child: const Text(
+              'I can’t find my campus',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+          const SizedBox(height: 12),
+          ElevatedButton(
+            onPressed: saving || selected == null ? null : () => _next(),
+            style: setupButton(),
+            child: Text(saving ? 'Please wait…' : 'Continue'),
+          ),
+          if (ContentService.instance.flag('school_skip_enabled'))
+            TextButton(
+              key: const Key('skip-school'),
+              onPressed: saving ? null : () => _next(skip: true),
+              child: const Text(
+                'Skip for now',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          const Text(
+            'Voting opens after you choose a campus. Skipping lets you finish setting up your profile.',
+            style: TextStyle(color: Colors.white70, height: 1.4),
+          ),
+        ],
+      ],
+    ),
+  );
+}
+
+class MissingSchoolScreen extends ConsumerStatefulWidget {
+  const MissingSchoolScreen({super.key, required this.country});
+  final String country;
+  @override
+  ConsumerState<MissingSchoolScreen> createState() =>
+      _MissingSchoolScreenState();
+}
+
+class _MissingSchoolScreenState extends ConsumerState<MissingSchoolScreen> {
+  final name = TextEditingController(),
+      city = TextEditingController(),
+      region = TextEditingController(),
+      year = TextEditingController();
+  final form = GlobalKey<FormState>();
+  String? error;
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final data = await ref.read(onboardingDetailsProvider).read();
+    if (!mounted) return;
+    setState(() {
+      name.text = data['missingSchool'] as String? ?? '';
+      city.text = data['missingCity'] as String? ?? '';
+      region.text = data['missingRegion'] as String? ?? '';
+      year.text = data['graduationYear']?.toString() ?? '';
+    });
+  }
+
+  Future<void> _email() async {
+    if (!(form.currentState?.validate() ?? false)) return;
+    final service = ref.read(onboardingDetailsProvider);
+    await service.draft({
+      'missingSchool': name.text.trim(),
+      'missingCity': city.text.trim(),
+      'missingRegion': region.text.trim(),
+      'graduationYear': int.tryParse(year.text),
+    });
+    try {
+      await service.requestSchool(
+        name: name.text,
+        city: city.text,
+        region: region.text,
+        year: int.parse(year.text),
+      );
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => error = 'Couldn’t save your campus request. Please try again.',
+        );
+      }
+      return;
+    }
+    final uri = OnboardingDetailsService.schoolEmail(
+      email: ContentService.instance.text('support_email'),
+      name: name.text,
+      country: widget.country,
+      city: city.text,
+      region: region.text,
+      year: year.text,
+    );
+    try {
+      if (!await launchUrl(uri)) throw StateError('Mail unavailable');
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => error =
+              'Couldn’t open Mail. You can email ${ContentService.instance.text('support_email')} with the campus details below.',
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    name.dispose();
+    city.dispose();
+    region.dispose();
+    year.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => SetupFormPage(
+    title: 'Add your campus',
+    subtitle:
+        'Send the campus details to our team. Voting will be available after your campus is added and you select it. Opening Mail does not send the request.',
+    back: () => Navigator.of(context).pop(),
+    children: [
+      Form(
+        key: form,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Country: ${widget.country}',
+              style: const TextStyle(color: Colors.white),
+            ),
+            const SizedBox(height: 16),
+            for (final field in [
+              (name, 'Campus name'),
+              (city, 'City'),
+              (region, 'State / region'),
+              (year, 'Graduation year'),
+            ])
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: field.$1 == year
+                    ? GraduationYearPicker(controller: year)
+                    : TextFormField(
+                        controller: field.$1,
+                        maxLength: field.$1 == year ? 4 : 128,
+                        style: const TextStyle(fontSize: 16),
+                        decoration: setupInput(field.$2),
+                        keyboardType: field.$1 == year
+                            ? TextInputType.number
+                            : TextInputType.text,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) {
+                            return 'Please fill in this field.';
+                          }
+                          if (field.$1 == year) {
+                            final n = int.tryParse(v);
+                            if (n == null ||
+                                !OnboardingDetailsService.validYear(n)) {
+                              return 'Enter a valid graduation year.';
+                            }
+                          }
+                          return null;
+                        },
+                      ),
+              ),
+            if (error != null)
+              Text(error!, style: const TextStyle(color: Colors.white)),
+            ElevatedButton(
+              onPressed: _email,
+              style: setupButton(),
+              child: const Text('Prepare email'),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+class SchoolWaitingScreen extends StatelessWidget {
+  const SchoolWaitingScreen({super.key});
+  @override
+  Widget build(BuildContext context) => SetupFormPage(
+    title: 'Choose your campus to play',
+    subtitle:
+        'Voting will be available after you select your campus. If it is missing, send its details to our team.',
+    children: [
+      ElevatedButton(
+        style: setupButton(),
+        onPressed: () => context.go(AppRoutes.schoolSetup),
+        child: const Text('Choose your campus'),
+      ),
+      TextButton(
+        onPressed: () => context.go(AppRoutes.home),
+        child: const Text(
+          'Back to Home',
+          style: TextStyle(color: Colors.white),
+        ),
+      ),
+    ],
+  );
+}
+
+/// All supported calendar years, without a preselected graduation year.
+class GraduationYearPicker extends StatelessWidget {
+  const GraduationYearPicker({
+    super.key,
+    required this.controller,
+    this.enabled = true,
+  });
+  final TextEditingController controller;
+  final bool enabled;
+  static List<int> choices([int? current]) {
+    final now = current ?? DateTime.now().year;
+    return List.generate(96, (index) => now + 15 - index);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = int.tryParse(controller.text);
+    return DropdownButtonFormField<int>(
+      key: const Key('graduation-year'),
+      initialValue: choices().contains(selected) ? selected : null,
+      isExpanded: true,
+      menuMaxHeight: 320,
+      decoration: setupInput('Graduation year'),
+      items: [
+        for (final value in choices())
+          DropdownMenuItem(value: value, child: Text('$value')),
+      ],
+      onChanged: enabled
+          ? (value) {
+              controller.text = value?.toString() ?? '';
+            }
+          : null,
+      validator: (value) =>
+          value == null ? 'Choose your graduation year.' : null,
+    );
+  }
+}

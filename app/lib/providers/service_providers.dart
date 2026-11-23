@@ -1,3 +1,4 @@
+import '../services/onboarding_details_service.dart';
 import '../services/social_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
@@ -90,3 +91,11 @@ final socialSummaryProvider = FutureProvider.autoDispose<Map<String, dynamic>?>(
     return ref.watch(socialServiceProvider).request('/summary');
   },
 );
+
+final onboardingDetailsProvider =
+    ChangeNotifierProvider<OnboardingDetailsService>(
+      (ref) => OnboardingDetailsService(
+        ref.watch(apiServiceProvider),
+        ref.watch(storageServiceProvider),
+      ),
+    );

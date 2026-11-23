@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:intl_phone_field/phone_number.dart';
 import '../../config/phone_regions.dart';
+import '../../providers/service_providers.dart';
 import '../../services/contact_sync_service.dart';
 import 'package:phone_numbers_parser/phone_numbers_parser.dart' show IsoCode;
 
@@ -30,6 +31,7 @@ class _PhoneRegistrationScreenState
 
   final _phoneController = TextEditingController();
   String _completePhone = '';
+  String _selectedCountry = PhoneRegions.defaultCountry;
 
   @override
   void dispose() {
@@ -50,12 +52,14 @@ class _PhoneRegistrationScreenState
         '+$dialCode$national';
   }
 
-  void _next() {
+  Future<void> _next() async {
+    await ref.read(onboardingDetailsProvider).setCountry(_selectedCountry);
+    if (!mounted) return;
     FocusManager.instance.primaryFocus?.unfocus();
     OnboardingFlow.instance.completePhoneStep();
     context.go(
       AgeGateService.instance.status == AgeGateStatus.verified
-          ? AppRoutes.namesEntry
+          ? AppRoutes.profileDetails
           : AppRoutes.age,
     );
   }
@@ -66,6 +70,8 @@ class _PhoneRegistrationScreenState
     if (_completePhone.isEmpty || _sending) return;
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() => _sending = true);
+    await ref.read(onboardingDetailsProvider).setCountry(_selectedCountry);
+    if (!mounted) return;
     final notifier = ref.read(authNotifierProvider.notifier);
     final result = await notifier.sendFirebaseCode(_completePhone);
     if (!mounted) return;
@@ -79,6 +85,7 @@ class _PhoneRegistrationScreenState
         AppRoutes.otp,
         extra: {
           'phone': _completePhone,
+          'country': _selectedCountry,
           'verificationId': result.verificationId,
         },
       );
@@ -177,6 +184,7 @@ class _PhoneRegistrationScreenState
                             LengthLimitingTextInputFormatter(15),
                           ],
                           onCountryChanged: (country) => setState(() {
+                            _selectedCountry = country.code;
                             _completePhone = _internationalNumber(
                               _phoneController.text,
                               country.code,
@@ -184,6 +192,7 @@ class _PhoneRegistrationScreenState
                             );
                           }),
                           onChanged: (PhoneNumber phone) => setState(() {
+                            _selectedCountry = phone.countryISOCode;
                             _completePhone = _internationalNumber(
                               phone.number,
                               phone.countryISOCode,

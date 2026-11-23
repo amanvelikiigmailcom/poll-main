@@ -118,7 +118,7 @@ void main() {
       await tester.tap(find.text('Continue without login'));
       await tester.pumpAndSettle();
       await pickAge(tester, '13');
-      expect(find.text('Add your contacts'), findsOneWidget);
+      expect(find.text('About you'), findsOneWidget);
       expect(AgeGateService.instance.status, AgeGateStatus.verified);
     },
   );
@@ -155,7 +155,7 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
       ready.complete();
       await tester.pumpAndSettle();
-      expect(find.text('Add your contacts'), findsOneWidget);
+      expect(find.text('About you'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

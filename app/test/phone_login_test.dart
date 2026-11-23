@@ -135,7 +135,9 @@ void main() {
     });
   }
 
-  testWidgets('guest skip reveals the friends step underneath', (tester) async {
+  testWidgets('guest exit opens the profile form before contacts', (
+    tester,
+  ) async {
     await mountNames(
       tester,
       phoneAuth: makeService(
@@ -148,7 +150,7 @@ void main() {
     await tester.ensureVisible(find.text('Continue without login'));
     await tester.tap(find.text('Continue without login'));
     await tester.pumpAndSettle();
-    expect(find.text('Add your contacts'), findsOneWidget);
+    expect(find.text('About you'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -174,7 +176,7 @@ void main() {
     await tester.ensureVisible(find.text('Continue without login'));
     await tester.tap(find.text('Continue without login'));
     await tester.pumpAndSettle();
-    expect(find.text('Add your contacts'), findsOneWidget);
+    expect(find.text('About you'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -205,7 +207,7 @@ void main() {
       await tester.ensureVisible(find.text('Continue without login'));
       await tester.tap(find.text('Continue without login'));
       await pumpRoute(tester);
-      expect(find.text('Add your contacts'), findsOneWidget);
+      expect(find.text('About you'), findsOneWidget);
       pending.complete(const CodeSent(verificationId: 'late-code'));
       await tester.pumpAndSettle();
       expect(find.text('Enter the code'), findsNothing);
@@ -288,43 +290,44 @@ void main() {
     },
   );
 
-  testWidgets('typed number receives a code and verifies into friends', (
-    tester,
-  ) async {
-    final api = MockApiService();
-    final storage = MockStorageService();
-    final driver = FakePhoneAuthDriver();
-    when(
-      () => api.post<Map<String, dynamic>>(
-        '/api/auth/firebase',
-        data: any(named: 'data'),
-      ),
-    ).thenAnswer(
-      (_) async => _json({'token': 'backend-token', 'isNewUser': true}),
-    );
-    await mountNames(
-      tester,
-      phoneAuth: PhoneAuthService(api: api, storage: storage, driver: driver),
-    );
-    await tester.enterText(find.byType(TextField), '6505551234');
-    await tester.pump();
-    await tester.pump();
-    await tester.tap(find.text('Send code'));
-    await pumpRoute(tester);
-    expect(driver.lastPhone, '+16505551234');
-    expect(find.text('Enter the code'), findsOneWidget);
-
-    // Completing the controller exercises Pinput's automatic verification;
-    // the next test also covers the explicit Verify action.
-    tester.widget<Pinput>(find.byType(Pinput)).controller?.text = '123456';
-    await pumpRoute(tester);
-    await tester.pumpAndSettle();
-    expect(find.text('Add your contacts'), findsOneWidget);
-    verify(() => storage.saveToken('backend-token')).called(1);
-    await tester.pumpWidget(const SizedBox());
-  });
   testWidgets(
-    'new player verifies SMS, chooses age, then reaches contacts without an early push prompt',
+    'typed number receives a code and verifies into the profile form',
+    (tester) async {
+      final api = MockApiService();
+      final storage = MockStorageService();
+      final driver = FakePhoneAuthDriver();
+      when(
+        () => api.post<Map<String, dynamic>>(
+          '/api/auth/firebase',
+          data: any(named: 'data'),
+        ),
+      ).thenAnswer(
+        (_) async => _json({'token': 'backend-token', 'isNewUser': true}),
+      );
+      await mountNames(
+        tester,
+        phoneAuth: PhoneAuthService(api: api, storage: storage, driver: driver),
+      );
+      await tester.enterText(find.byType(TextField), '6505551234');
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.text('Send code'));
+      await pumpRoute(tester);
+      expect(driver.lastPhone, '+16505551234');
+      expect(find.text('Enter the code'), findsOneWidget);
+
+      // Completing the controller exercises Pinput's automatic verification;
+      // the next test also covers the explicit Verify action.
+      tester.widget<Pinput>(find.byType(Pinput)).controller?.text = '123456';
+      await pumpRoute(tester);
+      await tester.pumpAndSettle();
+      expect(find.text('About you'), findsOneWidget);
+      verify(() => storage.saveToken('backend-token')).called(1);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+  testWidgets(
+    'new player verifies SMS, chooses age, then reaches the profile form without an early push prompt',
     (tester) async {
       final legacy = InMemoryAgeGateStore()
         ..values['age_gate_status'] = 'verified';
@@ -371,8 +374,9 @@ void main() {
       await tester.ensureVisible(find.text('Continue'));
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
-      expect(find.text('Add your contacts'), findsOneWidget);
-      expect(find.byType(TextField), findsNothing);
+      expect(find.text('About you'), findsOneWidget);
+      expect(find.byKey(const Key('onboarding-first-name')), findsOneWidget);
+      expect(find.byKey(const Key('onboarding-last-name')), findsOneWidget);
       expect(tester.testTextInput.isVisible, isFalse);
       verify(() => storage.saveToken('backend-token')).called(1);
     },
