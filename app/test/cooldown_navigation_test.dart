@@ -1,3 +1,5 @@
+import 'package:flyprox_app/screens/voting/vote_screen.dart';
+import 'package:flyprox_app/screens/voting/timer_screen.dart';
 import 'fakes/eligible_player.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -49,7 +51,7 @@ void main() {
     );
   });
 
-  testWidgets('settings is a fourth tab and remains selected on help pages', (
+  testWidgets('settings is the fifth tab and remains selected on help pages', (
     tester,
   ) async {
     await mount(tester, AppRoutes.profile);
@@ -62,7 +64,7 @@ void main() {
     );
     expect(
       tester.widget<AppBottomNavBar>(find.byType(AppBottomNavBar)).currentIndex,
-      3,
+      4,
     );
     await tester.dragUntilVisible(
       find.text('How to play'),
@@ -75,7 +77,7 @@ void main() {
     expect(find.text('How to use'), findsOneWidget);
     expect(
       tester.widget<AppBottomNavBar>(find.byType(AppBottomNavBar)).currentIndex,
-      3,
+      4,
     );
     await tester.tap(find.byTooltip('Profile'));
     await pumpRoute(tester);
@@ -85,51 +87,55 @@ void main() {
     );
     expect(
       tester.widget<AppBottomNavBar>(find.byType(AppBottomNavBar)).currentIndex,
-      2,
+      3,
     );
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets(
-    'center tab preserves the same cooldown through repeated navigation',
-    (tester) async {
-      final game = LocalGameService.instance;
-      await game.completeRound();
-      final prefs = await SharedPreferences.getInstance();
-      final original = prefs.getInt('local_last_round_completed_at');
-      await mount(tester, AppRoutes.home);
-      for (var i = 0; i < 3; i++) {
-        await tester.tap(find.byTooltip('Quiz'));
-        await pumpRoute(tester);
-        expect(
-          testAppRouter.routeInformationProvider.value.uri.path,
-          AppRoutes.timer,
-        );
-        expect(prefs.getInt('local_last_round_completed_at'), original);
-        expect(find.text('Question 1 of 12'), findsNothing);
-        testAppRouter.go(AppRoutes.home);
-        await pumpRoute(tester);
-      }
-      await game.bypassTimer();
-      await tester.tap(find.byTooltip('Quiz'));
+  testWidgets('home preserves the same cooldown through repeated navigation', (
+    tester,
+  ) async {
+    final game = LocalGameService.instance;
+    await game.completeRound();
+    final prefs = await SharedPreferences.getInstance();
+    final original = prefs.getInt('local_last_round_completed_at');
+    await mount(tester, AppRoutes.home);
+    for (var i = 0; i < 3; i++) {
+      await tester.ensureVisible(find.text('Details'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Details'));
       await pumpRoute(tester);
+      expect(find.byType(TimerScreen), findsOneWidget);
       expect(
-        testAppRouter.routeInformationProvider.value.uri.path,
-        AppRoutes.vote,
+        tester
+            .widget<AppBottomNavBar>(find.byType(AppBottomNavBar))
+            .currentIndex,
+        0,
       );
-      expect(find.text('Question 1 of 12'), findsOneWidget);
-      await tester.pumpWidget(const SizedBox());
-    },
-  );
+      expect(prefs.getInt('local_last_round_completed_at'), original);
+      expect(find.text('Question 1 of 12'), findsNothing);
+      testAppRouter.pop();
+      await pumpRoute(tester);
+    }
+    await game.bypassTimer();
+    testAppRouter.go(AppRoutes.vote);
+    await pumpRoute(tester);
+    expect(find.byType(VoteScreen), findsOneWidget);
+    expect(find.text('Question 1 of 12'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
 
   for (final route in [AppRoutes.vote]) {
     testWidgets('$route cannot bypass an active cooldown', (tester) async {
       await LocalGameService.instance.completeRound();
       await mount(tester, route);
+      expect(find.byType(TimerScreen), findsOneWidget);
       expect(
-        testAppRouter.routeInformationProvider.value.uri.path,
-        AppRoutes.timer,
+        tester
+            .widget<AppBottomNavBar>(find.byType(AppBottomNavBar))
+            .currentIndex,
+        0,
       );
       expect(find.text('Question 1 of 12'), findsNothing);
       await tester.pumpWidget(const SizedBox());
@@ -172,12 +178,11 @@ void main() {
         testAppRouter.routeInformationProvider.value.uri.path,
         AppRoutes.home,
       );
-      await tester.tap(find.byTooltip('Quiz'));
+      await tester.ensureVisible(find.text('Go to quiz'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Go to quiz'));
       await pumpRoute(tester);
-      expect(
-        testAppRouter.routeInformationProvider.value.uri.path,
-        AppRoutes.vote,
-      );
+      expect(find.byType(VoteScreen), findsOneWidget);
       expect(find.text('Question 1 of 12'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     });
@@ -235,9 +240,42 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('expired cooldown allows the center tab to open a round', (
-    tester,
-  ) async {
+  testWidgets(
+    'search keeps its query and a running round survives switching tabs',
+    (tester) async {
+      await mount(tester, AppRoutes.vote);
+      await tester.ensureVisible(find.text('Skip'));
+      await tester.tap(find.text('Skip'));
+      await tester.pumpAndSettle();
+      expect(find.text('Question 2 of 12'), findsOneWidget);
+      final progress = await LocalGameService.instance.loadRoundProgress();
+      await tester.tap(find.byTooltip('Search'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'alex_123');
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.tap(find.byTooltip('Home'));
+      await tester.pumpAndSettle();
+      expect(find.text('Question 2 of 12'), findsOneWidget);
+      expect(
+        (await LocalGameService.instance.loadRoundProgress())?.questionIds,
+        progress?.questionIds,
+      );
+      expect(
+        (await LocalGameService.instance.loadRoundProgress())?.questionIndex,
+        progress?.questionIndex,
+      );
+      await tester.tap(find.byTooltip('Search'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        'alex_123',
+      );
+      expect(find.byTooltip('Quiz'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets('expired cooldown allows home to open a round', (tester) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(
       'local_last_round_completed_at',
@@ -246,12 +284,11 @@ void main() {
           .millisecondsSinceEpoch,
     );
     await mount(tester, AppRoutes.home);
-    await tester.tap(find.byTooltip('Quiz'));
+    await tester.ensureVisible(find.text('Go to quiz'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Go to quiz'));
     await pumpRoute(tester);
-    expect(
-      testAppRouter.routeInformationProvider.value.uri.path,
-      AppRoutes.vote,
-    );
+    expect(find.byType(VoteScreen), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 }

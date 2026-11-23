@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -35,6 +36,25 @@ void main() {
     final storage = StorageService();
     await storage.init();
     if (loggedIn) await storage.saveToken('test-session');
+    final api = ApiService(storage);
+    api.dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (request, handler) {
+          if (request.path == '/api/social/handle') {
+            handler.resolve(
+              Response(
+                requestOptions: request,
+                data: {'username': (request.data as Map)['username']},
+              ),
+            );
+          } else {
+            handler.resolve(
+              Response(requestOptions: request, data: <String, dynamic>{}),
+            );
+          }
+        },
+      ),
+    );
     final driver = FakePushDriver();
     addTearDown(driver.dispose);
     testAppRouter.go(route);
@@ -42,6 +62,7 @@ void main() {
       ProviderScope(
         overrides: [
           storageServiceProvider.overrideWithValue(storage),
+          apiServiceProvider.overrideWithValue(api),
           pushServiceProvider.overrideWithValue(
             PushService(driver: driver, api: ApiService(storage)),
           ),

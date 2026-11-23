@@ -131,12 +131,7 @@ class InvitationService extends ChangeNotifier {
     if (names.$1.isEmpty || names.$2.isEmpty) return;
     await api.patch(
       '/api/users/profile',
-      data: {
-        'firstName': names.$1,
-        'lastName': names.$2,
-        if (await game.getUsername() case final String username)
-          'username': username,
-      },
+      data: {'firstName': names.$1, 'lastName': names.$2},
     );
   }
 

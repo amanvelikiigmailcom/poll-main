@@ -1,5 +1,18 @@
 # Flyprox — план работ (обновлено 2026-11-23)
 
+## Новая задача: друзья, поиск, нижняя навигация и родители — 23.11.2026
+
+- [x] Меню Home·Search·Likes·Profile·Settings; игра/результат/таймер под домиком, сохраняемые ветки. Friends в Settings, ссылка из профиля, настоящие серверные счётчики.
+- [x] Поиск exact username и реальные заявки/дружба/блокировки/жалобы через Node/Appwrite; старые mock data не подключены к новым entrypoints. Пустые Friends of friends / From school.
+- [x] Пять private social_* tables, уникальный канонический ник, пара аккаунтов, индексы фильтров, quota slots/cleanup, schema verifier и explicit additive migration. Однопроцессный deployment contract; не заявлять distributed safety.
+- [x] Серверные блоки в contacts/candidates/votes; очистка аккаунта синхронизирована с social mutations. Смена ника не меняет friendship ID; background invitation sync ник не переписывает.
+- [x] For parents обновлён и доступен из Settings, без недоказанного обещания аудита всех вопросов. Likes — отдельное честное coming-soon состояние до отдельной задачи.
+- [x] Новые важные HTTP/Flutter tests; локальное визуальное превью поиска осмотрено. Финальный полный прогон:224/224 Flutter,78/78 backend; анализатор0 errors/0 warnings/22 прежних info. Облачных сборок и production writes не было.
+- [ ] Подтверждение production push/deploy/пяти новых таблиц/конфигурации. Не запускать cloud build или public submit. Не включать школьные рекомендации/не мигрировать школы и приглашения автоматически.
+- [ ] Проверить реальную Appwrite uniqueness/index compatibility и два аккаунта на устройствах после согласованного rollout. Публичные privacy изменения отдельно.
+
+Подробности: docs/social-release.md. Это новая задача, не автоматическое снятие ограничений других rollout.
+
 ## Текущая задача: архитектура и важные тесты без iPhone — 23.11.2026
 
 Владелец уточнил:кабеля нет до вечера, сейчас добавлять только важные проверки без телефона; device-проверки описать отдельно рядом с тестами. Также явно описать архитектуру и правило использования Appwrite Redis в обоих AGENTS.md.

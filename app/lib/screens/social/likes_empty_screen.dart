@@ -36,7 +36,7 @@ class LikesEmptyScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 28),
                 const Text(
-                  'No likes yet',
+                  'A little love, coming soon',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 22,
@@ -46,7 +46,7 @@ class LikesEmptyScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'Play a quiz round to collect stars on this device.',
+                  'Your Likes space is on its way. For now, keep the good energy going with a round.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 15,
@@ -58,7 +58,7 @@ class LikesEmptyScreen extends ConsumerWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () => context.push(AppRoutes.vote),
+                    onPressed: () => context.go(AppRoutes.home),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _primaryBlue,
                       foregroundColor: Colors.white,

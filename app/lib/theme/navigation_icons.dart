@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
-/// Eight glyphs from Phosphor: four matching regular/fill navigation pairs.
+/// Ten glyphs from Phosphor: five matching regular/fill navigation pairs.
 /// Source revision and MIT notice are bundled with the fonts.
 abstract final class NavigationIcons {
   static const _regular = 'FlyproxNavRegular';
@@ -10,8 +10,10 @@ abstract final class NavigationIcons {
 
   static const home = IconData(0xe2c2, fontFamily: _regular);
   static const homeFill = IconData(0xe2c2, fontFamily: _fill);
-  static const quiz = IconData(0xe0f8, fontFamily: _regular);
-  static const quizFill = IconData(0xe0f8, fontFamily: _fill);
+  static const search = IconData(0xe30c, fontFamily: _regular);
+  static const searchFill = IconData(0xe30c, fontFamily: _fill);
+  static const likes = IconData(0xe2a8, fontFamily: _regular);
+  static const likesFill = IconData(0xe2a8, fontFamily: _fill);
   static const profile = IconData(0xe4c4, fontFamily: _regular);
   static const profileFill = IconData(0xe4c4, fontFamily: _fill);
   static const settings = IconData(0xe272, fontFamily: _regular);

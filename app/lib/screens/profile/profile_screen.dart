@@ -1,3 +1,5 @@
+import '../../widgets/common/friends_link.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -126,11 +128,21 @@ class _ProfileHeaderCard extends StatelessWidget {
           ),
           if (username.isNotEmpty) ...[
             const SizedBox(height: 4),
-            Text(
-              username,
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
+            InkWell(
+              onTap: () async {
+                await Clipboard.setData(ClipboardData(text: username));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Username copied')),
+                  );
+                }
+              },
+              child: Text(
+                username,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                ),
               ),
             ),
           ],
@@ -236,6 +248,8 @@ class _ProfileActions extends StatelessWidget {
       color: AppColors.white,
       child: Column(
         children: [
+          const FriendsLink(),
+          const Divider(height: 1),
           ListTile(
             leading: const Icon(Icons.edit_outlined),
             title: const Text('Edit profile'),

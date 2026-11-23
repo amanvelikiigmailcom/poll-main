@@ -1,5 +1,17 @@
 # Flyprox — инструкции агенту
 
+## Друзья и навигация — 23.11.2026, новая локальная задача
+
+Этот раздел заменяет историческую навигацию Home·Quiz·Profile·Settings ниже. Реализуется Home·Search·Likes·Profile·Settings, единые Phosphor regular/fill. Вопросы/результат/таймер относятся к Home; отдельного Quiz нет. StatefulShellRoute сохраняет поиск и текущий раунд между вкладками. Friends находится в Settings, профиль ссылается на тот же список. For parents и Blocked users доступны в Settings. Likes пока честный coming-soon, не подключать старые mock voter screens. Friends of friends / From school пока пустые, без запросов и выдуманных данных.
+
+Backend social_* — реальная реализация в Node.js/Appwrite, но **пока НЕ на production**. Пять отдельных приватных таблиц; миграция scripts/setup-social.js по умолчанию read-only, --apply требует подтверждения. Ники 3–32 ASCII, canonical lowercase и unique DB index; старые локальные ники не импортируются молча. Поиск exact @username, без ФИО/телефонов. Server endpoints /api/social, авторизация существующей сессией, минимальные карточки. Дружба/блокировки по account ID. Блоки учитываются также в contacts/candidates/votes. При удалении аккаунта чистятся все связанные social records. Фоновый invitation sync больше не меняет ник.
+
+Конкуренция рассчитана на существующий один Node writer: упорядоченные account/pair locks, DB uniqueness для ников/пар/quota. SOCIAL_ENABLED=1 и SOCIAL_SINGLE_WRITER=1 допустимы только после готовности схемы/подтверждения одного writer. Не включать несколько процессов без отдельной реализации distributed CAS/транзакций. Redis не добавлялся. Production Appwrite uniqueness/query compatibility ещё требует настоящей проверки после разрешения rollout; fake tests этого не доказывают.
+
+Постоянные новые тесты: app/test/social_service_test.dart, social_screen_test.dart, fakes/social_storage.dart; backend tests/social_api.test.js. Проверяются stale success/401 после смены аккаунта, фактическая Dio error chain, поиск, ownership, двойные заявки, block/accept, deletion/request, >100 rows, pagination/counts, schema readiness, layout 320px/x2 и сохранение вопроса/поиска между вкладками. Полные проверки по-прежнему обязательны.
+
+Точный rollout, схема/индексы/лимиты/retention и ограничения: docs/social-release.md. Новый production push, миграция пяти таблиц, флаги и рестарт ещё НЕ выполнялись и требуют подтверждения по правилам владельца. Запрет облачного билда остаётся. Страница родителей описывает отсутствие чата, подготовленные вопросы/skip/report и реальные средства контроля, не обещает тотальную позитивность всего банка или гарантии закона. Публичные privacy/metadata не опубликованы.
+
 ## Компактные проверки: меньше чтения, прежняя защита
 
 - По умолчанию из корня запускать `python3 scripts/checks.py`: полный `flutter test --no-pub --reporter json`, затем `flutter analyze --no-pub --no-fatal-infos lib test`, строго последовательно. Python 3 — единственная дополнительная предпосылка; зависимости Flutter должны быть установлены. Это локальные проверки без сборки/Xcode Cloud.

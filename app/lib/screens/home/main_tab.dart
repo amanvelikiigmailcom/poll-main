@@ -26,6 +26,7 @@ class _MainTabState extends ConsumerState<MainTab> {
 
   int _starsCount = 0;
   int _peopleCount = 0;
+  bool _hasProgress = false;
 
   @override
   void initState() {
@@ -42,10 +43,12 @@ class _MainTabState extends ConsumerState<MainTab> {
   Future<void> _loadState() async {
     final remaining = await LocalGameService.instance.secondsUntilNextRound();
     final stars = await LocalGameService.instance.getStars();
+    final progress = await LocalGameService.instance.loadRoundProgress();
     final people = (await LocalGameService.instance.getNames()).length;
     if (!mounted) return;
     setState(() {
       _starsCount = stars;
+      _hasProgress = progress != null;
       _peopleCount = people;
       _secondsRemaining = remaining;
       _tabState = remaining > 0
@@ -266,7 +269,11 @@ class _MainTabState extends ConsumerState<MainTab> {
           const ExcludeSemantics(child: _RoundCards()),
         ],
         const SizedBox(height: 28),
-        _heroButton('Go to quiz', _startVote, Icons.arrow_forward_rounded),
+        _heroButton(
+          _hasProgress ? 'Continue round' : 'Go to quiz',
+          _startVote,
+          Icons.arrow_forward_rounded,
+        ),
       ],
     ),
   );

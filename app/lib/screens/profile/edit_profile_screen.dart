@@ -171,17 +171,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     formNotifier.setError(null);
 
     try {
+      var handle = formState.username.trim();
+      if ((await ref.read(storageServiceProvider).getToken())?.isNotEmpty ==
+          true) {
+        handle = await ref.read(socialServiceProvider).saveHandle(handle);
+      }
       final last = _lastNameCtrl.text.trim();
       await LocalGameService.instance.saveFullName(formState.firstName, last);
-      try {
-        await ref.read(invitationServiceProvider).syncProfile();
-      } catch (_) {
-        /* Retried before creating or claiming an invitation. */
-      }
       await ref
           .read(localProfileProvider.notifier)
           .save(
-            username: formState.username.trim(),
+            username: handle,
             playerName: [
               formState.firstName.trim(),
               if (last.isNotEmpty) last,
@@ -189,6 +189,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             university: formState.university.trim(),
             universityYear: formState.universityYear,
           );
+      try {
+        await ref.read(invitationServiceProvider).syncProfile();
+      } catch (_) {
+        /* Retried before creating or claiming an invitation. */
+      }
       if (mounted) context.pop();
     } catch (e) {
       formNotifier.setSaving(false);
@@ -333,15 +338,11 @@ class _TextFieldsSection extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           _InputField(
-            label: 'Profile handle (optional)',
+            label: 'Username',
             controller: usernameCtrl,
             onChanged: onUsernameChanged,
             prefixText: '@',
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) return null;
-              if (v.contains(' ')) return 'Handle cannot contain spaces';
-              return null;
-            },
+            validator: (v) => LocalGameService.validateUsername(v ?? ''),
           ),
         ],
       ),

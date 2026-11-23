@@ -20,5 +20,5 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-Bundled subset: house, cards, user-circle, gear-six (regular and fill).
+Bundled subset: house, magnifying-glass, heart, user-circle, gear-six (regular and fill).
 Source: https://github.com/phosphor-icons/web/tree/3d40a3eaa73b25d20d263f0e1e55c9fed3e66809

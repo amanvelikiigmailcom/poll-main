@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/navigation_icons.dart';
 
-/// Four equal tabs with matching Phosphor regular/fill icons.
+/// Five equal tabs with matching Phosphor regular/fill icons.
 class AppBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -35,25 +35,32 @@ class AppBottomNavBar extends StatelessWidget {
                 onTap: () => onTap(0),
               ),
               _TabIcon(
-                label: 'Quiz',
-                icon: NavigationIcons.quiz,
-                activeIcon: NavigationIcons.quizFill,
+                label: 'Search',
+                icon: NavigationIcons.search,
+                activeIcon: NavigationIcons.searchFill,
                 selected: currentIndex == 1,
                 onTap: () => onTap(1),
+              ),
+              _TabIcon(
+                label: 'Likes',
+                icon: NavigationIcons.likes,
+                activeIcon: NavigationIcons.likesFill,
+                selected: currentIndex == 2,
+                onTap: () => onTap(2),
               ),
               _TabIcon(
                 label: 'Profile',
                 icon: NavigationIcons.profile,
                 activeIcon: NavigationIcons.profileFill,
-                selected: currentIndex == 2,
-                onTap: () => onTap(2),
+                selected: currentIndex == 3,
+                onTap: () => onTap(3),
               ),
               _TabIcon(
                 label: 'Settings',
                 icon: NavigationIcons.settings,
                 activeIcon: NavigationIcons.settingsFill,
-                selected: currentIndex == 3,
-                onTap: () => onTap(3),
+                selected: currentIndex == 4,
+                onTap: () => onTap(4),
               ),
             ],
           ),

@@ -1,9 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 
-class StorageService {
+class StorageService extends ChangeNotifier {
   static const String _tokenKey = 'auth_token';
   static const String _userKey = 'current_user';
   static const String _onboardingKey = 'onboarding_done';
@@ -13,14 +14,14 @@ class StorageService {
   late SharedPreferences _prefs;
 
   StorageService()
-      : _secureStorage = const FlutterSecureStorage(
-          aOptions: AndroidOptions(
-            migrateOnAlgorithmChange: true,
-            migrateWithBackup: true,
-            resetOnError: false,
-          ),
-          iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
-        );
+    : _secureStorage = const FlutterSecureStorage(
+        aOptions: AndroidOptions(
+          migrateOnAlgorithmChange: true,
+          migrateWithBackup: true,
+          resetOnError: false,
+        ),
+        iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+      );
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
@@ -30,6 +31,7 @@ class StorageService {
 
   Future<void> saveToken(String token) async {
     await _secureStorage.write(key: _tokenKey, value: token);
+    notifyListeners();
   }
 
   Future<String?> getToken() async {
@@ -38,6 +40,7 @@ class StorageService {
 
   Future<void> clearToken() async {
     await _secureStorage.delete(key: _tokenKey);
+    notifyListeners();
   }
 
   // ── User (SharedPreferences, non-sensitive) ───────────────────────────────
@@ -87,5 +90,6 @@ class StorageService {
   Future<void> clearAll() async {
     await _secureStorage.deleteAll();
     await _prefs.clear();
+    notifyListeners();
   }
 }

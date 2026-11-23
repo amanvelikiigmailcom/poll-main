@@ -13,7 +13,9 @@ class ApiException implements Exception {
 
 class ApiService {
   static const String _baseUrl = String.fromEnvironment(
-      'API_BASE_URL', defaultValue: 'https://api.flyprox.com');
+    'API_BASE_URL',
+    defaultValue: 'https://api.flyprox.com',
+  );
 
   late final Dio _dio;
   final StorageService _storageService;
@@ -134,15 +136,16 @@ class ApiService {
       case DioExceptionType.receiveTimeout:
         return const ApiException('Connection timed out. Please try again.');
       case DioExceptionType.connectionError:
-        return const ApiException('No internet connection. Please check your network.');
+        return const ApiException(
+          'No internet connection. Please check your network.',
+        );
       case DioExceptionType.badResponse:
         final statusCode = e.response?.statusCode;
         final data = e.response?.data;
         String message = 'An error occurred. Please try again.';
         if (data is Map<String, dynamic>) {
-          message = data['message'] as String? ??
-              data['error'] as String? ??
-              message;
+          message =
+              data['message'] as String? ?? data['error'] as String? ?? message;
         }
         return ApiException(message, statusCode: statusCode);
       case DioExceptionType.cancel:
@@ -167,17 +170,23 @@ class _AuthInterceptor extends Interceptor {
     RequestInterceptorHandler handler,
   ) async {
     final token = await _storageService.getToken();
-    if (token != null && token.isNotEmpty) {
+    if (token != null &&
+        token.isNotEmpty &&
+        options.headers['Authorization'] == null) {
       options.headers['Authorization'] = 'Bearer $token';
     }
     handler.next(options);
   }
 
   @override
-  void onError(DioException err, ErrorInterceptorHandler handler) {
+  void onError(DioException err, ErrorInterceptorHandler handler) async {
     if (err.response?.statusCode == 401) {
       // Token expired or invalid — clear token so app routes to login
-      _storageService.clearToken();
+      final token = await _storageService.getToken();
+      if (token != null &&
+          err.requestOptions.headers['Authorization'] == 'Bearer $token') {
+        await _storageService.clearToken();
+      }
     }
     handler.next(err);
   }

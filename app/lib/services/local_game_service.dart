@@ -181,6 +181,7 @@ class LocalGameService {
   static String? validateUsername(String raw) {
     final v = raw.trim();
     if (v.isEmpty) return 'Create username';
+    if (v.length > 32) return 'Use 32 characters or fewer';
     if (v.length < minUsernameLength) {
       return 'At least $minUsernameLength characters';
     }

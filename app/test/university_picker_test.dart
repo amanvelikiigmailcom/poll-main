@@ -86,6 +86,7 @@ void main() {
     await game.savePlayerAndFriends(
         playerName: 'Player', friends: ['Alex', 'Sam', 'Jordan']);
     await game.saveFullName('Player', 'Smith');
+    await game.saveUsername('player_123');
     final storage = StorageService();
     await storage.init();
     testAppRouter.go(AppRoutes.profile);

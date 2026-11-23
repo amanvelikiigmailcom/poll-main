@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/content_service.dart';
+import 'package:go_router/go_router.dart';
+import '../../router/app_router.dart';
 
 class ForParentsScreen extends ConsumerWidget {
   const ForParentsScreen({super.key});
@@ -23,9 +25,9 @@ class ForParentsScreen extends ConsumerWidget {
     }
     if (context.mounted) {
       final email = ContentService.instance.text('support_email');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please email $email')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Please email $email')));
     }
   }
 
@@ -48,6 +50,31 @@ class ForParentsScreen extends ConsumerWidget {
               'Flyprox is a name-based quiz game played on one device. Players select at least four contacts or use ready-made examples, then play 12-question rounds.',
             ),
             _section(
+              Icons.chat_bubble_outline_rounded,
+              'No in-app chat',
+              'Flyprox has no direct messages or group chats. Players cannot send each other custom messages, photos or videos in the app. Optional invitations open the device’s Messages app only when the player chooses to send one.',
+            ),
+            _section(
+              Icons.favorite_outline_rounded,
+              'Respectful play',
+              'Our aim is friendly, encouraging play. Players choose from prepared questions rather than sending their own prompts to other people. A question can be skipped or reported if it feels uncomfortable. We do not promise that every prompt will suit every player.',
+            ),
+            _section(
+              Icons.people_outline_rounded,
+              'Friends are a choice',
+              'Friendship requires an accepted request. People are found by username, not by searching their first name, last name or phone number. Adding a friend does not open a chat. A username is visible to someone who finds the account.',
+            ),
+            _section(
+              Icons.shield_outlined,
+              'Block, remove or report',
+              'Players can remove a friend, block an account or report a concern from its profile. Blocking prevents new friend requests and online votes between those accounts and hides them from each other in search. Manage blocked accounts in Settings. Blocking does not erase names someone has typed into their own offline game.',
+            ),
+            _section(
+              Icons.timer_outlined,
+              'Time for a break',
+              'Rounds contain 12 questions, followed by a 60-minute wait. Earned invitation passes can skip a wait. This is a game mechanic, not a parental screen-time control.',
+            ),
+            _section(
               Icons.lock_rounded,
               'Participant names',
               'Nicknames and fictional names are welcome. Participant labels may be fictional. In optional online play, selected contacts matching registered accounts can receive vote notifications. Merely choosing a contact sends no invitation.',
@@ -60,12 +87,16 @@ class ForParentsScreen extends ConsumerWidget {
             _section(
               Icons.privacy_tip_rounded,
               'Game data and privacy',
-              'The game profile, participant names and progress are stored locally. Guest play needs no account. Signed-in online rounds use account identifiers, selected-contact hashes and votes. Optional phone sign-in is offered before the age question. Underage answers block contacts, gameplay and subscription access for the current run. Read the Privacy Policy for details.',
+              'Guest play needs no account and game progress is stored on the device. Signed-in features also store account data, usernames, friend relationships, blocks, reports, selected-contact hashes and online votes on our server. Selected contacts’ raw phone numbers are not uploaded; the account’s own phone number is used for sign-in. Optional phone sign-in is offered before the age question. Underage answers block contacts, gameplay and subscription access for the current run. Read the Privacy Policy for details.',
             ),
             _section(
               Icons.supervisor_account_rounded,
-              'Helping a player',
-              'Explore the game together, use example names if preferred, and discuss the prompts. Report a concerning question using Report a question or email support. Choose Reset game in Settings to delete local game data.',
+              'Deleting an account',
+              'Players can request account deletion at any time in Settings → Delete account. Confirmation is required. Signed-in deletion removes the Flyprox account and associated server data; a connection is needed and errors can be retried. Reset game is separate and clears local game progress. Apple subscriptions are managed separately. Parents and guardians can contact support for help; account-related requests may require verification.',
+            ),
+            TextButton(
+              onPressed: () => context.push(AppRoutes.privacy),
+              child: const Text('Read the Privacy Policy'),
             ),
             const SizedBox(height: 16),
             Container(
@@ -79,12 +110,15 @@ class ForParentsScreen extends ConsumerWidget {
                 children: [
                   const Icon(Icons.mail_rounded, color: _primaryBlue, size: 36),
                   const SizedBox(height: 12),
-                  const Text('Parent and guardian support',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+                  const Text(
+                    'Parent and guardian support',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                  ),
                   const SizedBox(height: 8),
-                  Text(ContentService.instance.text('support_email'),
-                      style: const TextStyle(color: Colors.grey)),
+                  Text(
+                    ContentService.instance.text('support_email'),
+                    style: const TextStyle(color: Colors.grey),
+                  ),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
                     onPressed: () => _sendEmail(context),
@@ -94,9 +128,12 @@ class ForParentsScreen extends ConsumerWidget {
                       backgroundColor: _primaryBlue,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ],
@@ -113,21 +150,32 @@ class ForParentsScreen extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(12)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Icon(icon, color: _primaryBlue, size: 20),
-            const SizedBox(width: 8),
-            Expanded(
-                child: Text(title,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 16))),
-          ]),
+          Row(
+            children: [
+              Icon(icon, color: _primaryBlue, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 10),
-          Text(body,
-              style: const TextStyle(color: Colors.black87, height: 1.5)),
+          Text(
+            body,
+            style: const TextStyle(color: Colors.black87, height: 1.5),
+          ),
         ],
       ),
     );

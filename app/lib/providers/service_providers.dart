@@ -1,3 +1,4 @@
+import '../services/social_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import '../services/api_service.dart';
@@ -25,8 +26,13 @@ final apiServiceProvider = Provider<ApiService>((ref) {
   return ApiService(ref.watch(storageServiceProvider));
 });
 
-final invitationServiceProvider = ChangeNotifierProvider<InvitationService>((ref) {
-  return InvitationService(ref.watch(apiServiceProvider), ref.watch(storageServiceProvider));
+final invitationServiceProvider = ChangeNotifierProvider<InvitationService>((
+  ref,
+) {
+  return InvitationService(
+    ref.watch(apiServiceProvider),
+    ref.watch(storageServiceProvider),
+  );
 });
 
 final authServiceProvider = Provider<AuthService>((ref) {
@@ -65,3 +71,22 @@ final pushServiceProvider = Provider<PushService>((ref) {
     api: ref.watch(apiServiceProvider),
   );
 });
+
+final socialServiceProvider = Provider<SocialService>(
+  (ref) => SocialService(
+    ref.watch(apiServiceProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+
+/// Server counts are never substituted with local participant counts.
+final socialSummaryProvider = FutureProvider.autoDispose<Map<String, dynamic>?>(
+  (ref) async {
+    final storage = ref.watch(storageServiceProvider);
+    void changed() => ref.invalidateSelf();
+    storage.addListener(changed);
+    ref.onDispose(() => storage.removeListener(changed));
+    if ((await storage.getToken())?.isNotEmpty != true) return null;
+    return ref.watch(socialServiceProvider).request('/summary');
+  },
+);

@@ -1,3 +1,4 @@
+import '../../widgets/common/friends_link.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../services/local_game_service.dart';
@@ -28,6 +29,17 @@ class SettingsScreen extends ConsumerWidget {
       ),
       body: ListView(
         children: [
+          const _SectionHeader(title: 'YOUR CIRCLE'),
+          _SettingsCard(children: [
+            const FriendsLink(),
+            const Divider(height: 1),
+            _ArrowTile(icon: Icons.shield_outlined, title: 'Blocked users',
+              onTap: () => context.push(AppRoutes.blockedUsers)),
+            const Divider(height: 1),
+            _ArrowTile(icon: Icons.family_restroom_outlined, title: 'For parents',
+              subtitle: 'How Flyprox works and how to stay in control',
+              onTap: () => context.push(AppRoutes.forParents)),
+          ]),
           const _SectionHeader(title: 'GAME'),
           _SettingsCard(children: [
             _ArrowTile(

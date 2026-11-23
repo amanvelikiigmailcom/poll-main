@@ -1,3 +1,4 @@
+import '../../services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -65,7 +66,11 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() => _saving = true);
     try {
-      final name = _controller.text.trim();
+      var name = _controller.text.trim();
+      final storage = ref.read(storageServiceProvider);
+      if ((await storage.getToken())?.isNotEmpty == true) {
+        name = await ref.read(socialServiceProvider).saveHandle(name);
+      }
       final game = LocalGameService.instance;
       await game.saveUsername(name);
       await game.saveFullName(_firstName.text, _lastName.text);
@@ -96,12 +101,16 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
         ).showSnackBar(SnackBar(content: Text(invitationNotice)));
       }
       context.go(needsPush ? AppRoutes.pushPrompt : AppRoutes.home);
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Couldn’t save your username. Try again.'),
+        SnackBar(
+          content: Text(
+            error is ApiException
+                ? error.message
+                : 'Couldn’t save your username. Try again.',
+          ),
         ),
       );
     }

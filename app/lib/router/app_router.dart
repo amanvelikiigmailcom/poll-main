@@ -1,3 +1,4 @@
+import '../screens/social/social_screen.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -32,19 +33,13 @@ import '../widgets/common/startup_intro.dart';
 
 import '../screens/info/faq_screen.dart';
 import '../screens/info/for_parents_screen.dart';
-import '../screens/social/search_screen.dart';
 import '../screens/social/activity_screen.dart';
 import '../screens/profile/collection_screen.dart';
-import '../screens/social/friends_list_screen.dart';
-import '../screens/social/friend_requests_screen.dart';
 import '../screens/settings/notifications_settings_screen.dart';
 import '../screens/settings/language_settings_screen.dart';
-import '../screens/settings/blocked_users_screen.dart';
 import '../screens/settings/hidden_users_screen.dart';
 import '../screens/settings/settings_quiz_screen.dart';
-import '../screens/social/likes_filled_screen.dart';
 import '../screens/social/likes_empty_screen.dart';
-import '../screens/social/likes_result_screen.dart';
 import '../screens/social/room_screen.dart';
 import '../screens/social/create_room_screen.dart';
 import '../screens/premium/premium_screen.dart';
@@ -272,113 +267,160 @@ GoRouter createAppRouter({bool showInvitationIntro = true}) => GoRouter(
       path: AppRoutes.pushPrompt,
       builder: (_, __) => const PushPromptScreen(),
     ),
-    ShellRoute(
-      builder: (context, state, child) =>
-          AppShell(child: PushListener(child: child)),
-      routes: [
-        GoRoute(path: AppRoutes.home, builder: (_, __) => const HomeScreen()),
-        GoRoute(path: AppRoutes.vote, builder: (_, __) => const VoteScreen()),
-        GoRoute(
-          path: AppRoutes.starReceived,
-          builder: (_, __) => const StarReceivedScreen(),
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, shell) => AppShell(
+        navigationShell: shell,
+        child: PushListener(child: shell),
+      ),
+      branches: [
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: AppRoutes.home,
+              builder: (_, __) => const HomeScreen(),
+            ),
+            GoRoute(
+              path: AppRoutes.vote,
+              builder: (_, __) => const VoteScreen(),
+            ),
+            GoRoute(
+              path: AppRoutes.starReceived,
+              builder: (_, __) => const StarReceivedScreen(),
+            ),
+            GoRoute(
+              path: AppRoutes.timer,
+              builder: (_, __) => const TimerScreen(),
+            ),
+          ],
         ),
-        GoRoute(path: AppRoutes.timer, builder: (_, __) => const TimerScreen()),
-        GoRoute(
-          path: AppRoutes.invite,
-          builder: (_, __) => const InviteFriendScreen(),
+        StatefulShellBranch(
+          initialLocation: AppRoutes.search,
+          routes: [
+            GoRoute(
+              path: '/people/:id',
+              builder: (_, state) => SocialScreen(
+                page: SocialPage.person,
+                userId: state.pathParameters['id'],
+              ),
+            ),
+            GoRoute(
+              path: AppRoutes.search,
+              builder: (_, __) => const SocialScreen(page: SocialPage.search),
+            ),
+          ],
         ),
-        GoRoute(
-          path: AppRoutes.profile,
-          builder: (_, __) => const ProfileScreen(),
+        StatefulShellBranch(
+          initialLocation: AppRoutes.likesEmpty,
+          routes: [
+            GoRoute(
+              path: AppRoutes.activity,
+              builder: (_, __) => const ActivityScreen(),
+            ),
+            GoRoute(
+              path: AppRoutes.likesFilled,
+              builder: (_, __) => const LikesEmptyScreen(),
+            ),
+            GoRoute(
+              path: AppRoutes.likesEmpty,
+              builder: (_, __) => const LikesEmptyScreen(),
+            ),
+            GoRoute(
+              path: AppRoutes.likesResult,
+              builder: (_, __) => const LikesEmptyScreen(),
+            ),
+          ],
         ),
-        GoRoute(
-          path: AppRoutes.editProfile,
-          builder: (_, __) => const EditProfileScreen(),
+        StatefulShellBranch(
+          initialLocation: AppRoutes.profile,
+          routes: [
+            GoRoute(
+              path: AppRoutes.invite,
+              builder: (_, __) => const InviteFriendScreen(),
+            ),
+            GoRoute(
+              path: AppRoutes.profile,
+              builder: (_, __) => const ProfileScreen(),
+            ),
+            GoRoute(
+              path: AppRoutes.editProfile,
+              builder: (_, __) => const EditProfileScreen(),
+            ),
+            GoRoute(
+              path: AppRoutes.collection,
+              builder: (_, __) => const CollectionScreen(),
+            ),
+            GoRoute(
+              path: AppRoutes.premium,
+              builder: (_, __) => const PremiumScreen(),
+            ),
+            // Retired fake-voters result URL leads back to the free game.
+            GoRoute(
+              path: AppRoutes.premiumResult,
+              redirect: (_, __) => AppRoutes.home,
+            ),
+          ],
         ),
-        GoRoute(
-          path: AppRoutes.settings,
-          builder: (_, __) => const SettingsScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.deleteAccount,
-          builder: (_, __) => const DeleteAccountScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.howToUse,
-          builder: (_, __) => const HowToUseScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.safetyCenter,
-          builder: (_, __) => const SafetyCenterScreen(),
-        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: AppRoutes.settings,
+              builder: (_, __) => const SettingsScreen(),
+            ),
+            GoRoute(
+              path: AppRoutes.deleteAccount,
+              builder: (_, __) => const DeleteAccountScreen(),
+            ),
+            GoRoute(
+              path: AppRoutes.howToUse,
+              builder: (_, __) => const HowToUseScreen(),
+            ),
+            GoRoute(
+              path: AppRoutes.safetyCenter,
+              builder: (_, __) => const SafetyCenterScreen(),
+            ),
 
-        GoRoute(path: AppRoutes.faq, builder: (_, __) => const FaqScreen()),
+            GoRoute(path: AppRoutes.faq, builder: (_, __) => const FaqScreen()),
 
-        GoRoute(
-          path: AppRoutes.search,
-          builder: (_, __) => const SearchScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.activity,
-          builder: (_, __) => const ActivityScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.collection,
-          builder: (_, __) => const CollectionScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.friends,
-          builder: (_, __) => const FriendsListScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.friendRequests,
-          builder: (_, __) => const FriendRequestsScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.premium,
-          builder: (_, __) => const PremiumScreen(),
-        ),
-        // Retired fake-voters result URL leads back to the free game.
-        GoRoute(
-          path: AppRoutes.premiumResult,
-          redirect: (_, __) => AppRoutes.home,
-        ),
-        GoRoute(
-          path: AppRoutes.notificationsSettings,
-          builder: (_, __) => const NotificationsSettingsScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.languageSettings,
-          builder: (_, __) => const LanguageSettingsScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.blockedUsers,
-          builder: (_, __) => const BlockedUsersScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.hiddenUsers,
-          builder: (_, __) => const HiddenUsersScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.settingsQuiz,
-          builder: (_, __) => const SettingsQuizScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.likesFilled,
-          builder: (_, __) => const LikesFilledScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.likesEmpty,
-          builder: (_, __) => const LikesEmptyScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.likesResult,
-          builder: (_, __) => const LikesResultScreen(),
-        ),
-        GoRoute(path: AppRoutes.room, builder: (_, __) => const RoomScreen()),
-        GoRoute(
-          path: AppRoutes.createRoom,
-          builder: (_, __) => const CreateRoomScreen(),
+            GoRoute(
+              path: AppRoutes.friends,
+              builder: (_, __) => const SocialScreen(page: SocialPage.friends),
+            ),
+            GoRoute(
+              path: AppRoutes.friendRequests,
+              builder: (_, __) => const SocialScreen(
+                page: SocialPage.friends,
+                initialKind: 'incoming',
+              ),
+            ),
+            GoRoute(
+              path: AppRoutes.notificationsSettings,
+              builder: (_, __) => const NotificationsSettingsScreen(),
+            ),
+            GoRoute(
+              path: AppRoutes.languageSettings,
+              builder: (_, __) => const LanguageSettingsScreen(),
+            ),
+            GoRoute(
+              path: AppRoutes.blockedUsers,
+              builder: (_, __) => const SocialScreen(page: SocialPage.blocked),
+            ),
+            GoRoute(
+              path: AppRoutes.hiddenUsers,
+              builder: (_, __) => const HiddenUsersScreen(),
+            ),
+            GoRoute(
+              path: AppRoutes.settingsQuiz,
+              builder: (_, __) => const SettingsQuizScreen(),
+            ),
+            GoRoute(
+              path: AppRoutes.room,
+              builder: (_, __) => const RoomScreen(),
+            ),
+            GoRoute(
+              path: AppRoutes.createRoom,
+              builder: (_, __) => const CreateRoomScreen(),
+            ),
+          ],
         ),
       ],
     ),
