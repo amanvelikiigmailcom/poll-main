@@ -1,6 +1,17 @@
 # Flyprox — инструкции агенту
 
-## Новые формы профиля и школы — 24.11.2026, локально
+## Поиск: стандарт Meilisearch для всех экранов — 24.11.2026
+
+Прямая команда владельца: все серверные поиски проекта переводить на Meilisearch. Единый debounce300мс; минимум после trim: пользователи2символа, города2 (либо фильтрация уже загруженного локального списка), кампусы/школы3. На клиенте отменять/игнорировать устаревшие ответы, на сервере повторять валидацию длины и фильтры доступа. Пустой/слишком короткий ввод не запускает запрос.
+
+Typo tolerance: oneTypo=5 (одна опечатка начиная с5букв); обычное значение twoTypos=9 не менять без решения владельца. Это НЕ «одна опечатка на каждые5букв». Пример Иван→Ифан не соответствует порогу5 (4буквы): для такого поведения требуется отдельный выбор снизить порог до4. Проверять кириллицу, латиницу, prefix matching, точные совпадения, опечатки и порядок релевантности на реальном индексе; идентификаторы/годы не искать с опечатками.
+
+Meilisearch — поисковый индекс, Appwrite/PostgreSQL остаётся источником истины. Запросы через Node backend; master/admin keys не передавать в приложение и не публиковать Meili напрямую. Индексы с постоянными account/school IDs, синхронизация изменений/удаления, фильтры страны/региона и серверная повторная проверка приватности/блоков. Поиск пользователей пока только username: не индексировать телефоны, полные имена или приватные profile fields. Нынешний exact-username контракт не расширять до prefix/fuzzy без отдельного решения владельца.
+
+Статус: Meilisearch в этой задаче пока НЕ подключён. Подтверждённый rollout кампусов использует Appwrite full-text как временную реализацию; переход на Meili и режим пользовательского поиска вынесены в выбор следующего этапа. Запись стандарта сама по себе не означает разрешение разворачивать новый сервис или менять production-поиск.
+
+
+## Новые формы профиля и кампуса — 24.11.2026, backend production
 
 Прямая команда владельца: сохранить существующий сине-белый дизайн, добавить после возраста две формы: имя/фамилия/пол (Female/Male/Non-binary), затем школа/кампус + календарный год выпуска. Контакты → ник → optional push остаются после них; имя/фамилия больше не повторяются на шаге ника. Имя и @username независимы, не подставлять full name в ник.
 
@@ -8,7 +19,7 @@ US/CA — одна выдача без дополнительного выбор
 
 Все авторитетные данные связаны постоянными ID: существующие profiles(firstName,lastName,gender,schoolId/schoolName), новая private onboarding_details(accountId,status,country,schoolId,graduationYear,requestedSchool/City/Region), новая private school_directory(country-source-externalId,name,country,city,region,searchText). Cohort/status/fulltext indexes; никаких новых колонок profiles. Guest данные локальные. Session drafts изолированы; account deletion чистит новую запись и заявки. Reset game не должен снимать school gate.
 
-SCHOOL_ONBOARDING_ENABLED по умолчанию off. Подготовлены additive migration/import, но production schema/import/deploy/push/новые билды для этой задачи НЕ выполнялись. Это требует отдельного подтверждения по общим AGENTS.md; старое разрешение social rollout не включает новые таблицы школ. Точные источники, схема, команды, проверки/ограничения:docs/onboarding-schools.md. Сохранять параллельные изменения голосования/round submission в рабочей копии.
+Владелец отдельно подтвердил две таблицы, импорт и backend deploy. Выполнено: две private tables/индексы,151883 записи подтверждены полной cursor pagination (total Appwrite ограничен5000), real DB search/pagination/enrollment/request/cohort/skip guard и cleanup изолированной QA-записи. Runtime code7661485, SCHOOL_ONBOARDING_ENABLED=1 через отдельный systemd drop-in campus-onboarding.conf, service active; school_skip_enabled=true записан без изменения других флагов. Новые signup markers требуют schoolOnboardingVersion=1, поэтому установленный старый TestFlight не блокируется. Источник клиентаf2365de запушен [ci skip], UI Choose your campus,96 годов1946–2041 без preselect. Новый build НЕ запускался. Изолированный релиз236 Flutter/92 backend, analyze0 errors/0 warnings/22 прежних info. Параллельные черновики голосования/контактов/social в рабочей копии не включены в релиз и не откатывались. Подробности:docs/onboarding-schools.md.
 
 ## Друзья и навигация — 23.11.2026, backend на production
 

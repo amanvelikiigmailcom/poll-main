@@ -1,12 +1,12 @@
-# Profile and school onboarding — local implementation, 2026-11-24
+# Profile and campus onboarding — deployed backend, 2026-11-24
 
-Flow: phone/guest → age → About you (first name, last name, Female/Male/Non-binary) → Your school (catalog + graduation year) → contacts/examples → username → optional notifications → Home. Existing blue/white form styling is retained. Names were removed from the username step. Full names never prefill @username or appear in voting cards.
+Flow: phone/guest → age → About you (first name, last name, Female/Male/Non-binary) → Choose your campus (catalog + graduation year) → contacts/examples → username → optional notifications → Home. Existing blue/white form styling is retained. Names were removed from the username step. Full names never prefill @username or appear in voting cards.
 
 School lookup uses the country selected with the phone number. US and CA share one directory; there is no extra country picker. School cards include city, state/region and source country. GB currently has England coverage only. NZ/SG/HK use the missing-school flow until actual catalogs are added. Guest defaults to US if no country was selected. An international phone does not prove the country of study; the requested-school form records the current directory country and location typed by the user.
 
-`I can’t find my school` opens a form for school/campus, country (from the phone step), city, state/region and graduation year. Prepare email first persists the signed-in user's request, then opens a `mailto:` draft to the existing server-configured `support_email`. The user sends it. Opening/returning from Mail is not proof of sending or approval. A failed Mail launch displays the support address and keeps the fields. The account stays blocked from voting until a real directory entry is selected; adding an entry never enrolls a user automatically.
+`I can’t find my campus` opens a form for school/campus, country (from the phone step), city, state/region and graduation year. Prepare email first persists the signed-in user's request, then opens a `mailto:` draft to the existing server-configured `support_email`. The user sends it. Opening/returning from Mail is not proof of sending or approval. A failed Mail launch displays the support address and keeps the fields. The account stays blocked from voting until a real directory entry is selected; adding an entry never enrolls a user automatically.
 
-`school_skip_enabled=false` in content_items hides Skip for now and the server rejects a forged skip request. Missing/deleted config falls back to true, matching other flags; use explicit false to disable. Skip completes onboarding without a school, but does NOT unlock voting. Home then shows Choose your school to play. Direct /vote and server current-round/submit-round/individual-vote endpoints also reject unresolved enrollment. Existing accounts without a new enrollment row retain their old access. New accounts receive a pending marker before profile/session issuance when the feature is enabled.
+`school_skip_enabled=false` in content_items hides Skip for now and the server rejects a forged skip request. Missing/deleted config falls back to true, matching other flags; use explicit false to disable. Skip completes onboarding without a school, but does NOT unlock voting. Home then shows Choose your campus to play. Direct /vote and server current-round/submit-round/individual-vote endpoints also reject unresolved enrollment. Existing accounts without a new enrollment row retain their old access. New accounts from clients declaring schoolOnboardingVersion=1 receive a pending marker before profile/session issuance. Older clients without that version retain their former behavior; new enrollment saves still create their own marker.
 
 ## Authoritative data and identity
 
@@ -29,9 +29,9 @@ Search uses Appwrite's full-text index and starts at 3 characters, per [TablesDB
 
 ## Release boundary
 
-This change is LOCAL ONLY. No table creation, school import, production writes, push, restart, cloud build or TestFlight upload has been performed for this task. `SCHOOL_ONBOARDING_ENABLED` defaults off. Public privacy/parents/App Privacy forms have not been published or changed. Before release, disclose gender, education details and school-request retention in the public privacy forms; school/year/gender are not currently exposed through social search or used to recommend classmates.
+The owner confirmed production schema/import/backend deployment. Both private tables and indexes are ready,151883 catalog entries imported and independently verified through complete cursor pagination. Runtime code7661485 is active with SCHOOL_ONBOARDING_ENABLED=1 in a separate systemd user drop-in. school_skip_enabled=true was added without overwriting other configuration. Client codef2365de was pushed with [ci skip]. No new cloud build/TestFlight upload has been performed. Public privacy/parents/App Privacy forms have not been published or changed. Before a public client release, disclose gender, education details and campus-request retention in the public privacy forms; school/year/gender are not currently exposed through social search or used to recommend classmates.
 
-Production actions require the owner's separate confirmation under /Users/amanyessen/AGENTS.md:
+The following rollout was explicitly confirmed and completed; retain these commands for future controlled maintenance:
 
 1. Review/commit the intended changes in both repositories, preserving concurrent round-submission changes. Latest pushed client commit must include `[ci skip]`.
 2. Run `node scripts/setup-onboarding.js --apply` to create only the two private tables, columns and indexes. Read-only verification is the default without --apply. Wait for columns/indexes to become available; readiness rejects incompatible definitions or public permissions.
@@ -43,4 +43,13 @@ Permanent checks: new Flutter service/widget tests cover names/gender, full two-
 
 ## Verified local result — 2026-11-24
 
-Full app run:237 passed,0 failed,0 skipped; analyzer0 errors/0 warnings/22 existing info. Backend:91 passed,0 failed,0 skipped; server syntax passed. Catalog validation:151883 distinct stable IDs. Flutter-rendered previews of both forms inspected at390×844 (test font substituted; not device screenshots); 320px/x1/x2/keyboard interactions covered by permanent tests. No native Mail or real-database index acceptance is claimed.
+Isolated release snapshot:236 Flutter passed,0 failed,0 skipped; analyzer0 errors/0 warnings/22 existing info. Isolated backend release:92 passed,0 failed,0 skipped; server syntax passed. Concurrent unrelated working-tree changes were preserved and excluded from these commits/deployment. Catalog validation:151883 distinct stable IDs. Flutter-rendered previews of both forms inspected at390×844 (test font substituted; not device screenshots); 320px/x1/x2/keyboard interactions covered by permanent tests. No native Mail or real-database index acceptance is claimed.
+
+
+## Production acceptance — 2026-11-24
+
+Full ingestion completed with stable-ID100-row bulk upserts. A separate exhaustive read verified exactly151883 IDs:124688 US and27195 GB, with no duplicates or unexpected IDs. The Appwrite list response total is capped at5000; it was not used as an exact catalog count. Real fulltext search and cursor pages passed for US/CA (shared group) and GB. --exercise checked a single isolated enrollment through pending/skip/request/select and graduation year/cohort/country/disabled-skip validation, injecting profile identity in memory so no Auth/profile/session row was created or modified. The isolated enrollment was deleted and absence verified. Runtime health/content/questions and both US/GB school searches returned200; unauthenticated onboarding401. Social flags remained1 and invitations remained unconfigured.
+
+UI wording is campus throughout the enrollment flow. Graduation year offers96 calendar choices (current year minus80 through current year plus15), with no preselected value; on2026-11-24 this is1946–2041. The dropdown is exercised in widget tests. Native Mail and a new client build still require a separately authorized device/release step.
+
+The new owner search standard is recorded in both AGENTS.md: Meilisearch,300ms debounce, minima users2/cities2/campuses3, configurable typo thresholds. This standard is recorded for the next migration; production search currently remains Appwrite fulltext. Meilisearch has NOT been installed or enabled by this rollout.
