@@ -27,10 +27,12 @@ Future<void> mount(WidgetTester tester, String route) async {
   final storage = StorageService();
   await storage.init();
   testAppRouter.go(route);
-  await tester.pumpWidget(ProviderScope(
-    overrides: [storageServiceProvider.overrideWithValue(storage)],
-    child: MaterialApp.router(routerConfig: testAppRouter),
-  ));
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [storageServiceProvider.overrideWithValue(storage)],
+      child: MaterialApp.router(routerConfig: testAppRouter),
+    ),
+  );
   await pumpRoute(tester);
 }
 
@@ -42,22 +44,26 @@ void main() {
     await SubscriptionService.instance.resetForTest();
     SubscriptionService.instance.debugGateway(FakeGateway());
     await LocalGameService.instance.savePlayerAndFriends(
-        playerName: 'Player', friends: ['Alex', 'Sam', 'Jordan', 'Taylor']);
+      playerName: 'Player',
+      friends: ['Alex', 'Sam', 'Jordan', 'Taylor'],
+    );
   });
 
-  testWidgets('settings is a fourth tab and remains selected on help pages',
-      (tester) async {
+  testWidgets('settings is a fourth tab and remains selected on help pages', (
+    tester,
+  ) async {
     await mount(tester, AppRoutes.profile);
     expect(find.byTooltip('Settings'), findsOneWidget);
     await tester.tap(find.byTooltip('Settings'));
     await pumpRoute(tester);
     expect(
-        testAppRouter.routeInformationProvider.value.uri.path, AppRoutes.settings);
+      testAppRouter.routeInformationProvider.value.uri.path,
+      AppRoutes.settings,
+    );
     expect(
-        tester
-            .widget<AppBottomNavBar>(find.byType(AppBottomNavBar))
-            .currentIndex,
-        3);
+      tester.widget<AppBottomNavBar>(find.byType(AppBottomNavBar)).currentIndex,
+      3,
+    );
     await tester.dragUntilVisible(
       find.text('How to play'),
       find.byType(ListView),
@@ -68,71 +74,83 @@ void main() {
     await pumpRoute(tester);
     expect(find.text('How to use'), findsOneWidget);
     expect(
-        tester
-            .widget<AppBottomNavBar>(find.byType(AppBottomNavBar))
-            .currentIndex,
-        3);
+      tester.widget<AppBottomNavBar>(find.byType(AppBottomNavBar)).currentIndex,
+      3,
+    );
     await tester.tap(find.byTooltip('Profile'));
     await pumpRoute(tester);
     expect(
-        testAppRouter.routeInformationProvider.value.uri.path, AppRoutes.profile);
+      testAppRouter.routeInformationProvider.value.uri.path,
+      AppRoutes.profile,
+    );
     expect(
-        tester
-            .widget<AppBottomNavBar>(find.byType(AppBottomNavBar))
-            .currentIndex,
-        2);
+      tester.widget<AppBottomNavBar>(find.byType(AppBottomNavBar)).currentIndex,
+      2,
+    );
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets(
-      'center tab preserves the same cooldown through repeated navigation',
-      (tester) async {
-    final game = LocalGameService.instance;
-    await game.completeRound();
-    final prefs = await SharedPreferences.getInstance();
-    final original = prefs.getInt('local_last_round_completed_at');
-    await mount(tester, AppRoutes.home);
-    for (var i = 0; i < 3; i++) {
+    'center tab preserves the same cooldown through repeated navigation',
+    (tester) async {
+      final game = LocalGameService.instance;
+      await game.completeRound();
+      final prefs = await SharedPreferences.getInstance();
+      final original = prefs.getInt('local_last_round_completed_at');
+      await mount(tester, AppRoutes.home);
+      for (var i = 0; i < 3; i++) {
+        await tester.tap(find.byTooltip('Quiz'));
+        await pumpRoute(tester);
+        expect(
+          testAppRouter.routeInformationProvider.value.uri.path,
+          AppRoutes.timer,
+        );
+        expect(prefs.getInt('local_last_round_completed_at'), original);
+        expect(find.text('Question 1 of 12'), findsNothing);
+        testAppRouter.go(AppRoutes.home);
+        await pumpRoute(tester);
+      }
+      await game.bypassTimer();
       await tester.tap(find.byTooltip('Quiz'));
       await pumpRoute(tester);
       expect(
-          testAppRouter.routeInformationProvider.value.uri.path, AppRoutes.timer);
-      expect(prefs.getInt('local_last_round_completed_at'), original);
-      expect(find.text('Question 1 of 12'), findsNothing);
-      testAppRouter.go(AppRoutes.home);
-      await pumpRoute(tester);
-    }
-    await game.bypassTimer();
-    await tester.tap(find.byTooltip('Quiz'));
-    await pumpRoute(tester);
-    expect(testAppRouter.routeInformationProvider.value.uri.path, AppRoutes.vote);
-    expect(find.text('Question 1 of 12'), findsOneWidget);
-    await tester.pumpWidget(const SizedBox());
-  });
+        testAppRouter.routeInformationProvider.value.uri.path,
+        AppRoutes.vote,
+      );
+      expect(find.text('Question 1 of 12'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   for (final route in [AppRoutes.vote]) {
     testWidgets('$route cannot bypass an active cooldown', (tester) async {
       await LocalGameService.instance.completeRound();
       await mount(tester, route);
       expect(
-          testAppRouter.routeInformationProvider.value.uri.path, AppRoutes.timer);
+        testAppRouter.routeInformationProvider.value.uri.path,
+        AppRoutes.timer,
+      );
       expect(find.text('Question 1 of 12'), findsNothing);
       await tester.pumpWidget(const SizedBox());
     });
   }
 
-  testWidgets('pro members skip an active cooldown', (tester) async {
+  testWidgets('pro members preserve an active cooldown', (tester) async {
     await LocalGameService.instance.completeRound();
     await SubscriptionService.instance.setPro(true);
     await mount(tester, AppRoutes.vote);
-    expect(testAppRouter.routeInformationProvider.value.uri.path, AppRoutes.vote);
-    expect(find.text('Question 1 of 12'), findsOneWidget);
+    expect(
+      testAppRouter.routeInformationProvider.value.uri.path,
+      AppRoutes.timer,
+    );
+    expect(find.text('Question 1 of 12'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('profile shows the verified badge for pro members',
-      (tester) async {
+  testWidgets('profile shows the verified badge for pro members', (
+    tester,
+  ) async {
     await SubscriptionService.instance.setPro(true);
     await mount(tester, AppRoutes.profile);
     expect(find.byIcon(Icons.verified), findsOneWidget);
@@ -146,13 +164,20 @@ void main() {
   });
 
   for (final retired in [AppRoutes.premiumResult]) {
-    testWidgets('$retired returns to the free game without a purchase screen',
-        (tester) async {
+    testWidgets('$retired returns to the free game without a purchase screen', (
+      tester,
+    ) async {
       await mount(tester, retired);
-      expect(testAppRouter.routeInformationProvider.value.uri.path, AppRoutes.home);
+      expect(
+        testAppRouter.routeInformationProvider.value.uri.path,
+        AppRoutes.home,
+      );
       await tester.tap(find.byTooltip('Quiz'));
       await pumpRoute(tester);
-      expect(testAppRouter.routeInformationProvider.value.uri.path, AppRoutes.vote);
+      expect(
+        testAppRouter.routeInformationProvider.value.uri.path,
+        AppRoutes.vote,
+      );
       expect(find.text('Question 1 of 12'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     });
@@ -168,10 +193,14 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     await mount(tester, AppRoutes.premium);
     expect(
-        testAppRouter.routeInformationProvider.value.uri.path, AppRoutes.premium);
+      testAppRouter.routeInformationProvider.value.uri.path,
+      AppRoutes.premium,
+    );
     expect(find.text('Premium Weekly'), findsOneWidget);
-    expect(find.textContaining('1-week auto-renewing subscription'),
-        findsWidgets);
+    expect(
+      find.textContaining('1-week auto-renewing subscription'),
+      findsWidgets,
+    );
     expect(find.textContaining('\$6.99'), findsWidgets);
     expect(find.text('Restore purchases'), findsOneWidget);
     expect(find.text('Terms of Use'), findsOneWidget);
@@ -181,15 +210,16 @@ void main() {
     String? launchedUrl;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(launcherChannel, (call) async {
-      if (call.method == 'launch') {
-        launchedUrl = (call.arguments as Map)['url'] as String?;
-        return true;
-      }
-      return null;
-    });
-    addTearDown(() => TestDefaultBinaryMessengerBinding.instance
-        .defaultBinaryMessenger
-        .setMockMethodCallHandler(launcherChannel, null));
+          if (call.method == 'launch') {
+            launchedUrl = (call.arguments as Map)['url'] as String?;
+            return true;
+          }
+          return null;
+        });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(launcherChannel, null),
+    );
     await tester.tap(find.text('Terms of Use'));
     await tester.pumpAndSettle();
     expect(launchedUrl, AppConstants.termsUrl);
@@ -205,18 +235,23 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('expired cooldown allows the center tab to open a round',
-      (tester) async {
+  testWidgets('expired cooldown allows the center tab to open a round', (
+    tester,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(
-        'local_last_round_completed_at',
-        DateTime.now()
-            .subtract(const Duration(minutes: 41))
-            .millisecondsSinceEpoch);
+      'local_last_round_completed_at',
+      DateTime.now()
+          .subtract(const Duration(minutes: 61))
+          .millisecondsSinceEpoch,
+    );
     await mount(tester, AppRoutes.home);
     await tester.tap(find.byTooltip('Quiz'));
     await pumpRoute(tester);
-    expect(testAppRouter.routeInformationProvider.value.uri.path, AppRoutes.vote);
+    expect(
+      testAppRouter.routeInformationProvider.value.uri.path,
+      AppRoutes.vote,
+    );
     await tester.pumpWidget(const SizedBox());
   });
 }

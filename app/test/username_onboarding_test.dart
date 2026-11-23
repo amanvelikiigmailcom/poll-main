@@ -22,6 +22,8 @@ void main() {
       friends: ['Alex', 'Sam', 'Jordan', 'Taylor'],
     );
     await LocalGameService.instance.setUsernameSetupPending(true);
+    await LocalGameService.instance.saveFullName('Aman', 'Smith');
+    await LocalGameService.instance.saveUsername('user234432');
   });
 
   Future<void> mount(
@@ -67,6 +69,7 @@ void main() {
     expect(tester.widget<TextFormField>(field).controller!.text, 'user234432');
     for (final invalid in ['', 'ab', 'bad name', 'имя']) {
       await tester.enterText(field, invalid);
+      await tester.ensureVisible(find.text('Continue'));
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
       expect(find.text('Choose your username'), findsOneWidget);
@@ -77,7 +80,7 @@ void main() {
     await tester.pumpAndSettle();
     final game = LocalGameService.instance;
     expect(await game.getUsername(), 'aman_23');
-    expect(await game.getPlayerName(), 'aman_23');
+    expect(await game.getPlayerName(), 'Aman Smith');
     expect(await game.isUsernameSetupPending(), isFalse);
     expect(
       testAppRouter.routeInformationProvider.value.uri.path,
@@ -124,6 +127,7 @@ void main() {
     (tester) async {
       await mount(tester, loggedIn: true);
       expect(find.text('Never miss a vote'), findsNothing);
+      await tester.ensureVisible(find.text('Continue'));
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
       expect(find.text('Never miss a vote'), findsOneWidget);

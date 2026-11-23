@@ -7,6 +7,8 @@ import '../screens/onboarding/names_entry_screen.dart';
 import '../screens/registration/username_screen.dart';
 import '../screens/onboarding/onboarding_screen.dart';
 import '../screens/auth/phone_registration_screen.dart';
+import '../screens/auth/invitation_code_screen.dart';
+import '../services/invite_code_store.dart';
 import '../screens/auth/otp_verification_screen.dart';
 import '../screens/onboarding/push_prompt_screen.dart';
 import '../providers/service_providers.dart';
@@ -73,6 +75,7 @@ abstract final class AppRoutes {
   static const terms = '/terms';
 
   static const phone = '/phone';
+  static const invitationCode = '/invitation-code';
   static const otp = '/otp';
   static const pushPrompt = '/push-prompt';
 
@@ -131,6 +134,7 @@ FutureOr<String?> _ageRedirect(BuildContext context, GoRouterState state) {
       AppRoutes.splash,
       AppRoutes.onboarding,
       AppRoutes.phone,
+      AppRoutes.invitationCode,
       AppRoutes.otp,
     }.contains(path)) {
       return null;
@@ -167,6 +171,13 @@ class _SplashRedirectState extends ConsumerState<_SplashRedirect> {
         .isUsernameSetupPending();
     if (!mounted) return;
     final introDone = ref.read(storageServiceProvider).isOnboardingDone();
+    if (hasNames &&
+        await InviteCodeStore.code() != null &&
+        !await InviteCodeStore.accepted()) {
+      if (mounted) context.go(AppRoutes.invitationCode, extra: true);
+      return;
+    }
+    if (!mounted) return;
     context.go(
       hasNames
           ? (pendingUsername ? AppRoutes.username : AppRoutes.home)
@@ -183,7 +194,7 @@ class _SplashRedirectState extends ConsumerState<_SplashRedirect> {
 final GoRouter appRouter = createAppRouter();
 
 /// A fresh navigation tree for each app/test lifetime.
-GoRouter createAppRouter() => GoRouter(
+GoRouter createAppRouter({bool showInvitationIntro = true}) => GoRouter(
   initialLocation: AppRoutes.splash,
   debugLogDiagnostics: false,
   refreshListenable: Listenable.merge([
@@ -228,7 +239,20 @@ GoRouter createAppRouter() => GoRouter(
     ),
     GoRoute(
       path: AppRoutes.phone,
+      redirect: (_, __) async {
+        if (!showInvitationIntro) return null;
+        final pending = await InviteCodeStore.code();
+        return await InviteCodeStore.seen() &&
+                (pending == null || await InviteCodeStore.accepted())
+            ? null
+            : AppRoutes.invitationCode;
+      },
       builder: (_, __) => const PhoneRegistrationScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.invitationCode,
+      builder: (_, state) =>
+          InvitationCodeScreen(lateEntry: state.extra == true),
     ),
     GoRoute(
       path: AppRoutes.otp,

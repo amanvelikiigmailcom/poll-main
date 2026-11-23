@@ -41,7 +41,7 @@ class _BeforeVote2ScreenState extends State<BeforeVote2Screen>
       color: Color(0xFF9B59B6),
       title: 'Play another round',
       description:
-          'A 40-minute break follows each round. Wait, or tap WhatsApp or Instagram in sharing options to skip it. Sending is optional.',
+          'A 60-minute break follows each round. Wait, or earn a pass when a new friend registers with your invitation. You both get one pass; sending a message alone does not skip the wait.',
     ),
   ];
 

@@ -4,9 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../router/app_router.dart';
 import '../../services/local_game_service.dart';
+import '../../providers/service_providers.dart';
 import '../../theme/app_colors.dart';
 
-// Tracks whether a vote round is available right now or the 40-minute
+// Tracks whether a vote round is available right now or the 60-minute
 // break timer is still running, using LocalGameService's local state.
 enum _HomeTabState { loading, timerActive, voteAvailable }
 
@@ -100,6 +101,9 @@ class _MainTabState extends ConsumerState<MainTab> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(invitationServiceProvider, (_, __) {
+      if (mounted) _loadState();
+    });
     final decorative =
         MediaQuery.sizeOf(context).height >= 700 &&
         MediaQuery.textScalerOf(context).scale(1) <= 1.4;

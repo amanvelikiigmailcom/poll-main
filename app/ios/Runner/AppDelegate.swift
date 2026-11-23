@@ -25,5 +25,8 @@ import UIKit
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "ContactAccessBridge") {
       ContactAccessBridge.register(with: registrar)
     }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "InvitationBridge") {
+      InvitationBridge.register(with: registrar)
+    }
   }
 }

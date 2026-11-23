@@ -60,6 +60,7 @@ dependencies:
   firebase_auth: ^7.1.0
   phone_numbers_parser: ^9.0.29
   firebase_messaging: ^17.1.0
+  app_links: ^7.2.2
 
 dev_dependencies:
   flutter_test:

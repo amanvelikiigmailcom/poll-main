@@ -9,7 +9,7 @@ import '../../utils/constants.dart';
 ///
 /// Our own paywall UI; billing runs through Superwall (see
 /// [SubscriptionService]). Unlocks honest local benefits only: the full
-/// round Reveal, no 40-minute wait, double stars and a profile badge.
+/// round Reveal, double stars and a profile badge. Waiting periods apply to all players.
 /// Title, subtitle, product card and CTA come from [ContentService]; the legal
 /// block stays in code so review-required wording cannot drift.
 class PremiumScreen extends StatefulWidget {
@@ -40,8 +40,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
   }
 
   Future<void> _loadPrice() async {
-    final label =
-        await _subs.priceLabel(AppConstants.premiumProProductId);
+    final label = await _subs.priceLabel(AppConstants.premiumProProductId);
     if (!mounted) return;
     setState(() {
       _priceLabel = label;
@@ -99,7 +98,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
               Expanded(
                 child: _loading
                     ? const Center(
-                        child: CircularProgressIndicator(color: Colors.white))
+                        child: CircularProgressIndicator(color: Colors.white),
+                      )
                     : SingleChildScrollView(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Column(
@@ -159,12 +159,15 @@ class _PremiumScreenState extends State<PremiumScreen> {
   }
 
   Widget _buildProCard(String priceLabel) {
-    final features = ContentService.instance.stringList('paywall_features');
+    final features = ContentService.instance.stringList('paywall_features_v2');
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: primaryBlue.withValues(alpha: 0.5), width: 1.5),
+        border: Border.all(
+          color: primaryBlue.withValues(alpha: 0.5),
+          width: 1.5,
+        ),
       ),
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -184,8 +187,10 @@ class _PremiumScreenState extends State<PremiumScreen> {
               const Text('💙', style: TextStyle(fontSize: 20)),
               const Spacer(),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 3,
+                ),
                 decoration: BoxDecoration(
                   color: primaryBlue,
                   borderRadius: BorderRadius.circular(20),
@@ -204,29 +209,24 @@ class _PremiumScreenState extends State<PremiumScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            ContentService.instance
-                .template('paywall_term', {'price': priceLabel}),
-            style: const TextStyle(
-              color: Colors.white54,
-              fontSize: 13,
-            ),
+            ContentService.instance.template('paywall_term', {
+              'price': priceLabel,
+            }),
+            style: const TextStyle(color: Colors.white54, fontSize: 13),
           ),
           const SizedBox(height: 16),
-          _buildFeature(
-            icon: Icons.visibility_outlined,
-            text: features[0],
-          ),
-          _buildFeature(
-            icon: Icons.timer_off_outlined,
-            text: features[1],
-          ),
-          _buildFeature(
-            icon: Icons.star_outline,
-            text: features[2],
-          ),
-          _buildFeature(
-            icon: Icons.verified_outlined,
-            text: features[3],
+          for (final (index, feature) in features.indexed)
+            _buildFeature(
+              icon: switch (index) {
+                0 => Icons.visibility_outlined,
+                1 => Icons.star_outline,
+                _ => Icons.verified_outlined,
+              },
+              text: feature,
+            ),
+          const Text(
+            'The 60-minute wait also applies to Premium. Earn wait passes by inviting new friends.',
+            style: TextStyle(color: Colors.white70, fontSize: 13),
           ),
           const SizedBox(height: 20),
           SizedBox(
@@ -245,8 +245,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 child: Text(
-                  ContentService.instance
-                      .template('paywall_cta', {'price': priceLabel}),
+                  ContentService.instance.template('paywall_cta', {
+                    'price': priceLabel,
+                  }),
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -286,7 +287,10 @@ class _PremiumScreenState extends State<PremiumScreen> {
       'of purchase. The subscription renews automatically unless cancelled at '
       'least 24 hours before the end of the current period. Manage or cancel '
       'anytime in your App Store account settings.',
-      style: TextStyle(color: Colors.white.withValues(alpha: 0.55), fontSize: 11),
+      style: TextStyle(
+        color: Colors.white.withValues(alpha: 0.55),
+        fontSize: 11,
+      ),
       textAlign: TextAlign.center,
     );
   }
@@ -307,7 +311,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
           children: [
             TextButton(
               onPressed: () => openExternalLink(
-                  context, ContentService.instance.text('url_terms')),
+                context,
+                ContentService.instance.text('url_terms'),
+              ),
               child: const Text(
                 'Terms of Use',
                 style: TextStyle(color: Colors.white38, fontSize: 11),
@@ -319,7 +325,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
             ),
             TextButton(
               onPressed: () => openExternalLink(
-                  context, ContentService.instance.text('url_privacy')),
+                context,
+                ContentService.instance.text('url_privacy'),
+              ),
               child: const Text(
                 'Privacy Policy',
                 style: TextStyle(color: Colors.white38, fontSize: 11),

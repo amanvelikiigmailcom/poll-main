@@ -6,6 +6,7 @@ import '../../providers/service_providers.dart';
 import '../../providers/user_provider.dart';
 import '../../router/app_router.dart';
 import '../../services/local_game_service.dart';
+import '../../services/invite_code_store.dart';
 
 const _primaryBlue = Color(0xFF4B6EF5);
 
@@ -19,6 +20,8 @@ class UsernameScreen extends ConsumerStatefulWidget {
 
 class _UsernameScreenState extends ConsumerState<UsernameScreen> {
   final _controller = TextEditingController();
+  final _firstName = TextEditingController();
+  final _lastName = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _loading = true;
   bool _saving = false;
@@ -32,9 +35,17 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
   Future<void> _prefill() async {
     final game = LocalGameService.instance;
     final name = await game.getUsername() ?? await game.ensurePlayerName();
+    final fullName = await game.getFullName();
+    final cached = ref.read(storageServiceProvider).getUser();
     if (!mounted) return;
     setState(() {
       _controller.text = name;
+      _firstName.text = fullName.$1.isNotEmpty
+          ? fullName.$1
+          : cached?.firstName ?? '';
+      _lastName.text = fullName.$2.isNotEmpty
+          ? fullName.$2
+          : cached?.lastName ?? '';
       _loading = false;
     });
   }
@@ -42,6 +53,8 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
   @override
   void dispose() {
     _controller.dispose();
+    _firstName.dispose();
+    _lastName.dispose();
     super.dispose();
   }
 
@@ -55,15 +68,33 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
       final name = _controller.text.trim();
       final game = LocalGameService.instance;
       await game.saveUsername(name);
-      await game.savePlayerName(name);
+      await game.saveFullName(_firstName.text, _lastName.text);
       if (!mounted) return;
       await ref.read(localProfileProvider.notifier).refresh();
       final loggedIn = await ref.read(authServiceProvider).isLoggedIn();
+      String? invitationNotice;
+      if (loggedIn) {
+        try {
+          await ref.read(invitationServiceProvider).completeRegistration();
+        } catch (_) {
+          // Keep the pending invitation for a retry after registration. A
+          // network error must not discard locally saved profile details.
+          if (await InviteCodeStore.code() != null) {
+            invitationNotice =
+                'Your profile is saved. Check your invitation in Settings → Invitation code.';
+          }
+        }
+      }
       if (!mounted) return;
       final needsPush =
           loggedIn && await ref.read(pushServiceProvider).needsPrompt();
       await game.setUsernameSetupPending(false);
       if (!mounted) return;
+      if (invitationNotice != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(invitationNotice)));
+      }
       context.go(needsPush ? AppRoutes.pushPrompt : AppRoutes.home);
     } catch (_) {
       if (!mounted) return;
@@ -112,7 +143,7 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
               ),
               const SizedBox(height: 12),
               const Text(
-                'Keep the suggested name or make it your own. You can change it later in your profile.',
+                'Add your first and last name and choose a username. Your first name is shared with the friend whose invitation you activate. Your name is never added to voting cards.',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,
@@ -124,7 +155,47 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
                 const Center(
                   child: CircularProgressIndicator(color: Colors.white),
                 )
-              else
+              else ...[
+                TextFormField(
+                  key: const Key('onboarding-first-name'),
+                  controller: _firstName,
+                  enabled: !_saving,
+                  textCapitalization: TextCapitalization.words,
+                  textInputAction: TextInputAction.next,
+                  maxLength: 64,
+                  style: const TextStyle(fontSize: 16),
+                  decoration: const InputDecoration(
+                    labelText: 'First name',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) => LocalGameService.validateProfileName(
+                    value ?? '',
+                    'first name',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  key: const Key('onboarding-last-name'),
+                  controller: _lastName,
+                  enabled: !_saving,
+                  textCapitalization: TextCapitalization.words,
+                  textInputAction: TextInputAction.next,
+                  maxLength: 64,
+                  style: const TextStyle(fontSize: 16),
+                  decoration: const InputDecoration(
+                    labelText: 'Last name',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) => LocalGameService.validateProfileName(
+                    value ?? '',
+                    'last name',
+                  ),
+                ),
+                const SizedBox(height: 16),
                 TextFormField(
                   key: const Key('onboarding-username'),
                   controller: _controller,
@@ -149,6 +220,7 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
                       LocalGameService.validateUsername(value ?? ''),
                   onFieldSubmitted: (_) => _continue(),
                 ),
+              ],
               const SizedBox(height: 28),
               ElevatedButton(
                 onPressed: _loading || _saving ? null : _continue,

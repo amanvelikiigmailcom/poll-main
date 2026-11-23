@@ -2,6 +2,7 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+<key>FlutterDeepLinkingEnabled</key><false/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
@@ -36,7 +37,7 @@
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>NSContactsUsageDescription</key>
-	<string>Choose contacts to add as game participants. Only names you confirm are added; if signed in, their names and phone-number hashes are sent to find friends.</string>
+	<string>Choose contacts for your quiz or one friend to invite. Confirmed quiz names and phone-number hashes can be used for matching. For an optional invitation, only the selected number is sent to create a keyed hash; the number is not stored.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

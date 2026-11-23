@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/service_providers.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/local_game_service.dart';
 import '../../services/game_settings.dart';
-import '../../services/subscription_service.dart';
 import '../../router/app_router.dart';
-import '../../services/content_service.dart';
 
 const Color _primaryBlue = Color(0xFF4B6EF5);
 const Color _accentRed = Color(0xFFFF3B5C);
@@ -87,11 +87,12 @@ class TimerScreen extends StatefulWidget {
 
 class _TimerScreenState extends State<TimerScreen>
     with TickerProviderStateMixin, WidgetsBindingObserver {
-  static const int _totalSeconds = 2400; // 40 minutes
+  static const int _totalSeconds = LocalGameService.roundBreakSeconds;
   int _secondsLeft = _totalSeconds;
   Timer? _timer;
   Timer? _quoteTimer;
   bool _inviteOpen = false;
+  int _rewardTicks = 0;
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
@@ -146,22 +147,30 @@ class _TimerScreenState extends State<TimerScreen>
       _fadeController.value = 1;
     }
     _syncTimer();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _syncTimer());
+    _refreshPasses();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      _syncTimer();
+      if (++_rewardTicks % 20 == 0) _refreshPasses();
+    });
   }
 
   Future<void> _syncTimer() async {
-    if (await SubscriptionService.instance.isPro()) {
-      await LocalGameService.instance.bypassTimer();
-    }
     final remaining = await LocalGameService.instance.secondsUntilNextRound();
     if (!mounted) return;
     setState(() => _secondsLeft = remaining);
     if (remaining == 0 && !_inviteOpen) context.go('/vote');
   }
 
+  Future<void> _refreshPasses() async {
+    try {
+      await ProviderScope.containerOf(context).read(invitationServiceProvider).refresh();
+      if (mounted) await _syncTimer();
+    } catch (_) { /* The saved timer remains authoritative while offline. */ }
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) _syncTimer();
+    if (state == AppLifecycleState.resumed) { _syncTimer(); _refreshPasses(); }
   }
 
   Future<void> _openInvite() async {
@@ -392,7 +401,7 @@ class _TimerScreenState extends State<TimerScreen>
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Text(
-          'Skip timer instantly!',
+          'Earn a wait pass',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
@@ -402,7 +411,7 @@ class _TimerScreenState extends State<TimerScreen>
         ),
         const SizedBox(height: 6),
         const Text(
-          'Tap WhatsApp or Instagram on the next screen to skip the wait. Sending is optional.',
+          'Invite a new friend through Messages. After they register with your invitation, you both earn one wait pass.',
           style: TextStyle(
             fontSize: 13,
             color: Colors.grey,
@@ -413,7 +422,7 @@ class _TimerScreenState extends State<TimerScreen>
         ElevatedButton.icon(
           onPressed: _openInvite,
           icon: const Icon(Icons.person_add_alt_1_rounded),
-          label: const Text('Open sharing options'),
+          label: const Text('Invite friends and check passes'),
           style: ElevatedButton.styleFrom(
             backgroundColor: _accentRed,
             foregroundColor: Colors.white,
@@ -432,7 +441,7 @@ class _TimerScreenState extends State<TimerScreen>
         OutlinedButton.icon(
           onPressed: () => context.push(AppRoutes.premium),
           icon: const Icon(Icons.workspace_premium_outlined),
-          label: Text(ContentService.instance.text('upsell_timer_button')),
+          label: const Text('Premium benefits'),
           style: OutlinedButton.styleFrom(
             foregroundColor: _primaryBlue,
             side: const BorderSide(color: Color(0xFFDDE4FF), width: 1.5),

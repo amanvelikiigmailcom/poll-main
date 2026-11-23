@@ -85,6 +85,7 @@ void main() {
     final game = LocalGameService.instance;
     await game.savePlayerAndFriends(
         playerName: 'Player', friends: ['Alex', 'Sam', 'Jordan']);
+    await game.saveFullName('Player', 'Smith');
     final storage = StorageService();
     await storage.init();
     testAppRouter.go(AppRoutes.profile);

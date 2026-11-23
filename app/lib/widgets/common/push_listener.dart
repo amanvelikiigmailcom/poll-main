@@ -5,6 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../providers/service_providers.dart';
 import '../../services/push_driver.dart';
+import '../../services/age_gate_service.dart';
+import '../../services/local_game_service.dart';
+import '../../services/invite_code_store.dart';
 
 /// Shows foreground pushes as snackbars anywhere inside the tab shell.
 /// Mounted once around shell content; subscriptions die with it.
@@ -30,16 +33,37 @@ class _PushListenerState extends ConsumerState<PushListener>
     _refresh = push.startTokenRefreshSync();
     _messages = push.foregroundMessages.listen(_show);
     unawaited(push.syncToken());
+    unawaited(_syncInvitations());
+  }
+
+  Future<void> _syncInvitations() async {
+    if (AgeGateService.instance.status != AgeGateStatus.verified) return;
+    try {
+      final service = ref.read(invitationServiceProvider);
+      final game = LocalGameService.instance;
+      final prefsPending = await game.isUsernameSetupPending();
+      if (!prefsPending &&
+          !await InviteCodeStore.needsAttention() &&
+          (await InviteCodeStore.accepted() ||
+              await service.registrationPending())) {
+        await service.claimPending();
+      }
+      await service.refresh();
+    } catch (_) {
+      /* Pending code stays available for explicit Retry. */
+    }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       unawaited(ref.read(pushServiceProvider).syncToken());
+      unawaited(_syncInvitations());
     }
   }
 
   void _show(PushMessage message) {
+    unawaited(_syncInvitations());
     if (!mounted) return;
     final title = message.title.trim();
     final body = message.body.trim();

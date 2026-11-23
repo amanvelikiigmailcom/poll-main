@@ -2,6 +2,18 @@
 
 Корень: `/Users/amanyessen/NEW/poll-main`. Flutter-приложение — `app/`, пакет `flyprox_app`. Локальный гостевой режим + серверная ветка с Firebase SMS-входом, Appwrite-бэкендом и APNs; подписка через Superwall. `AGENTS.md` — единственный источник инструкций; `CLAUDE.md` ссылается на него. Поведение сверять с кодом, устаревшие инструкции исправлять вместе с изменениями.
 
+## В работе: приглашения и 60 минут (23.11.2026, ещё НЕ на production)
+
+Последняя команда владельца: **облачный билд НЕ запускать**. Xcode Cloud/новые TestFlight uploads не запускались; последняя доступная опубликованная beta по-прежнему13. Новая реализация локальная; production/schema/Apple capabilities/публичные политики не менялись.
+
+Новые правила исходников заменяют исторические записи ниже:60мин после раунда для ВСЕХ, включая Premium; никаких WhatsApp/Instagram shortcut; системное SMS/iMessage с отдельным кодом и ссылкой. Один новый подтверждённый аккаунт применяет одно приглашение→по одному wait pass обоим. Автоматическое применение одного pass к текущему ожиданию либо сохранение до следующего. Баланс/earned/used в Profile и Invite friends, Check invitations и напоминание тем же кодом. First/last name вводятся вместе с прежним username, синхронизируются при входе; Firebase имена не сообщает. Full name не добавлять в карточки голосования. APNs пригласившему содержит согласованное first name зарегистрировавшегося друга, не имя голосовавшего.
+
+Авторитет наград — backend invite_claims/invite_redemptions с уникальными индексами; compose/click/install не дают награду. app_links7.2.2, domain api.flyprox.com, AASA appID5QG4KFTZNJ.com.flyprox.flyproxApp; Associated Domains в двух entitlements. Нужна внешняя проверка capability/подписанного профиля перед настоящим device build. Код и telemetry не содержат auth tokens, clipboard читается по нажатию. Не включать старые no-wait paywall overrides:используется paywall_features_v2.
+
+Проверки:205/205 Flutter tests;50/50 node tests;flutter analyze lib test —22 прежних info без errors/warnings. Локальная iOS release-сборка без подписи успешна (46.3MB), Swift-мост скомпилирован. Настоящая отправка/переходы по подписанным Universal Links требуют устройства после внешнего включения; не считать unit tests доказательством доставки.
+
+Точный план/rollout/ограничения/QA:PLAN.md и docs/invitations-release.md. Политика — отдельный непубличный draft docs/invitations-privacy-draft.md. Требуются разрешение на production migration/deploy и реальные device проверки двух разных аккаунтов. Публичный App Store submit не разрешён. Номер приложения/билда не повышался.
+
 ## Последний доступный TestFlight — 1.0.2(13), 23.11.2026
 
 **Build8c073399-9d38-43db-ab4e-f036331f0234: VALID / IN_BETA_TESTING**. Source4885745. Внутренняя группа060e4223-2034-457e-aa16-859c63c582f4 проверена; en-US What to Test записан и перечитан. Upload завершился01:26:42 Asia/Bangkok, altool exit0/UPLOAD SUCCEEDED. Во время загрузки были сетевые retransmits/прерванные соединения, автоматические повторы завершились успешно; отдельного повторного upload не было. Archive202.3с; штатный Flutter export No Accounts/No Distribution, xcodebuild export с ASC API auth успешен. IPA: codesign deep/strict, production APNs, debug=false, encryption=false, настоящий billing key/Firebase callback/username screen подтверждены; photo permission отсутствует.

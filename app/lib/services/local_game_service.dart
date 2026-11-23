@@ -65,7 +65,7 @@ class RoundAnswer {
 }
 
 /// Fully local (no backend, no auth) game state: the player's own name,
-/// friend-name list, star balance, 40-minute round timer, and generation
+/// friend-name list, star balance, 60-minute round timer, and generation
 /// of each 12-question round from [quizQuestionSeeds].
 ///
 /// Each question shows up to four selected contacts, shuffled.
@@ -93,7 +93,7 @@ class LocalGameService {
   /// ([introQuestionSeeds]); later rounds use the full pool.
   static const int introRounds = 2;
   static const int starsPerRound = 1000;
-  static const int roundBreakSeconds = 40 * 60;
+  static const int roundBreakSeconds = 60 * 60;
 
   /// Up to four cards, drawn only from selected contacts.
   static const int optionsPerQuestion = 4;
@@ -351,6 +351,8 @@ class LocalGameService {
     await prefs.remove(_usernameKey);
     await prefs.remove(_usernameSetupPendingKey);
     await prefs.remove(_playerNameKey);
+    await prefs.remove('local_first_name_v1');
+    await prefs.remove('local_last_name_v1');
     await prefs.remove(_universityKey);
     await prefs.remove(_universityYearKey);
     await prefs.remove(_namesKey);
@@ -361,7 +363,7 @@ class LocalGameService {
     await prefs.remove(_roundProgressKey);
   }
 
-  // ── 40-minute round timer ────────────────────────────────────────────────
+  // ── 60-minute round timer ────────────────────────────────────────────────
 
   Future<int> secondsUntilNextRound() async {
     final prefs = await _prefs;
@@ -374,6 +376,32 @@ class LocalGameService {
     return remaining > 0 ? remaining : 0;
   }
 
+  Future<String?> cooldownKey() async => (await _prefs).getInt(_lastRoundKey)?.toString();
+
+  /// A late server response must never clear a newer round's waiting period.
+  Future<void> bypassTimerFor(String key) async {
+    if (await cooldownKey() == key) await bypassTimer();
+  }
+
+  Future<(String, String)> getFullName() async {
+    final prefs = await _prefs;
+    return (prefs.getString('local_first_name_v1') ?? '', prefs.getString('local_last_name_v1') ?? '');
+  }
+
+  Future<void> saveFullName(String first, String last) async {
+    final prefs = await _prefs;
+    await prefs.setString('local_first_name_v1', first.trim());
+    await prefs.setString('local_last_name_v1', last.trim());
+    await savePlayerName('${first.trim()} ${last.trim()}');
+  }
+
+  static String? validateProfileName(String value, String label) {
+    final name = value.trim();
+    if (name.isEmpty) return 'Enter your $label';
+    if (name.length > 64 || RegExp(r'[\x00-\x1f\x7f]').hasMatch(name)) return 'Enter a valid $label';
+    return null;
+  }
+
   Future<void> _markRoundCompletedNow() async {
     final prefs = await _prefs;
     await prefs.setInt(_lastRoundKey, DateTime.now().millisecondsSinceEpoch);
@@ -381,7 +409,7 @@ class LocalGameService {
 
   /// Called when a 12-question round finishes: awards the flat 1000 stars,
   /// saves the latest reveal, counts the round, clears mid-round progress and
-  /// starts the 40-minute break before the next round unlocks.
+  /// starts the 60-minute break before the next round unlocks.
   Future<int> completeRound() async {
     final answers = await getRoundAnswers();
     await (await _prefs).setString(
@@ -397,7 +425,7 @@ class LocalGameService {
     return addStars(starsPerRound);
   }
 
-  /// Skips the 40-minute wait (e.g. after "inviting a friend").
+  /// Skips the 60-minute wait (e.g. after "inviting a friend").
   Future<void> bypassTimer() async {
     final prefs = await _prefs;
     await prefs.remove(_lastRoundKey);

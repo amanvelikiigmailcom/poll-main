@@ -143,9 +143,10 @@ class _VoteScreenState extends State<VoteScreen>
       return;
     }
 
-    if (await SubscriptionService.instance.isPro()) {
-      await LocalGameService.instance.bypassTimer();
-    }
+    try {
+      await ProviderScope.containerOf(context).read(invitationServiceProvider).refresh()
+          .timeout(const Duration(seconds: 6));
+    } catch (_) { /* Offline play keeps its locally saved waiting period. */ }
     final remaining = await LocalGameService.instance.secondsUntilNextRound();
     if (!mounted) return;
     if (remaining > 0) {

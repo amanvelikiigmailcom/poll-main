@@ -8,6 +8,6 @@ late GoRouter testAppRouter;
 /// Register with setUp: no navigation state or native storage crosses tests.
 void setUpTestApp() {
   useFakeSecureStorage();
-  testAppRouter = createAppRouter();
+  testAppRouter = createAppRouter(showInvitationIntro: false);
   addTearDown(testAppRouter.dispose);
 }

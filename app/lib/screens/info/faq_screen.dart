@@ -29,7 +29,7 @@ class FaqScreen extends ConsumerWidget {
     ),
     (
       'How does the timer work?',
-      'A 40-minute break starts after a round. The center tab shows the same remaining time. You can wait, or open sharing options and tap WhatsApp or Instagram to skip the break. Sending a message is optional.'
+      'A 60-minute break starts after a round. The center tab shows the same remaining time. You can wait, or earn a wait pass when a new friend registers with your invitation. Premium does not skip the wait.'
     ),
     (
       'How do I choose my university?',

@@ -104,6 +104,13 @@ class SettingsScreen extends ConsumerWidget {
           const _SectionHeader(title: 'APP'),
           _SettingsCard(children: [
             _ArrowTile(
+              icon: Icons.confirmation_number_outlined,
+              title: 'Invitation code',
+              subtitle: 'Apply within 7 days of creating your account',
+              onTap: () => context.push(AppRoutes.invitationCode, extra: true),
+            ),
+            const Divider(height: 1),
+            _ArrowTile(
               icon: Icons.workspace_premium_outlined,
               title: 'Premium',
               onTap: () => context.push(AppRoutes.premium),

@@ -23,8 +23,8 @@ void main() {
 
   tearDown(() => ContentService.instance.debugClear());
 
-  test('defaults carry all 22 content keys non-empty', () {
-    expect(ContentService.defaults.length, 22);
+  test('defaults carry all 23 content keys non-empty', () {
+    expect(ContentService.defaults.length, 23);
     for (final entry in ContentService.defaults.entries) {
       expect(entry.value, isNotEmpty, reason: entry.key);
     }
@@ -64,14 +64,14 @@ void main() {
   test('stringList parses and pads short overrides from defaults', () {
     final content = ContentService.instance;
     final features = content.stringList('paywall_features');
-    expect(features.length, 4);
+    expect(features.length, 3);
     expect(features.first, contains('Full Reveal'));
     content.debugSetOverrides({'paywall_features': '["Only one"]'});
     final padded = content.stringList('paywall_features');
-    expect(padded.length, 4);
+    expect(padded.length, 3);
     expect(padded.first, 'Only one');
     content.debugSetOverrides({'paywall_features': 'not json'});
-    expect(content.stringList('paywall_features').length, 4);
+    expect(content.stringList('paywall_features').length, 3);
   });
 
   test('load applies fresh cache', () async {

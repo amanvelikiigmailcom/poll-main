@@ -7,6 +7,8 @@ import '../../providers/user_provider.dart';
 import '../../router/app_router.dart';
 import '../../services/subscription_service.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/common/wait_pass_card.dart';
+import '../../providers/service_providers.dart';
 
 // ---------------------------------------------------------------------------
 // Screen
@@ -33,12 +35,17 @@ class ProfileScreen extends ConsumerWidget {
                 color: AppColors.primaryBlue,
                 onRefresh: () async {
                   await ref.read(localProfileProvider.notifier).refresh();
+                  await ref.read(invitationServiceProvider).refresh();
                 },
                 child: SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   child: Column(
                     children: [
                       _ProfileHeaderCard(user: user, local: local),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: WaitPassCard(),
+                      ),
                       const SizedBox(height: 12),
                       const _ProfileActions(),
                       const SizedBox(height: 32),

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../providers/user_provider.dart';
 import '../../services/local_game_service.dart';
+import '../../providers/service_providers.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/common/university_picker_field.dart';
 import '../../widgets/common/reset_game_action.dart';
@@ -107,6 +108,7 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late final TextEditingController _firstNameCtrl;
+  final _lastNameCtrl = TextEditingController();
   late final TextEditingController _usernameCtrl;
   late final TextEditingController _universityCtrl;
   final _formKey = GlobalKey<FormState>();
@@ -130,12 +132,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     // Always read SharedPreferences so the form matches registration
     // even if the in-memory provider has not finished loading yet.
     name = await game.getPlayerName() ?? name;
+    final fullName = await game.getFullName();
+    if (fullName.$1.isNotEmpty) name = fullName.$1;
     username = await game.getUsername() ?? username;
     university = await game.getUniversity() ?? university;
     year = await game.getUniversityYear() ?? year;
 
     if (!mounted) return;
     _firstNameCtrl.text = name;
+    _lastNameCtrl.text = fullName.$2;
     _usernameCtrl.text = username;
     _universityCtrl.text = university;
     ref
@@ -151,6 +156,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   @override
   void dispose() {
     _firstNameCtrl.dispose();
+    _lastNameCtrl.dispose();
     _usernameCtrl.dispose();
     _universityCtrl.dispose();
     super.dispose();
@@ -165,11 +171,21 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     formNotifier.setError(null);
 
     try {
+      final last = _lastNameCtrl.text.trim();
+      await LocalGameService.instance.saveFullName(formState.firstName, last);
+      try {
+        await ref.read(invitationServiceProvider).syncProfile();
+      } catch (_) {
+        /* Retried before creating or claiming an invitation. */
+      }
       await ref
           .read(localProfileProvider.notifier)
           .save(
             username: formState.username.trim(),
-            playerName: formState.firstName.trim(),
+            playerName: [
+              formState.firstName.trim(),
+              if (last.isNotEmpty) last,
+            ].join(' '),
             university: formState.university.trim(),
             universityYear: formState.universityYear,
           );
@@ -218,6 +234,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               _TextFieldsSection(
                 firstNameCtrl: _firstNameCtrl,
                 usernameCtrl: _usernameCtrl,
+                lastNameCtrl: _lastNameCtrl,
                 onFirstNameChanged: (v) =>
                     ref.read(_editFormProvider.notifier).setFirstName(v),
                 onUsernameChanged: (v) =>
@@ -281,12 +298,14 @@ class _TextFieldsSection extends StatelessWidget {
   const _TextFieldsSection({
     required this.firstNameCtrl,
     required this.usernameCtrl,
+    required this.lastNameCtrl,
     required this.onFirstNameChanged,
     required this.onUsernameChanged,
   });
 
   final TextEditingController firstNameCtrl;
   final TextEditingController usernameCtrl;
+  final TextEditingController lastNameCtrl;
   final ValueChanged<String> onFirstNameChanged;
   final ValueChanged<String> onUsernameChanged;
 
@@ -298,11 +317,19 @@ class _TextFieldsSection extends StatelessWidget {
       child: Column(
         children: [
           _InputField(
-            label: 'Name',
+            label: 'First name',
             controller: firstNameCtrl,
             onChanged: onFirstNameChanged,
             validator: (v) =>
                 (v == null || v.trim().isEmpty) ? 'Enter your name' : null,
+          ),
+          const SizedBox(height: 14),
+          _InputField(
+            label: 'Last name',
+            controller: lastNameCtrl,
+            onChanged: (_) {},
+            validator: (value) =>
+                LocalGameService.validateProfileName(value ?? '', 'last name'),
           ),
           const SizedBox(height: 14),
           _InputField(

@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'storage_service.dart';
 
 class ApiException implements Exception {
@@ -34,15 +33,8 @@ class ApiService {
 
     _dio.interceptors.add(_AuthInterceptor(_storageService));
 
-    if (kDebugMode) {
-      _dio.interceptors.add(
-        LogInterceptor(
-          requestBody: true,
-          responseBody: true,
-          logPrint: (obj) => debugPrint(obj.toString()),
-        ),
-      );
-    }
+    // Auth and selected-contact invite requests contain personal data. Do not
+    // log request/response bodies or Authorization headers, including debug.
   }
 
   Dio get dio => _dio;

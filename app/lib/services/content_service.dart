@@ -27,9 +27,10 @@ class ContentService extends ChangeNotifier {
     'paywall_product_name': 'Premium Weekly',
     'paywall_term': '{price} / week · 1-week auto-renewing subscription',
     'paywall_features':
-        '["Full Reveal — all 12 answers every round","No 40-minute wait between rounds","Stars ×2 for every completed round","✓ badge in your profile"]',
+        '["Full Reveal — all 12 answers every round","Stars ×2 for every completed round","✓ badge in your profile"]',
+    'paywall_features_v2': '["Full Reveal — all 12 answers every round","Stars ×2 for every completed round","✓ badge in your profile"]',
     'paywall_cta': 'Get Premium · {price}',
-    'upsell_timer_button': 'Go Premium — never wait',
+    'upsell_timer_button': 'Premium benefits',
     'upsell_reveal_note':
         'First {shown} of {total} shown. Go Premium to reveal the whole round.',
     'blocked_title': 'Not available for your age',

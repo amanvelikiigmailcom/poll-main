@@ -139,6 +139,15 @@ void main() {
       await tester.tap(find.text('Try with example names'));
       await tester.pumpAndSettle();
       expect(find.text('Choose your username'), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const Key('onboarding-first-name')),
+        'Aman',
+      );
+      await tester.enterText(
+        find.byKey(const Key('onboarding-last-name')),
+        'Smith',
+      );
+      await tester.ensureVisible(find.text('Continue'));
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
       final game = LocalGameService.instance;
@@ -146,8 +155,8 @@ void main() {
         testAppRouter.routeInformationProvider.value.uri.path,
         AppRoutes.home,
       );
-      expect(await game.getUsername(), await game.getPlayerName());
-      expect(await game.getPlayerName(), matches(RegExp(r'^user[0-9]{6}$')));
+      expect(await game.getUsername(), matches(RegExp(r'^user[0-9]{6}$')));
+      expect(await game.getPlayerName(), 'Aman Smith');
       expect(await game.getNames(), ['Alex', 'Sam', 'Jordan', 'Taylor']);
       expect((await game.generateRound(languageCode: 'en')).length, 12);
       await tester.pumpWidget(const SizedBox());
@@ -206,6 +215,15 @@ void main() {
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
       expect(find.text('Choose your username'), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const Key('onboarding-first-name')),
+        'Aman',
+      );
+      await tester.enterText(
+        find.byKey(const Key('onboarding-last-name')),
+        'Smith',
+      );
+      await tester.ensureVisible(find.text('Continue'));
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
       expect(
@@ -218,10 +236,7 @@ void main() {
         'Star',
         'Sky',
       ]);
-      expect(
-        await LocalGameService.instance.getPlayerName(),
-        matches(RegExp(r'^user[0-9]{6}$')),
-      );
+      expect(await LocalGameService.instance.getPlayerName(), 'Aman Smith');
       final options = await LocalGameService.instance.selectedOptions();
       expect(options, unorderedEquals(['Moon', 'Sun', 'Star', 'Sky']));
       expect(options, isNot(contains('Michael')));

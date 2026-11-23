@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/contact_sync_service.dart';
@@ -9,6 +10,7 @@ import '../services/push_service.dart';
 import '../services/quiz_service.dart';
 import '../services/storage_service.dart';
 import '../services/user_service.dart';
+import '../services/invitation_service.dart';
 
 /// Single [StorageService] instance shared across the app.
 /// Must be overridden in [ProviderScope] after [StorageService.init()] is called.
@@ -21,6 +23,10 @@ final storageServiceProvider = Provider<StorageService>((ref) {
 
 final apiServiceProvider = Provider<ApiService>((ref) {
   return ApiService(ref.watch(storageServiceProvider));
+});
+
+final invitationServiceProvider = ChangeNotifierProvider<InvitationService>((ref) {
+  return InvitationService(ref.watch(apiServiceProvider), ref.watch(storageServiceProvider));
 });
 
 final authServiceProvider = Provider<AuthService>((ref) {

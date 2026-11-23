@@ -1,6 +1,8 @@
 import 'widgets/common/age_gated_startup.dart';
 import 'services/question_bank_service.dart';
 import 'dart:async';
+import 'package:app_links/app_links.dart';
+import 'services/invite_code_store.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -25,6 +27,7 @@ import 'package:superwallkit_flutter/superwallkit_flutter.dart';
 // ---------------------------------------------------------------------------
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final links = AppLinks();
   NavigationIcons.registerLicense();
 
   // ── System UI ─────────────────────────────────────────────────────────────
@@ -46,6 +49,22 @@ Future<void> main() async {
   await ContentService.instance.load();
   await QuestionBankService.instance.load();
   await AgeGateService.instance.load();
+  try {
+    final link = await links.getInitialLink();
+    if (link != null &&
+        link.scheme == 'https' &&
+        link.host == 'api.flyprox.com' &&
+        link.pathSegments.length == 2 &&
+        link.pathSegments.first == 'i') {
+      final code = InviteCodeStore.normalize(link.toString());
+      if (InviteCodeStore.pattern.hasMatch(code) &&
+          await InviteCodeStore.code() == null) {
+        await InviteCodeStore.save(code, 'link');
+      }
+    }
+  } catch (_) {
+    /* Invitation links are optional; normal startup stays usable. */
+  }
   // Public screen copy only: no token, user ID, Firebase or Superwall.
   unawaited(ContentService.instance.refreshPublic());
 

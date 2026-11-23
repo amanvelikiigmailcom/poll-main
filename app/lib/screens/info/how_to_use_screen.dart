@@ -24,12 +24,12 @@ class HowToUseScreen extends StatelessWidget {
     (
       Icons.star_rounded,
       'Collect stars',
-      'Complete a round to collect 1,000 stars. A saved 40-minute break starts before the next round.',
+      'Complete a round to collect 1,000 stars. A saved 60-minute break starts before the next round.',
     ),
     (
       Icons.ios_share_rounded,
       'Choose when to play again',
-      'Wait for the break to finish, or tap WhatsApp or Instagram in sharing options to skip it. Sending a message is optional.',
+      'Wait for the break to finish, or invite a new friend through Messages. After they register with your invitation, you both earn one wait pass.',
     ),
   ];
 
