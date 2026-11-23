@@ -40,6 +40,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen> {
   int _generation = 0;
 
   bool get _isSearch => widget.page == SocialPage.search;
+  String _searchHandle(String input) => input.trim().replaceFirst(RegExp(r'^@'), '');
   @override
   void initState() {
     super.initState();
@@ -86,6 +87,15 @@ class _SocialScreenState extends ConsumerState<SocialScreen> {
         return;
       }
       setState(() => _guest = false);
+      if (_isSearch &&
+          query.isNotEmpty &&
+          !RegExp(r'^[a-zA-Z0-9_]{2,32}$').hasMatch(_searchHandle(query))) {
+        setState(() {
+          _loading = false;
+          _error = 'Enter 2–32 username characters: A–Z, numbers or _.';
+        });
+        return;
+      }
       final service = ref.read(socialServiceProvider);
       if (_isSearch) {
         final me = await service.request('/me');
@@ -101,7 +111,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen> {
               'users': [await service.profile(widget.userId!)],
             }
           : _isSearch
-          ? await service.search(query)
+          ? await service.search(query, cursor: more ? _next : null)
           : await service.list(_kind, cursor: more ? _next : null);
       if (!mounted || generation != _generation) return;
       setState(() {
@@ -135,7 +145,8 @@ class _SocialScreenState extends ConsumerState<SocialScreen> {
       _error = null;
       _loading = false;
     });
-    _debounce = Timer(const Duration(milliseconds: 450), () => _load());
+    if (_searchHandle(value).length < 2) return;
+    _debounce = Timer(const Duration(milliseconds: 300), () => _load());
   }
 
   Future<void> _action(Map<String, dynamic> user, String action) async {
@@ -293,7 +304,10 @@ class _SocialScreenState extends ConsumerState<SocialScreen> {
               TextField(
                 controller: _search,
                 onChanged: _onQuery,
-                onSubmitted: (_) => _load(),
+                onSubmitted: (_) {
+                  _debounce?.cancel();
+                  if (_isSearch) unawaited(_load());
+                },
                 autocorrect: false,
                 enableSuggestions: false,
                 textInputAction: TextInputAction.search,
@@ -326,7 +340,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen> {
                 const Padding(
                   padding: EdgeInsets.only(top: 10),
                   child: Text(
-                    'Enter their full username. Names and phone numbers aren’t searchable.',
+                    'Enter at least 2 characters from the start of their username. Names and phone numbers aren’t searchable.',
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary,
@@ -384,7 +398,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen> {
                       ? 'No blocked accounts'
                       : 'All caught up',
                   _isSearch
-                      ? 'Check the full username with your friend and try again.'
+                      ? 'Check the username with your friend and try again.'
                       : _kind == 'friends'
                       ? 'Find someone you know and send your first request.'
                       : _kind == 'blocked'

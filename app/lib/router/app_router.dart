@@ -373,10 +373,6 @@ GoRouter createAppRouter({bool showInvitationIntro = true}) => GoRouter(
           initialLocation: AppRoutes.likesEmpty,
           routes: [
             GoRoute(
-              path: AppRoutes.activity,
-              builder: (_, __) => const ActivityScreen(),
-            ),
-            GoRoute(
               path: AppRoutes.likesFilled,
               builder: (_, __) => const LikesEmptyScreen(),
             ),
@@ -425,6 +421,10 @@ GoRouter createAppRouter({bool showInvitationIntro = true}) => GoRouter(
             GoRoute(
               path: AppRoutes.settings,
               builder: (_, __) => const SettingsScreen(),
+            ),
+            GoRoute(
+              path: AppRoutes.activity,
+              builder: (_, __) => const ActivityScreen(),
             ),
             GoRoute(
               path: AppRoutes.deleteAccount,

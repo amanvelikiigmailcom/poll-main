@@ -1,5 +1,14 @@
 # Flyprox — план работ (обновлено 2026-11-23)
 
+## Пуши и Activity — локальная реализация 24.11.2026
+
+Согласованный scope: надёжная backend очередь/APNs, реальные preferences, vote/timer60/invite hooks/friends/verified Premium/inactivity/sign-in/moderation, один native review. Исключения владельца: suspicious/Terms/admin/repeat/removeFirebase/Meili. Settings → Activity получает реальные campus events20→скролл→20, максимум200, graduationYear, English/наш дизайн. Региональный allowlist управляется backend CLI без панели; по умолчанию все регионы открыты.
+
+Новые тесты и детали: docs/notifications-and-activity.md. Пока НЕ live: требуются7private tables+school_location index, signed Superwall webhook credentials и production activation. School-mode/whole-round source развивается параллельно; Activity также читает completed contact rounds только с доказательством campus на timestamp голоса (обе enrollment $updatedAt<=vote). Без этого исторические события пропускаются. Никакого cloud build. Shuffle/skip2 и weekly received-voter disclosures — отдельный игровой этап (нынешний Full Reveal только свои ответы); не считать выполненными.
+
+
+
+
 ## Новые формы профиля и школы — 24.11.2026
 
 - [x] About you: имя/фамилия/Female·Male·Non-binary после возраста; прежний дизайн; отдельный ник после контактов без повторного имени.

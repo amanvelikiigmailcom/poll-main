@@ -23,7 +23,7 @@ class FakeSocial extends SocialService {
       ? {'username': 'test_user'}
       : super.request(path, method: method, data: data);
   @override
-  Future<Map<String, dynamic>> search(String username) {
+  Future<Map<String, dynamic>> search(String username, {String? cursor}) {
     searches.add(username);
     return results.putIfAbsent(username, Completer.new).future;
   }
@@ -103,6 +103,42 @@ void main() {
       },
     );
   }
+  testWidgets(
+    'search starts at two characters after 300ms; malformed handles stay local',
+    (tester) async {
+      final storage = SessionStorage();
+      final social = FakeSocial(ApiService(storage), storage);
+      await mount(tester, storage, social);
+      final field = find.byType(TextField);
+      await tester.enterText(field, 'a');
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(social.searches, isEmpty);
+      await tester.enterText(field, 'ab');
+      await tester.pump(const Duration(milliseconds: 299));
+      expect(social.searches, isEmpty);
+      await tester.pump(const Duration(milliseconds: 2));
+      expect(social.searches, ['ab']);
+      social.results['ab']!.complete({'users': []});
+      await tester.pumpAndSettle();
+      await tester.enterText(field, '@bad name');
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('Enter 2–32 username characters'),
+        findsOneWidget,
+      );
+      expect(social.searches, ['ab']);
+      await tester.enterText(field, '@good_name');
+      await tester.pump(const Duration(milliseconds: 350));
+      social.results['@good_name']!.complete({'users': []});
+      await tester.pumpAndSettle();
+      expect(social.searches, ['ab', '@good_name']);
+      expect(
+        find.textContaining('Enter 2–32 username characters'),
+        findsNothing,
+      );
+    },
+  );
   testWidgets(
     'new search ignores stale results and account change clears private data',
     (tester) async {
