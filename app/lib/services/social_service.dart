@@ -62,6 +62,7 @@ class SocialService {
   Future<Map<String, dynamic>> list(String kind, {String? cursor}) => request(
     '/list?kind=$kind${cursor == null ? '' : '&cursor=${Uri.encodeComponent(cursor)}'}',
   );
+  Future<Map<String, dynamic>> suggestions() => request('/suggestions');
   Future<Map<String, dynamic>> profile(String id) =>
       request('/users/${Uri.encodeComponent(id)}');
   Future<Map<String, dynamic>> act(String id, String action) =>

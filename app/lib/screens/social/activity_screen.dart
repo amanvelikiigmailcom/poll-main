@@ -13,7 +13,8 @@ class ActivityScreen extends ConsumerStatefulWidget {
   ConsumerState<ActivityScreen> createState() => _ActivityScreenState();
 }
 
-class _ActivityScreenState extends ConsumerState<ActivityScreen> {
+class _ActivityScreenState extends ConsumerState<ActivityScreen>
+    with WidgetsBindingObserver {
   final _scroll = ScrollController();
   final List<Map<String, dynamic>> _items = [];
   late final StorageService _storage;
@@ -23,10 +24,17 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _storage = ref.read(storageServiceProvider);
     _storage.addListener(_accountChanged);
+    ref.listenManual(onboardingDetailsProvider, (_, _) => _accountChanged());
     _scroll.addListener(_onScroll);
     unawaited(_load());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _accountChanged();
   }
 
   void _accountChanged() {
@@ -104,6 +112,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
   void dispose() {
     _generation++;
     _storage.removeListener(_accountChanged);
+    WidgetsBinding.instance.removeObserver(this);
     _scroll.dispose();
     super.dispose();
   }

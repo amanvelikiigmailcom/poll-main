@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flyprox_app/providers/service_providers.dart';
 import 'package:flyprox_app/screens/social/activity_screen.dart';
 import 'package:flyprox_app/services/activity_service.dart';
@@ -132,5 +133,29 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     await mount(tester, scale: 2);
     expect(tester.takeException(), isNull);
+  });
+  testWidgets('changing campus clears old activity and starts at page one', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final (_, service) = await mount(tester);
+    expect(find.text('Student 0 was chosen'), findsOneWidget);
+    final context = tester.element(find.byType(ActivityScreen));
+    final setup = ProviderScope.containerOf(
+      context,
+      listen: false,
+    ).read(onboardingDetailsProvider);
+    service.pending = Completer();
+    await setup.draft({
+      'stage': 'done',
+      'status': 'selected',
+      'school': {'id': 'new-campus'},
+    });
+    await tester.pump();
+    expect(find.text('Student 0 was chosen'), findsNothing);
+    expect(service.calls, [null, null]);
+    service.pending!.complete({'items': [], 'nextCursor': null});
+    await tester.pumpAndSettle();
+    expect(find.text('No campus activity yet'), findsOneWidget);
   });
 }

@@ -14,6 +14,14 @@ class FakeSocial extends SocialService {
   FakeSocial(super.api, super.storage);
   final results = <String, Completer<Map<String, dynamic>>>{};
   final searches = <String>[];
+  Map<String, dynamic> suggestionData = {};
+  int suggestionCalls = 0;
+  @override
+  Future<Map<String, dynamic>> suggestions() async {
+    suggestionCalls++;
+    return suggestionData;
+  }
+
   @override
   Future<Map<String, dynamic>> request(
     String path, {
@@ -93,16 +101,75 @@ void main() {
         );
         expect(find.text('Friends of friends'), findsOneWidget);
         await tester.scrollUntilVisible(
-          find.text('From school'),
+          find.text('From your campus'),
           180,
           scrollable: find.byType(Scrollable).first,
         );
-        expect(find.text('From school'), findsOneWidget);
+        expect(find.text('From your campus'), findsOneWidget);
         expect(social.searches, isEmpty);
         expect(tester.takeException(), isNull);
       },
     );
   }
+  testWidgets(
+    'suggestions expand in memory, show request states and hide rows',
+    (tester) async {
+      final storage = SessionStorage();
+      final social = FakeSocial(ApiService(storage), storage)
+        ..suggestionData = {
+          'friendsOfFriends': [
+            {
+              'id': 'via',
+              'username': 'via_friend',
+              'mutualCount': 3,
+              'relationship': 'incoming',
+            },
+          ],
+          'campus': [
+            for (var i = 0; i < 6; i++)
+              {
+                'id': 'campus$i',
+                'username': 'campus_$i',
+                'relationship': i == 0 ? 'outgoing' : 'none',
+              },
+          ],
+        };
+      await mount(tester, storage, social);
+      expect(find.text('3 mutual friends'), findsOneWidget);
+      expect(find.text('Accept'), findsOneWidget);
+      expect(find.text('Decline'), findsOneWidget);
+      final scrollable = find.byType(Scrollable).first;
+      await tester.scrollUntilVisible(
+        find.text('From your campus'),
+        180,
+        scrollable: scrollable,
+      );
+      expect(find.text('Request sent'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('See more (1)'),
+        220,
+        scrollable: scrollable,
+      );
+      expect(find.text('@campus_5'), findsNothing);
+      final before = social.suggestionCalls;
+      await tester.ensureVisible(find.text('See more (1)'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('See more (1)'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('@campus_5'));
+      expect(social.suggestionCalls, before);
+      final row = find.byKey(const ValueKey('suggestion-campus5'));
+      final hide = find.descendant(of: row, matching: find.text('Hide'));
+      await tester.ensureVisible(hide);
+      await tester.pumpAndSettle();
+      await tester.tap(hide);
+      await tester.pumpAndSettle();
+      expect(find.text('@campus_5'), findsNothing);
+      await storage.clearToken();
+      await tester.pumpAndSettle();
+      expect(find.text('From your campus'), findsNothing);
+    },
+  );
   testWidgets(
     'search starts at two characters after 300ms; malformed handles stay local',
     (tester) async {

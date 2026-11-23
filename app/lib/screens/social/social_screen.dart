@@ -25,11 +25,15 @@ class SocialScreen extends ConsumerStatefulWidget {
   ConsumerState<SocialScreen> createState() => _SocialScreenState();
 }
 
-class _SocialScreenState extends ConsumerState<SocialScreen> {
+class _SocialScreenState extends ConsumerState<SocialScreen>
+    with WidgetsBindingObserver {
   final _search = TextEditingController();
   late final StorageService _storage;
   Timer? _debounce;
   List<Map<String, dynamic>> _users = [];
+  List<Map<String, dynamic>> _mutuals = [], _campus = [];
+  final _hidden = <String>{};
+  int _mutualLimit = 5, _campusLimit = 5;
   late String _kind;
   String? _next;
   String? _error;
@@ -40,10 +44,14 @@ class _SocialScreenState extends ConsumerState<SocialScreen> {
   int _generation = 0;
 
   bool get _isSearch => widget.page == SocialPage.search;
-  String _searchHandle(String input) => input.trim().replaceFirst(RegExp(r'^@'), '');
+  String _searchHandle(String input) =>
+      input.trim().replaceFirst(RegExp(r'^@'), '');
   @override
   void initState() {
     super.initState();
+    if (widget.page != SocialPage.blocked) {
+      WidgetsBinding.instance.addObserver(this);
+    }
     _kind = widget.page == SocialPage.blocked ? 'blocked' : widget.initialKind;
     _storage = ref.read(storageServiceProvider);
     _storage.addListener(_accountChanged);
@@ -53,11 +61,23 @@ class _SocialScreenState extends ConsumerState<SocialScreen> {
   void _accountChanged() {
     _debounce?.cancel();
     _search.clear();
+    _hidden.clear();
+    _mutualLimit = _campusLimit = 5;
     _load();
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_load());
+    }
+  }
+
+  @override
   void dispose() {
+    if (widget.page != SocialPage.blocked) {
+      WidgetsBinding.instance.removeObserver(this);
+    }
     _generation++;
     _debounce?.cancel();
     _storage.removeListener(_accountChanged);
@@ -74,6 +94,10 @@ class _SocialScreenState extends ConsumerState<SocialScreen> {
       if (!more) {
         _users = [];
         _next = null;
+        if (_isSearch) {
+          _mutuals = [];
+          _campus = [];
+        }
       }
     });
     try {
@@ -103,7 +127,25 @@ class _SocialScreenState extends ConsumerState<SocialScreen> {
         setState(() => _needsHandle = me['username'] == null);
       }
       if (_isSearch && query.isEmpty) {
-        setState(() => _loading = false);
+        Map<String, dynamic> data;
+        try {
+          data = await service.suggestions();
+        } on ApiException catch (error) {
+          if (error.statusCode != 404) rethrow;
+          // The app can be updated before the recommendations endpoint.
+          data = {};
+        }
+        if (!mounted || generation != _generation) return;
+        List<Map<String, dynamic>> cards(String key) =>
+            (data[key] as List? ?? [])
+                .whereType<Map<String, dynamic>>()
+                .take(100)
+                .toList();
+        setState(() {
+          _mutuals = cards('friendsOfFriends');
+          _campus = cards('campus');
+          _loading = false;
+        });
         return;
       }
       final data = widget.page == SocialPage.person
@@ -118,7 +160,11 @@ class _SocialScreenState extends ConsumerState<SocialScreen> {
         final users = (data['users'] as List? ?? [])
             .map((u) => Map<String, dynamic>.from(u as Map))
             .toList();
-        _users = more ? [..._users, ...users] : users;
+        _users = more
+            ? {
+                for (final card in [..._users, ...users]) card['id']: card,
+              }.values.toList()
+            : users;
         _next = data['nextCursor'] as String?;
         _loading = false;
       });
@@ -145,6 +191,10 @@ class _SocialScreenState extends ConsumerState<SocialScreen> {
       _error = null;
       _loading = false;
     });
+    if (value.trim().isEmpty) {
+      unawaited(_load());
+      return;
+    }
     if (_searchHandle(value).length < 2) return;
     _debounce = Timer(const Duration(milliseconds: 300), () => _load());
   }
@@ -218,6 +268,12 @@ class _SocialScreenState extends ConsumerState<SocialScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.page != SocialPage.blocked) {
+      ref.listen(onboardingDetailsProvider, (_, _) {
+        _debounce?.cancel();
+        unawaited(_load());
+      });
+    }
     final title = switch (widget.page) {
       SocialPage.search => 'Find your people',
       SocialPage.friends => 'Friends',
@@ -325,7 +381,6 @@ class _SocialScreenState extends ConsumerState<SocialScreen> {
                           onPressed: () {
                             _search.clear();
                             _onQuery('');
-                            if (_isSearch) _load();
                           },
                         ),
                   filled: true,
@@ -416,18 +471,26 @@ class _SocialScreenState extends ConsumerState<SocialScreen> {
                   child: const Text('Load more'),
                 ),
             ],
-            if (_isSearch && _search.text.isEmpty) ...[
+            if (_isSearch &&
+                !_guest &&
+                !_loading &&
+                _error == null &&
+                _search.text.trim().isEmpty) ...[
               const SizedBox(height: 14),
-              _placeholder(
+              _recommendations(
                 'Friends of friends',
-                Icons.people_alt_outlined,
-                'More connections, coming later.',
+                _mutuals,
+                _mutualLimit,
+                'No mutual connections yet. Search for someone you know.',
+                () => setState(() => _mutualLimit += 20),
               ),
               const SizedBox(height: 14),
-              _placeholder(
-                'From school',
-                Icons.school_outlined,
-                'School connections will appear here later.',
+              _recommendations(
+                'From your campus',
+                _campus,
+                _campusLimit,
+                'No more people from your campus yet.',
+                () => setState(() => _campusLimit += 20),
               ),
             ],
             if (widget.page == SocialPage.person && !_guest)
@@ -445,9 +508,43 @@ class _SocialScreenState extends ConsumerState<SocialScreen> {
     );
   }
 
-  Widget _userCard(Map<String, dynamic> user) {
+  Widget _recommendations(
+    String title,
+    List<Map<String, dynamic>> cards,
+    int limit,
+    String empty,
+    VoidCallback more,
+  ) {
+    final users = cards.where((card) => !_hidden.contains(card['id'])).toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(title, style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 8),
+        if (users.isEmpty)
+          Text(empty, style: const TextStyle(color: AppColors.textSecondary)),
+        for (final user in users.take(limit))
+          _userCard(user, recommendation: true),
+        if (users.length > limit)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: more,
+              child: Text('See more (${users.length - limit})'),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _userCard(Map<String, dynamic> user, {bool recommendation = false}) {
     final relationship = user['relationship'] as String? ?? 'none';
     final person = widget.page == SocialPage.person;
+    final inlineActions =
+        recommendation &&
+        relationship == 'none' &&
+        MediaQuery.sizeOf(context).width >= 390 &&
+        MediaQuery.textScalerOf(context).scale(1) <= 1.2;
     Widget button(String label, String action, {bool primary = true}) =>
         Padding(
           padding: const EdgeInsets.only(right: 6, top: 4),
@@ -461,7 +558,14 @@ class _SocialScreenState extends ConsumerState<SocialScreen> {
                   child: Text(label),
                 ),
         );
+    Widget hide() => TextButton(
+      onPressed: _busy
+          ? null
+          : () => setState(() => _hidden.add(user['id'] as String)),
+      child: const Text('Hide'),
+    );
     return Container(
+      key: recommendation ? ValueKey('suggestion-${user['id']}') : null,
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -490,18 +594,32 @@ class _SocialScreenState extends ConsumerState<SocialScreen> {
                         ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 10),
-                    child: Text(
-                      '@${user['username']}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 17,
-                        color: AppColors.textPrimary,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '@${user['username']}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 17,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        if (recommendation)
+                          if (user['mutualCount'] case final int count)
+                            Text(
+                              '$count mutual ${count == 1 ? 'friend' : 'friends'}',
+                              style: const TextStyle(
+                                color: AppColors.primaryBlueDark,
+                              ),
+                            ),
+                      ],
                     ),
                   ),
                 ),
               ),
-              if (relationship != 'blocked')
+              if (inlineActions) ...[hide(), button('Add', 'request')],
+              if (!recommendation && relationship != 'blocked')
                 PopupMenuButton<String>(
                   tooltip: 'Account actions',
                   onSelected: (value) => _action(user, value),
@@ -523,49 +641,52 @@ class _SocialScreenState extends ConsumerState<SocialScreen> {
                 ),
             ],
           ),
-          Wrap(
-            children: [
-              if (relationship == 'none') button('Add friend', 'request'),
-              if (relationship == 'incoming') ...[
-                button('Accept', 'accept'),
-                button('Decline', 'decline', primary: false),
-              ],
-              if (relationship == 'outgoing') ...[
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-                  child: Text(
-                    'Request sent',
-                    style: TextStyle(color: AppColors.textSecondary),
+          if (!inlineActions)
+            Wrap(
+              children: [
+                if (recommendation) hide(),
+                if (relationship == 'none')
+                  button(recommendation ? 'Add' : 'Add friend', 'request'),
+                if (relationship == 'incoming') ...[
+                  button('Accept', 'accept'),
+                  button('Decline', 'decline', primary: false),
+                ],
+                if (relationship == 'outgoing') ...[
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+                    child: Text(
+                      'Request sent',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
                   ),
-                ),
-                button('Cancel', 'cancel', primary: false),
-              ],
-              if (relationship == 'friends')
-                const Padding(
-                  padding: EdgeInsets.only(top: 10),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.check_circle_outline_rounded,
-                        size: 18,
-                        color: AppColors.primaryBlueDark,
-                      ),
-                      SizedBox(width: 6),
-                      Text(
-                        'Friends',
-                        style: TextStyle(
+                  button('Cancel', 'cancel', primary: false),
+                ],
+                if (relationship == 'friends')
+                  const Padding(
+                    padding: EdgeInsets.only(top: 10),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.check_circle_outline_rounded,
+                          size: 18,
                           color: AppColors.primaryBlueDark,
-                          fontWeight: FontWeight.w600,
                         ),
-                      ),
-                    ],
+                        SizedBox(width: 6),
+                        Text(
+                          'Friends',
+                          style: TextStyle(
+                            color: AppColors.primaryBlueDark,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              if (relationship == 'blocked')
-                button('Unblock', 'unblock', primary: false),
-            ],
-          ),
+                if (relationship == 'blocked')
+                  button('Unblock', 'unblock', primary: false),
+              ],
+            ),
         ],
       ),
     );
@@ -613,40 +734,4 @@ class _SocialScreenState extends ConsumerState<SocialScreen> {
       ],
     ),
   );
-  Widget _placeholder(String title, IconData icon, String subtitle) =>
-      Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          border: Border.all(color: AppColors.border),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: AppColors.textSecondary, size: 24),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
 }
