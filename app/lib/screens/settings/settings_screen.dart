@@ -33,6 +33,10 @@ class SettingsScreen extends ConsumerWidget {
           _SettingsCard(children: [
             const FriendsLink(),
             const Divider(height: 1),
+            _ArrowTile(icon: Icons.auto_awesome_outlined, title: 'Activity',
+              subtitle: 'Who was chosen around your campus',
+              onTap: () => context.push(AppRoutes.activity)),
+            const Divider(height: 1),
             _ArrowTile(icon: Icons.shield_outlined, title: 'Blocked users',
               onTap: () => context.push(AppRoutes.blockedUsers)),
             const Divider(height: 1),
@@ -115,6 +119,9 @@ class SettingsScreen extends ConsumerWidget {
               'See Privacy Policy for details.')),
           const _SectionHeader(title: 'APP'),
           _SettingsCard(children: [
+            _ArrowTile(icon: Icons.notifications_none, title: 'Notifications',
+              onTap: () => context.push(AppRoutes.notificationsSettings)),
+            const Divider(height: 1),
             _ArrowTile(
               icon: Icons.confirmation_number_outlined,
               title: 'Invitation code',

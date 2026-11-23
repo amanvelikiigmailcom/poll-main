@@ -34,6 +34,18 @@ class _PushListenerState extends ConsumerState<PushListener>
     _messages = push.foregroundMessages.listen(_show);
     unawaited(push.syncToken());
     unawaited(_syncInvitations());
+    unawaited(_syncNotifications());
+  }
+
+  Future<void> _syncNotifications() async {
+    if (!mounted || AgeGateService.instance.status != AgeGateStatus.verified) {
+      return;
+    }
+    try {
+      await ref.read(notificationPreferencesProvider).recordActivityAndReview();
+    } catch (_) {
+      /* Keep the app usable during rollout or offline. */
+    }
   }
 
   Future<void> _syncInvitations() async {
@@ -56,9 +68,10 @@ class _PushListenerState extends ConsumerState<PushListener>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    if (mounted && state == AppLifecycleState.resumed) {
       unawaited(ref.read(pushServiceProvider).syncToken());
       unawaited(_syncInvitations());
+      unawaited(_syncNotifications());
     }
   }
 

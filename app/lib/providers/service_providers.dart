@@ -1,3 +1,5 @@
+import '../services/notification_preferences_service.dart';
+import '../services/activity_service.dart';
 import '../services/onboarding_details_service.dart';
 import '../services/social_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -99,3 +101,18 @@ final onboardingDetailsProvider =
         ref.watch(storageServiceProvider),
       ),
     );
+
+final notificationPreferencesProvider =
+    ChangeNotifierProvider<NotificationPreferencesService>(
+      (ref) => NotificationPreferencesService(
+        ref.watch(apiServiceProvider),
+        ref.watch(storageServiceProvider),
+      ),
+    );
+
+final activityServiceProvider = Provider<ActivityService>(
+  (ref) => ActivityService(
+    ref.watch(apiServiceProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);

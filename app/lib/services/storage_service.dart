@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -83,6 +84,22 @@ class StorageService extends ChangeNotifier {
 
   String? getPhone() {
     return _prefs.getString(_phoneKey);
+  }
+
+  /// Random app-installation identifier for sign-in notices. No hardware fingerprint.
+  Future<String> notificationInstallationId() async {
+    const key = 'notification_installation_id_v1';
+    final existing = await _secureStorage.read(key: key);
+    if (existing != null && RegExp(r'^[a-f0-9]{32}$').hasMatch(existing)) {
+      return existing;
+    }
+    final random = Random.secure();
+    final value = List.generate(
+      16,
+      (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+    ).join();
+    await _secureStorage.write(key: key, value: value);
+    return value;
   }
 
   // ── Clear all ─────────────────────────────────────────────────────────────

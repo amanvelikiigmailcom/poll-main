@@ -53,6 +53,9 @@ void main() {
   group('verifyCode', () {
     test('exchanges the id token for a backend session', () async {
       when(
+        () => storage.notificationInstallationId(),
+      ).thenAnswer((_) async => 'test_installation_123456');
+      when(
         () => api.post<Map<String, dynamic>>(
           '/api/auth/firebase',
           data: any(named: 'data'),
@@ -81,6 +84,10 @@ void main() {
               as Map<String, dynamic>;
       expect(captured['idToken'], 'id-token-1');
       expect(captured['schoolOnboardingVersion'], 1);
+      expect(
+        captured['notificationInstallationId'],
+        'test_installation_123456',
+      );
     });
 
     test('wrong code fails before any backend call', () async {

@@ -47,6 +47,14 @@ class PhoneAuthService {
        _storage = storage,
        _driver = driver;
 
+  Future<String?> _notificationInstallationId() async {
+    try {
+      return await _storage.notificationInstallationId();
+    } catch (_) {
+      return null;
+    }
+  }
+
   bool get isAvailable => _driver.isAvailable;
 
   Future<PhoneCodeResult> sendCode(String phone) async {
@@ -109,7 +117,12 @@ class PhoneAuthService {
     try {
       final response = await _api.post<Map<String, dynamic>>(
         '/api/auth/firebase',
-        data: {'idToken': idToken, 'schoolOnboardingVersion': 1},
+        data: {
+          'idToken': idToken,
+          'schoolOnboardingVersion': 1,
+          if (await _notificationInstallationId() case final String id)
+            'notificationInstallationId': id,
+        },
       );
       final data = response.data ?? {};
       final token = data['token'] as String?;

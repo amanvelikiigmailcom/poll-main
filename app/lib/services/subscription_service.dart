@@ -26,6 +26,7 @@ class SubscriptionService {
   static const String _productKey = 'sub_pro_product_id';
   static const String _updatedKey = 'sub_pro_updated_at';
   static const String _installIdKey = 'superwall_install_id';
+  static const String _sdkAccountKey = 'superwall_account_billing_id';
 
   /// Current Pro state for reactive UI.
   final ValueNotifier<bool> proListenable = ValueNotifier(false);
@@ -38,6 +39,8 @@ class SubscriptionService {
 
   StreamSubscription<Set<String>>? _statusSub;
   bool _ready = false;
+  String? _accountBillingId;
+  Future<void>? _identityTail;
   bool _lastRefreshSucceeded = false;
   bool _entitlementActive = false;
 
@@ -91,18 +94,52 @@ class SubscriptionService {
     await refresh();
   }
 
-  Future<void> _identifyInstall() async {
+  Future<void> _identifyInstall() {
+    final prior = _identityTail;
+    final next = prior == null
+        ? _identifyCurrentIdentity()
+        : prior.then((_) => _identifyCurrentIdentity());
+    _identityTail = next;
+    return next.whenComplete(() {
+      if (identical(_identityTail, next)) _identityTail = null;
+    });
+  }
+
+  Future<void> _identifyCurrentIdentity() async {
     try {
       final prefs = await _prefs;
-      var id = prefs.getString(_installIdKey);
+      final targetAccount = _accountBillingId;
+      final previousAccount = prefs.getString(_sdkAccountKey);
+      if (previousAccount != null && previousAccount != targetAccount) {
+        await _gateway.reset();
+        await prefs.remove(_installIdKey);
+        await prefs.remove(_sdkAccountKey);
+      }
+      var id = targetAccount ?? prefs.getString(_installIdKey);
       if (id == null || id.isEmpty) {
         id = _newInstallId();
         await prefs.setString(_installIdKey, id);
       }
       await _gateway.identify(id);
+      if (targetAccount != null) {
+        await prefs.setString(_sdkAccountKey, targetAccount);
+      }
     } catch (e) {
       debugPrint('Billing identify failed: $e');
     }
+  }
+
+  /// Backend-owned UUID links signed subscription webhooks to this account.
+  Future<void> bindNotificationBillingIdentity(String? id) async {
+    if (id != null &&
+        !RegExp(
+          r'^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$',
+        ).hasMatch(id)) {
+      return;
+    }
+    if (_accountBillingId == id) return;
+    _accountBillingId = id;
+    if (_ready) await _identifyInstall();
   }
 
   String _newInstallId() {
@@ -236,6 +273,8 @@ class SubscriptionService {
     _entitlementActive = false;
     proListenable.value = false;
     purchasePending.value = false;
+    _accountBillingId = null;
+    _identityTail = null;
     notice.value = null;
   }
 }

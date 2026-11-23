@@ -53,8 +53,12 @@ class SocialService {
     }
   }
 
-  Future<Map<String, dynamic>> search(String username) =>
-      request('/search?username=${Uri.encodeComponent(username)}');
+  Future<Map<String, dynamic>> search(
+    String username, {
+    String? cursor,
+  }) => request(
+    '/search?username=${Uri.encodeComponent(username)}${cursor == null ? '' : '&cursor=${Uri.encodeComponent(cursor)}'}',
+  );
   Future<Map<String, dynamic>> list(String kind, {String? cursor}) => request(
     '/list?kind=$kind${cursor == null ? '' : '&cursor=${Uri.encodeComponent(cursor)}'}',
   );
