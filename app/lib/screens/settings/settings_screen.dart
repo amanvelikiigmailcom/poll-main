@@ -153,6 +153,7 @@ class SettingsScreen extends ConsumerWidget {
             _ArrowTile(
               icon: Icons.help_outline,
               title: 'How to play',
+              subtitle: 'Rules, stars and 20 pro tips',
               onTap: () => context.push(AppRoutes.howToUse),
             ),
             const Divider(height: 1),
