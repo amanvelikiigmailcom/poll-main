@@ -41,6 +41,8 @@ class QuizCandidate {
   final bool isSelf;
   final bool premiumBadge;
   final String? premiumBadgeUntil;
+  final int? graduationYear;
+  final bool isFriend;
 
   const QuizCandidate({
     required this.id,
@@ -53,11 +55,14 @@ class QuizCandidate {
     this.isSelf = false,
     this.premiumBadge = false,
     this.premiumBadgeUntil,
+    this.graduationYear,
+    this.isFriend = false,
   });
 
   String get fullName => '$firstName $lastName'.trim();
 
   factory QuizCandidate.fromJson(Map<String, dynamic> json) {
+    final year = json['graduationYear'];
     return QuizCandidate(
       id: json['id'] as String,
       firstName: json['firstName'] as String? ?? '',
@@ -69,6 +74,8 @@ class QuizCandidate {
       isSelf: json['isSelf'] == true,
       premiumBadge: json['premiumBadge'] == true,
       premiumBadgeUntil: json['premiumBadgeUntil'] as String?,
+      graduationYear: year is int ? year : null,
+      isFriend: json['isFriend'] == true,
     );
   }
 }

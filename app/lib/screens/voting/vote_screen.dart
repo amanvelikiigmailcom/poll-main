@@ -28,6 +28,8 @@ class QuizOption {
   final String? serverUserId;
   final bool premiumBadge;
   final String? premiumBadgeUntil;
+  final int? graduationYear;
+  final bool isFriend;
 
   const QuizOption({
     required this.id,
@@ -37,6 +39,8 @@ class QuizOption {
     this.serverUserId,
     this.premiumBadge = false,
     this.premiumBadgeUntil,
+    this.graduationYear,
+    this.isFriend = false,
   });
 }
 
@@ -68,6 +72,8 @@ class QuizQuestion {
           'winnerId': option.serverUserId,
           'premiumBadge': option.premiumBadge,
           'premiumBadgeUntil': option.premiumBadgeUntil,
+          'graduationYear': option.graduationYear,
+          'isFriend': option.isFriend,
         },
     ],
   };
@@ -86,6 +92,10 @@ class QuizQuestion {
           name: option['name'] as String,
           grade: '',
           serverUserId: option['winnerId'] as String?,
+          graduationYear: option['graduationYear'] is int
+              ? option['graduationYear'] as int
+              : null,
+          isFriend: option['isFriend'] == true,
         ),
     ],
   );
@@ -343,6 +353,8 @@ class _VoteScreenState extends State<VoteScreen>
                 serverUserId: candidate.id,
                 premiumBadge: candidate.premiumBadge,
                 premiumBadgeUntil: candidate.premiumBadgeUntil,
+                graduationYear: candidate.graduationYear,
+                isFriend: candidate.isFriend,
               ),
             );
           }
@@ -1073,6 +1085,17 @@ class _VoteScreenState extends State<VoteScreen>
 // Option card widget
 // ---------------------------------------------------------------------------
 
+/// Tier subtitle for a vote card: friend and cohort markers from the frozen
+/// server snapshot, falling back to the legacy grade label.
+String _tierSubtitle(QuizOption option) {
+  final parts = [
+    if (option.isFriend) 'Friend',
+    if (option.graduationYear != null) 'Class of ${option.graduationYear}',
+  ];
+  if (parts.isNotEmpty) return parts.join(' · ');
+  return option.grade;
+}
+
 class _OptionCard extends StatelessWidget {
   final QuizOption option;
   final bool isSelected;
@@ -1205,7 +1228,7 @@ class _OptionCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  option.grade,
+                  _tierSubtitle(option),
                   style: TextStyle(
                     fontSize: 11,
                     color: isDisabled

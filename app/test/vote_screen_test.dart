@@ -391,4 +391,143 @@ void main() {
     expect(find.text('Question 1 of 12'), findsOneWidget);
     expect(find.textContaining('Server question'), findsNothing);
   });
+
+  test('vote draft round-trips tier fields and tolerates legacy drafts', () {
+    const question = QuizQuestion(
+      id: 'q',
+      question: 'Who?',
+      emoji: '',
+      category: 'normal',
+      options: [
+        QuizOption(
+          id: 'a',
+          name: 'Aibek',
+          grade: '',
+          serverUserId: 'a',
+          graduationYear: 2026,
+          isFriend: true,
+        ),
+        QuizOption(id: 'b', name: 'Senior', grade: ''),
+      ],
+    );
+    final restored = QuizQuestion.fromDraft(question.toDraft());
+    expect(restored.options[0].graduationYear, 2026);
+    expect(restored.options[0].isFriend, isTrue);
+    expect(restored.options[1].graduationYear, isNull);
+    expect(restored.options[1].isFriend, isFalse);
+    final legacy = QuizQuestion.fromDraft({
+      'id': 'q',
+      'text': 'Who?',
+      'emoji': '',
+      'category': 'normal',
+      'options': [
+        {'id': 'a', 'name': 'A', 'winnerId': 'a'},
+      ],
+    });
+    expect(legacy.options.single.graduationYear, isNull);
+    expect(legacy.options.single.isFriend, isFalse);
+  });
+
+  testWidgets('school round keeps server tier order and shows tier subtitles', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = SessionStorage();
+    await storage.init();
+    final api = ApiService(storage);
+    api.dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (request, handler) {
+          handler.resolve(
+            Response<Map<String, dynamic>>(
+              requestOptions: request,
+              data: request.path == '/api/quizzes/mode'
+                  ? {
+                      'mode': 'school',
+                      'enrolled': true,
+                      'joined': 5,
+                      'threshold': 5,
+                    }
+                  : {},
+            ),
+          );
+        },
+      ),
+    );
+    final quiz = MockQuizService();
+    when(() => quiz.getQuizzes()).thenAnswer(
+      (_) async => server.QuizSession(
+        sessionId: 'tier-round',
+        totalQuestions: 12,
+        ownerId: 'me',
+        supportsRoundSubmission: true,
+        schoolVoting: true,
+        questions: [
+          for (var i = 0; i < 12; i++)
+            server.QuizQuestion(
+              id: 'tier-$i',
+              text: 'Tier question $i',
+              category: 'normal',
+              candidates: const [
+                server.QuizCandidate(
+                  id: 'friend',
+                  firstName: 'Aibek',
+                  lastName: '',
+                  grade: 8,
+                  graduationYear: 2026,
+                  isFriend: true,
+                ),
+                server.QuizCandidate(
+                  id: 'same',
+                  firstName: 'Yearmate',
+                  lastName: '',
+                  grade: 8,
+                  graduationYear: 2026,
+                ),
+                server.QuizCandidate(
+                  id: 'other',
+                  firstName: 'Senior',
+                  lastName: '',
+                  grade: 8,
+                  graduationYear: 2024,
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+    final source = ServerRoundSource(quiz, isLoggedIn: () async => true);
+    final container = ProviderContainer(
+      overrides: [
+        storageServiceProvider.overrideWithValue(storage),
+        apiServiceProvider.overrideWithValue(api),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(onboardingDetailsProvider).draft({
+      'stage': 'done',
+      'status': 'selected',
+    });
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(home: VoteScreen(serverSource: source)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Tier question 0'), findsOneWidget);
+    expect(find.text('Friend · Class of 2026'), findsOneWidget);
+    expect(find.text('Class of 2026'), findsOneWidget);
+    expect(find.text('Class of 2024'), findsOneWidget);
+    await choose(tester, 'Aibek');
+    final saved = await LocalGameService.instance.loadRoundProgress();
+    final options = (saved?.draft?['questions'] as List)[0]['options'] as List;
+    expect(
+      options.map((option) => option['id']).toList(),
+      ['friend', 'same', 'other'],
+    );
+    expect(options[0]['graduationYear'], 2026);
+    expect(options[0]['isFriend'], isTrue);
+    expect(options[2]['isFriend'], isFalse);
+  });
 }
