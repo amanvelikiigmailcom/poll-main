@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../providers/service_providers.dart';
+import '../../router/app_router.dart';
 import '../../services/storage_service.dart';
 import '../../theme/app_colors.dart';
 
@@ -88,6 +90,13 @@ class _ReceivedLikesScreenState extends ConsumerState<ReceivedLikesScreen> {
     appBar: AppBar(
       title: const Text('Likes'),
       automaticallyImplyLeading: false,
+      leading: (ModalRoute.of(context)?.canPop ?? false)
+          ? IconButton(
+              icon: const Icon(Icons.close),
+              tooltip: 'Close',
+              onPressed: () => Navigator.of(context).maybePop(),
+            )
+          : null,
     ),
     body: RefreshIndicator(
       onRefresh: _load,
@@ -95,12 +104,13 @@ class _ReceivedLikesScreenState extends ConsumerState<ReceivedLikesScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(20),
         children: [
-          if (_count != null)
+          if (_count != null && _count != 0) ...[
             Text(
               '$_count received ${_count == 1 ? 'like' : 'likes'}',
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
+          ],
           if (_guest) const Text('Sign in to see your Likes.'),
           if (_error != null) ...[
             Text(_error!),
@@ -110,11 +120,9 @@ class _ReceivedLikesScreenState extends ConsumerState<ReceivedLikesScreen> {
             ),
           ],
           if (!_loading && !_guest && _error == null && _items.isEmpty)
-            Text(
-              _count == 0
-                  ? 'Your received Likes will appear here.'
-                  : 'No available Likes to show.',
-            ),
+            _count == 0
+                ? const _LikesEmptyCard()
+                : const Text('No available Likes to show.'),
           for (final item in _items)
             Card(
               elevation: 0,
@@ -141,5 +149,116 @@ class _ReceivedLikesScreenState extends ConsumerState<ReceivedLikesScreen> {
     final date = DateTime.tryParse(value is String ? value : '');
     if (date == null) return '';
     return MaterialLocalizations.of(context).formatMediumDate(date.toLocal());
+  }
+}
+
+/// Motivational empty state shown when the user has no received Likes yet.
+class _LikesEmptyCard extends StatelessWidget {
+  const _LikesEmptyCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+      decoration: BoxDecoration(
+        color: AppColors.primaryBlue,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.primaryBlueDark,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.favorite, color: Colors.white, size: 14),
+                SizedBox(width: 6),
+                Text(
+                  'Your future likes',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _CardBadgeIcon(icon: Icons.star),
+              SizedBox(width: 12),
+              _CardBadgeIcon(icon: Icons.favorite),
+              SizedBox(width: 12),
+              _CardBadgeIcon(icon: Icons.auto_awesome),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'EMPTY FOR NOW',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'When someone picks you in a vote, all your likes will appear '
+            'here. Want more votes? Play more polls.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white, fontSize: 15, height: 1.5),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () => context.go(AppRoutes.home),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryBlueDark,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                elevation: 0,
+              ),
+              child: const Text(
+                'Go to polls',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CardBadgeIcon extends StatelessWidget {
+  const _CardBadgeIcon({required this.icon});
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: const BoxDecoration(
+        color: AppColors.primaryBlueDark,
+        shape: BoxShape.circle,
+      ),
+      child: Icon(icon, color: Colors.white, size: 24),
+    );
   }
 }
