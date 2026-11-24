@@ -2,9 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../providers/service_providers.dart';
 import '../../services/push_driver.dart';
+import '../../services/push_routing.dart';
+import '../../services/push_service.dart';
 import '../../services/age_gate_service.dart';
 import '../../services/local_game_service.dart';
 import '../../services/invite_code_store.dart';
@@ -24,17 +27,38 @@ class _PushListenerState extends ConsumerState<PushListener>
     with WidgetsBindingObserver {
   StreamSubscription? _messages;
   StreamSubscription? _refresh;
+  StreamSubscription? _taps;
+  PushService? _push;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     final push = ref.read(pushServiceProvider);
+    _push = push;
     _refresh = push.startTokenRefreshSync();
     _messages = push.foregroundMessages.listen(_show);
+    _taps = push.pushTaps.listen(_open);
     unawaited(push.syncToken());
     unawaited(_syncInvitations());
     unawaited(_syncNotifications());
+    unawaited(_armAndDrain(push));
+  }
+
+  /// Arms live taps, then drains a tap that landed in the gap (including a
+  /// tap made while the launch intro was still playing).
+  Future<void> _armAndDrain(PushService push) async {
+    await push.setTapArmed(true);
+    if (!mounted) return;
+    final tap = await push.getInitialTap();
+    if (!mounted || tap == null) return;
+    _open(tap);
+  }
+
+  void _open(PushTap tap) {
+    final route = PushRouting.routeFor(tap.type);
+    if (!mounted || route == null) return;
+    GoRouter.of(context).go(route);
   }
 
   Future<void> _syncNotifications() async {
@@ -98,6 +122,9 @@ class _PushListenerState extends ConsumerState<PushListener>
     WidgetsBinding.instance.removeObserver(this);
     _messages?.cancel();
     _refresh?.cancel();
+    _taps?.cancel();
+    unawaited(_push?.setTapArmed(false));
+    _push = null;
     super.dispose();
   }
 

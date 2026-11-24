@@ -51,6 +51,8 @@ import '../screens/premium/age_picker_screen.dart';
 import '../screens/premium/age_blocked_screen.dart';
 import '../services/age_gate_service.dart';
 import '../services/onboarding_flow.dart';
+import '../services/push_driver.dart';
+import '../services/push_routing.dart';
 
 abstract final class AppRoutes {
   static const splash = '/';
@@ -212,7 +214,35 @@ Future<String?> _ageRedirect(BuildContext context, GoRouterState state) async {
 }
 
 class _SplashRedirectState extends ConsumerState<_SplashRedirect> {
-  Future<void> _redirect() async {
+  bool _checkedTap = false;
+  bool _skipIntro = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_boot());
+  }
+
+  /// A pending push tap skips the launch video: the guards below still decide
+  /// the destination, but there is no intro on the way to it.
+  Future<void> _boot() async {
+    PushTap? tap;
+    try {
+      tap = await ref.read(pushServiceProvider).getInitialTap();
+    } catch (_) {
+      tap = null;
+    }
+    if (!mounted) return;
+    if (tap != null && PushRouting.isKnown(tap.type)) {
+      setState(() => _skipIntro = true);
+      await _redirect(tap);
+      return;
+    }
+    // Unknown taps are already consumed above and stay dropped.
+    setState(() => _checkedTap = true);
+  }
+
+  Future<void> _redirect([PushTap? tap]) async {
     if (AgeGateService.instance.replayIntroOnLaunch) {
       context.go(AppRoutes.onboarding);
       return;
@@ -230,19 +260,57 @@ class _SplashRedirectState extends ConsumerState<_SplashRedirect> {
       return;
     }
     if (!mounted) return;
+    final destination = details['stage'] == 'username'
+        ? AppRoutes.username
+        : hasNames || details['stage'] == 'done'
+        ? (pendingUsername ? AppRoutes.username : AppRoutes.home)
+        : introDone
+        ? AppRoutes.phone
+        : AppRoutes.onboarding;
+    if (destination != AppRoutes.home) {
+      context.go(destination);
+      return;
+    }
+    // Home means fully onboarded: a tap may replace it with its own screen.
+    // A tap that arrived while the intro was playing is picked up here.
+    tap ??= await _drainTap();
+    if (!mounted) return;
     context.go(
-      details['stage'] == 'username'
-          ? AppRoutes.username
-          : hasNames || details['stage'] == 'done'
-          ? (pendingUsername ? AppRoutes.username : AppRoutes.home)
-          : introDone
-          ? AppRoutes.phone
-          : AppRoutes.onboarding,
+      tap == null ? AppRoutes.home : (PushRouting.routeFor(tap.type) ?? AppRoutes.home),
     );
   }
 
+  Future<PushTap?> _drainTap() async {
+    try {
+      return await ref.read(pushServiceProvider).getInitialTap();
+    } catch (_) {
+      return null;
+    }
+  }
+
   @override
-  Widget build(BuildContext context) => StartupIntro(onComplete: _redirect);
+  Widget build(BuildContext context) {
+    if (_skipIntro || !_checkedTap) return const _PlainSplash();
+    return StartupIntro(onComplete: () => _redirect());
+  }
+}
+
+/// Static launch placeholder while the tap check runs or the intro is skipped.
+class _PlainSplash extends StatelessWidget {
+  const _PlainSplash();
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: const Color(0xFF4B6EF5),
+    body: Center(
+      child: Image.asset(
+        'assets/images/flyprox-logo.png',
+        width: 112,
+        height: 112,
+        semanticLabel: 'Flyprox logo',
+      ),
+    ),
+  );
 }
 
 final GoRouter appRouter = createAppRouter();

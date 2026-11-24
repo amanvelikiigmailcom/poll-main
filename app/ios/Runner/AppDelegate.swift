@@ -9,6 +9,7 @@ import StoreKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    PushTapBridge.installEarly(launchOptions: launchOptions)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
@@ -33,6 +34,9 @@ import StoreKit
                 "buildNumber": Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""])
       }
       appInfoChannel = channel
+    }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "PushTapBridge") {
+      PushTapBridge.register(with: registrar)
     }
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "ContactAccessBridge") {
       ContactAccessBridge.register(with: registrar)

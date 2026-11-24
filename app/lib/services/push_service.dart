@@ -63,6 +63,29 @@ class PushService {
   Stream<PushMessage> get foregroundMessages =>
       _driver.onForegroundMessage;
 
+  /// Taps on pushes delivered while the shell is mounted.
+  Stream<PushTap> get pushTaps => _driver.onPushTap;
+
+  /// Consumes the tap that launched the app (or arrived before the shell
+  /// mounted). Null when none. Never throws. Skipped where push cannot run:
+  /// no device support means no tap could have happened.
+  Future<PushTap?> getInitialTap() async {
+    try {
+      if (!isAvailable) return null;
+      return await _driver.getInitialTap();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Enables live tap delivery once a navigation shell is mounted.
+  Future<void> setTapArmed(bool armed) async {
+    try {
+      if (!isAvailable) return;
+      await _driver.setTapArmed(armed);
+    } catch (_) {}
+  }
+
   /// Re-uploads the token whenever Firebase rotates it.
   StreamSubscription<void> startTokenRefreshSync() =>
       _driver.onTokenRefresh.listen((_) => syncToken());
