@@ -41,6 +41,15 @@ void main() {
     expect(session?.questions.length, 1);
   });
 
+  test('daily limit cannot fall back into an unlocked local round', () async {
+    final quiz = MockQuizService();
+    when(
+      () => quiz.getQuizzes(),
+    ).thenThrow(const ApiException('50 rounds reached', statusCode: 429));
+    final source = ServerRoundSource(quiz, isLoggedIn: () async => true);
+    await expectLater(source.tryLoadSession(), throwsA(isA<ApiException>()));
+  });
+
   test('api failure resolves to null', () async {
     final quiz = MockQuizService();
     when(() => quiz.getQuizzes()).thenThrow(Exception('offline'));

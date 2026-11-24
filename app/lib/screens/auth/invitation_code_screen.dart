@@ -135,11 +135,9 @@ class _InvitationCodeScreenState extends ConsumerState<InvitationCodeScreen> {
         );
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Invitation applied. Your wait pass is ready.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Invitation recorded.')));
       context.go(AppRoutes.invite);
     } on ApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
@@ -170,11 +168,11 @@ class _InvitationCodeScreenState extends ConsumerState<InvitationCodeScreen> {
             ),
             const SizedBox(height: 16),
             const Text(
-              'Apply the code from your message and register. You and your friend each get one pass to skip a 60-minute wait.',
+              'You can enter the invitation code from your message before signing in. Registration does not award extra rounds.',
             ),
             const SizedBox(height: 12),
             const Text(
-              'Your friend will see that you registered and receive your first name in an invitation notification. If they selected your phone number, we can also match your invitation after you verify it.',
+              'To confirm a new invitation, open its link and tap Continue to Flyprox. You do not need to install the app to confirm.',
             ),
             const SizedBox(height: 24),
             OutlinedButton.icon(

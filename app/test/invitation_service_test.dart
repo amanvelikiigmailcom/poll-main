@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flyprox_app/services/api_service.dart';
 import 'package:flyprox_app/services/invitation_service.dart';
@@ -12,6 +13,9 @@ import 'fakes/fake_secure_storage.dart';
 class InviteApi extends ApiService {
   InviteApi(super.storage);
   int credits = 1, redeemCalls = 0, reads = 0;
+  int policy = 1, sent = 0;
+  int? dailyRemaining;
+  final deliveryIds = <String>{};
   bool loseRedeemResponse = false, offline = false, claimFails = false;
   ApiException? claimError;
   bool composeFails = false, createFailsOnce = false;
@@ -36,6 +40,13 @@ class InviteApi extends ApiService {
       requestOptions: RequestOptions(path: path),
       data:
           <String, dynamic>{
+                'version': policy,
+                'messagesSent': sent,
+                if (dailyRemaining != null)
+                  'daily': {
+                    'remaining': dailyRemaining,
+                    'resetsAt': '2099-01-01T00:00:00Z',
+                  },
                 'userId': accountId,
                 'balance': credits,
                 'earned': 1,
@@ -85,6 +96,13 @@ class InviteApi extends ApiService {
       if (claimError != null) throw claimError!;
       if (duringClaim != null) await duringClaim!();
       result = {'claimed': true};
+    } else if (path.endsWith('/delivery-result')) {
+      if (composeFails) throw const ApiException('Connection lost');
+      if (data['result'] == 'sent' &&
+          deliveryIds.add(data['launchId'] as String)) {
+        sent++;
+        credits++;
+      }
     } else if (path.endsWith('/compose-result')) {
       if (composeFails) throw const ApiException('Connection lost');
     } else if (path == '/api/invites') {
@@ -93,6 +111,9 @@ class InviteApi extends ApiService {
         throw const ApiException('Connection lost');
       }
       result = {
+        'version': 2,
+        'channel': 'messages',
+        'activated': false,
         'code': 'ABC234',
         'url': 'https://api.flyprox.com/i/ABC234',
         'ownerUserId': accountId,
@@ -126,6 +147,118 @@ void main() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(InvitationService.messages, null);
   });
+
+  test(
+    'ten sent results accumulate ten rounds and survive a new service instance',
+    () async {
+      api.policy = 2;
+      api.credits = 0;
+      await service.refresh();
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            InvitationService.messages,
+            (_) async => 'sent',
+          );
+      for (var i = 0; i < 10; i++) {
+        final invite = await service.create(phone: '+1650555${(1000 + i)}');
+        expect(await service.sendV2(invite, '+1650555${1000 + i}'), 'sent');
+      }
+      expect(service.balance, 10);
+      expect(service.messagesSent, 10);
+      service.dispose();
+      service = InvitationService(api, storage);
+      await service.refresh();
+      expect(service.balance, 10);
+      expect(service.messagesSent, 10);
+      expect(
+        api.posts
+            .where((p) => p.$1 == '/api/invites')
+            .every((p) => !(p.$2 as Map).containsKey('phone')),
+        true,
+      );
+    },
+  );
+
+  test(
+    'daily limit preserves all banked rounds without spending a pass',
+    () async {
+      api.policy = 2;
+      api.credits = 10;
+      api.dailyRemaining = 0;
+      await game.completeRound();
+      await service.refresh();
+      expect(service.balance, 10);
+      expect(service.dailyRemaining, 0);
+      expect(api.redeemCalls, 0);
+      expect(await game.secondsUntilNextRound(), greaterThan(0));
+    },
+  );
+
+  test(
+    'offline sent result is persisted for its owner and retried after account switch',
+    () async {
+      api.policy = 2;
+      api.credits = 0;
+      await service.refresh();
+      final invite = await service.create(phone: '+16505551000');
+      api.composeFails = true;
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            InvitationService.messages,
+            (_) async => 'sent',
+          );
+      await service.sendV2(invite, '+16505551000');
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getStringList('invite_delivery_queue_v2'), hasLength(1));
+      expect(
+        prefs.getStringList('invite_delivery_queue_v2').toString(),
+        isNot(contains('session-a')),
+      );
+      api.composeFails = false;
+      api.accountId = 'account-b';
+      await storage.saveToken('session-b');
+      await service.refresh();
+      expect(prefs.getStringList('invite_delivery_queue_v2'), hasLength(1));
+      api.accountId = 'account-a';
+      await storage.saveToken('session-a');
+      await service.refresh();
+      expect(prefs.getStringList('invite_delivery_queue_v2'), isEmpty);
+      expect(service.balance, 1);
+    },
+  );
+
+  test(
+    'WhatsApp requires strictly more than four background seconds and never reports sent',
+    () async {
+      api.policy = 2;
+      api.credits = 0;
+      service.dispose();
+      var now = DateTime.utc(2026, 11, 24, 12);
+      service = InvitationService(api, storage, now: () => now);
+      await service.refresh();
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+            InvitationService.messages,
+            (_) async => 'opened',
+          );
+      for (final ms in [4000, 4001]) {
+        final invite = {
+          ...await service.create(phone: '+1650555$ms'),
+          'channel': 'whatsapp',
+        };
+        await service.sendV2(invite, '+1650555$ms');
+        service.didChangeAppLifecycleState(AppLifecycleState.paused);
+        now = now.add(Duration(milliseconds: ms));
+        await service.processWhatsAppReturn();
+        final body =
+            api.posts.lastWhere((p) => p.$1.endsWith('/delivery-result')).$2
+                as Map;
+        expect(body['result'], ms == 4000 ? 'cancelled' : 'returned');
+      }
+      expect(service.messagesSent, 0);
+      expect(api.redeemCalls, 0);
+    },
+  );
 
   test('a pass clears only the active wait and balance becomes zero', () async {
     await game.completeRound();

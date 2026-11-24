@@ -33,6 +33,37 @@ final class InvitationBridge: NSObject, FlutterPlugin, MFMessageComposeViewContr
       pickingContact = true
       presenter.present(picker, animated: true)
       picker.presentationController?.delegate = self
+    } else if call.method == "openWhatsApp" {
+      let args = call.arguments as? [String: Any] ?? [:]
+      guard let recipient = args["recipient"] as? String,
+            recipient.range(of: "^\\+[1-9][0-9]{7,14}$", options: .regularExpression) != nil,
+            let body = args["body"] as? String, body.count <= 4096 else {
+        result(FlutterError(code: "invalid", message: "Invalid invitation.", details: nil)); return
+      }
+      var components = URLComponents()
+      components.scheme = "whatsapp"
+      components.host = "send"
+      components.queryItems = [URLQueryItem(name: "phone", value: String(recipient.dropFirst())), URLQueryItem(name: "text", value: body)]
+      guard let url = components.url, UIApplication.shared.canOpenURL(url) else {
+        result("unavailable"); return
+      }
+      UIApplication.shared.open(url, options: [:]) { opened in result(opened ? "opened" : "unavailable") }
+    } else if call.method == "share" {
+      let args = call.arguments as? [String: Any] ?? [:]
+      guard let body = args["body"] as? String, body.count <= 4096 else {
+        result(FlutterError(code: "invalid", message: "Invalid invitation.", details: nil)); return
+      }
+      let sheet = UIActivityViewController(activityItems: [body], applicationActivities: nil)
+      sheet.popoverPresentationController?.sourceView = presenter.view
+      sheet.popoverPresentationController?.sourceRect = CGRect(x: presenter.view.bounds.midX, y: presenter.view.bounds.midY, width: 1, height: 1)
+      pending = result
+      pickingContact = false
+      sheet.completionWithItemsHandler = { [weak self] _, completed, _, error in
+        let callback = self?.pending
+        self?.pending = nil
+        callback?(error != nil ? "failed" : completed ? "shared" : "cancelled")
+      }
+      presenter.present(sheet, animated: true)
     } else if call.method == "compose" {
       guard MFMessageComposeViewController.canSendText() else { result("unavailable"); return }
       let args = call.arguments as? [String: Any] ?? [:]

@@ -32,11 +32,27 @@ class _WaitPassCardState extends ConsumerState<WaitPassCard> {
             Text(
               passes.balance == null
                   ? 'Wait passes: ${passes.signedIn ? 'check balance' : 'sign in to earn'}'
+                  : passes.policyVersion == 2
+                  ? 'Rounds available: ${passes.balance}'
                   : 'Wait passes left: ${passes.balance}',
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             if (passes.balance != null)
-              Text('Earned: ${passes.earned} · Used: ${passes.used}'),
+              Text(
+                passes.policyVersion == 2
+                    ? 'Rounds activated: ${passes.earned} · Used: ${passes.used}'
+                    : 'Earned: ${passes.earned} · Used: ${passes.used}',
+              ),
+            if (passes.policyVersion == 2) ...[
+              Text(
+                'Messages sent: ${passes.messagesSent} · WhatsApp attempts: ${passes.whatsappAttempts}',
+              ),
+              Text(
+                'WhatsApp instant unlocks today: ${passes.whatsappAdvancesToday}/${passes.whatsappAdvanceLimit}',
+              ),
+              if (passes.dailyRemaining != null)
+                Text('Rounds left today: ${passes.dailyRemaining}/50'),
+            ],
             if (passes.error != null) Text(passes.error!),
             TextButton(
               onPressed: widget.onCheck ?? () => context.push(AppRoutes.invite),

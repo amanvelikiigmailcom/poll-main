@@ -182,11 +182,13 @@ class _VoteScreenState extends State<VoteScreen>
     try {
       if (discard) await LocalGameService.instance.discardRoundDraft();
       await _loadRound(language);
-    } catch (_) {
+    } catch (error) {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _loadError = 'Couldn’t open your round. Please try again.';
+        _loadError = error is ApiException
+            ? error.message
+            : 'Couldn’t open your round. Please try again.';
       });
     }
   }
@@ -332,8 +334,9 @@ class _VoteScreenState extends State<VoteScreen>
                 (c) =>
                     !c.isSelf &&
                     (c.contactHash != null
-                      ? localLabels[c.contactHash]?.trim().toLowerCase()
-                      : c.fullName.trim().toLowerCase()) == name.trim().toLowerCase(),
+                            ? localLabels[c.contactHash]?.trim().toLowerCase()
+                            : c.fullName.trim().toLowerCase()) ==
+                        name.trim().toLowerCase(),
               )
               .toList();
           final userId = matches.length == 1 ? matches.single.id : null;
@@ -625,8 +628,11 @@ class _VoteScreenState extends State<VoteScreen>
         awardStars: sessionId == null,
       );
       if (mounted) {
-        try { ProviderScope.containerOf(context).invalidate(starBalanceProvider); }
-        on StateError { /* An injected offline preview may have no provider scope. */ }
+        try {
+          ProviderScope.containerOf(context).invalidate(starBalanceProvider);
+        } on StateError {
+          /* An injected offline preview may have no provider scope. */
+        }
       }
       if (mounted) context.go(AppRoutes.starReceived);
     } catch (error) {
