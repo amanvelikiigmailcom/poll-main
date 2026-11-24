@@ -1,5 +1,8 @@
 # Profile update
 
+Other-person destinations now use `PersonProfileScreen`; see
+[person-profile.md](person-profile.md).
+
 - Preserve bottom navigation unchanged.
 - White rounded profile card, fixed 🙂, English UI, canonical name and @username.
 - Current campus and graduation year from onboarding; existing one-campus-change

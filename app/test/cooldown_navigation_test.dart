@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:flyprox_app/screens/profile/person_profile_screen.dart';
 import 'package:flyprox_app/screens/voting/vote_screen.dart';
 import 'package:flyprox_app/screens/voting/timer_screen.dart';
 import 'fakes/eligible_player.dart';
@@ -253,6 +255,23 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), 'alex_123');
       await tester.pump(const Duration(milliseconds: 500));
+      for (final path in ['/people/alex', '/p/@alex_123']) {
+        unawaited(testAppRouter.push<void>(path));
+        await tester.pumpAndSettle();
+        expect(find.byType(PersonProfileScreen), findsOneWidget);
+        expect(
+          tester
+              .widget<AppBottomNavBar>(find.byType(AppBottomNavBar))
+              .currentIndex,
+          1,
+        );
+        testAppRouter.pop();
+        await tester.pumpAndSettle();
+        expect(
+          tester.widget<TextField>(find.byType(TextField)).controller!.text,
+          'alex_123',
+        );
+      }
       await tester.tap(find.byTooltip('Home'));
       await tester.pumpAndSettle();
       expect(find.text('Question 2 of 12'), findsOneWidget);

@@ -573,6 +573,6 @@ class _PremiumResultScreenState extends State<PremiumResultScreen>
       ),
     );
     // TODO: Navigate to profile screen
-    // context.push('/profile/${person.userId}');
+    // Retired mock-voter screen: do not link invented voter identities.
   }
 }

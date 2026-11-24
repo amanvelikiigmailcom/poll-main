@@ -30,6 +30,73 @@ ResponseBody jsonResponse(int status, Map<String, dynamic> data) =>
       },
     );
 void main() {
+  test(
+    'person nominations encode IDs/cursors and parse only grouped public data',
+    () async {
+      final storage = SessionStorage();
+      final api = ApiService(storage);
+      api.dio.httpClientAdapter = SocialHttpAdapter((request) async {
+        expect(request.headers['Authorization'], 'Bearer first-account');
+        expect(request.uri.path, '/api/social/users/alex/nominations');
+        expect(request.uri.queryParameters['cursor'], 'opaque+cursor/=');
+        return jsonResponse(200, {
+          'friendsCount': 54,
+          'votesReceived': 12,
+          'items': [
+            {
+              'questionId': 'q1',
+              'question': 'Who makes everyone smile?',
+              'count': 5,
+            },
+          ],
+          'nextCursor': 'next',
+        });
+      });
+      final data = await SocialService(
+        api,
+        storage,
+      ).nominations('alex', cursor: 'opaque+cursor/=');
+      expect(data.friendsCount, 54);
+      expect(data.votesReceived, 12);
+      expect(data.items.single.questionId, 'q1');
+      expect(data.items.single.count, 5);
+      expect(data.nextCursor, 'next');
+    },
+  );
+
+  test(
+    'late person statistics cannot cross accounts and older servers do not fabricate zero counts',
+    () async {
+      final storage = SessionStorage();
+      final api = ApiService(storage);
+      final started = Completer<void>();
+      final release = Completer<void>();
+      api.dio.httpClientAdapter = SocialHttpAdapter((request) async {
+        started.complete();
+        await release.future;
+        return jsonResponse(200, {
+          'friendsCount': 54,
+          'votesReceived': 12,
+          'items': [],
+          'nextCursor': null,
+        });
+      });
+      final pending = SocialService(api, storage).nominations('alex');
+      final assertion = expectLater(pending, throwsA(isA<ApiException>()));
+      await started.future;
+      storage.token = 'second-account';
+      release.complete();
+      await assertion;
+      api.dio.httpClientAdapter = SocialHttpAdapter(
+        (_) async => jsonResponse(404, {'message': 'Not found'}),
+      );
+      await expectLater(
+        SocialService(api, storage).nominations('alex'),
+        throwsA(isA<ApiException>().having((e) => e.statusCode, 'status', 404)),
+      );
+    },
+  );
+
   test('guest search never sends HTTP', () async {
     final storage = SessionStorage()..token = null;
     final api = ApiService(storage);

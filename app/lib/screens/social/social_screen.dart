@@ -9,11 +9,10 @@ import '../../services/storage_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/common/social_identity.dart';
 
-enum SocialPage { search, friends, blocked, person }
+enum SocialPage { search, friends, blocked }
 
-final _visibilityRevision = NotifierProvider<_VisibilityRevision, int>(
-  _VisibilityRevision.new,
-);
+final socialVisibilityRevisionProvider =
+    NotifierProvider<_VisibilityRevision, int>(_VisibilityRevision.new);
 
 class _VisibilityRevision extends Notifier<int> {
   @override
@@ -27,13 +26,9 @@ class SocialScreen extends ConsumerStatefulWidget {
   const SocialScreen({
     super.key,
     required this.page,
-    this.userId,
-    this.username,
     this.initialKind = 'friends',
   });
   final SocialPage page;
-  final String? userId;
-  final String? username;
   final String initialKind;
   @override
   ConsumerState<SocialScreen> createState() => _SocialScreenState();
@@ -162,26 +157,9 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
         });
         return;
       }
-      final Map<String, dynamic> data;
-      if (widget.page == SocialPage.person) {
-        final profile = widget.username == null
-            ? await service.profile(widget.userId!)
-            : await service.request(
-                '/handles/${Uri.encodeComponent(widget.username!)}',
-              );
-        if (!mounted || generation != _generation) return;
-        if (profile['self'] == true) {
-          context.go(AppRoutes.profile);
-          return;
-        }
-        data = {
-          'users': [profile],
-        };
-      } else {
-        data = _isSearch
-            ? await service.search(query, cursor: more ? _next : null)
-            : await service.list(_kind, cursor: more ? _next : null);
-      }
+      final data = _isSearch
+          ? await service.search(query, cursor: more ? _next : null)
+          : await service.list(_kind, cursor: more ? _next : null);
       if (!mounted || generation != _generation) return;
       setState(() {
         final users = (data['users'] as List? ?? [])
@@ -273,18 +251,15 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
         return;
       }
       ref.invalidate(socialSummaryProvider);
-      final visibilityChanged = action == 'block' || action == 'unblock';
-      if (visibilityChanged) ref.read(_visibilityRevision.notifier).changed();
       if (action == 'report') {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Report received. You can also block this account.'),
           ),
         );
-      } else if (widget.page == SocialPage.person && action == 'block') {
-        context.pop();
-      } else if (!visibilityChanged || widget.page == SocialPage.person) {
-        await _load();
+      } else {
+        // Relationship changes also invalidate profiles and other mounted lists.
+        ref.read(socialVisibilityRevisionProvider.notifier).changed();
       }
     } catch (error) {
       if (mounted && generation == _generation) {
@@ -311,17 +286,14 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
         unawaited(_load());
       });
     }
-    if (widget.page != SocialPage.person) {
-      ref.listen(_visibilityRevision, (_, _) {
-        _debounce?.cancel();
-        unawaited(_load());
-      });
-    }
+    ref.listen(socialVisibilityRevisionProvider, (_, _) {
+      _debounce?.cancel();
+      unawaited(_load());
+    });
     final title = switch (widget.page) {
       SocialPage.search => 'Find your people',
       SocialPage.friends => 'Friends',
       SocialPage.blocked => 'Blocked accounts',
-      SocialPage.person => 'Profile',
     };
     final visible = _isSearch || _search.text.isEmpty
         ? _users
@@ -536,15 +508,6 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                 () => setState(() => _campusLimit += 20),
               ),
             ],
-            if (widget.page == SocialPage.person && !_guest)
-              const Padding(
-                padding: EdgeInsets.only(top: 20),
-                child: Text(
-                  'No direct messages. Just friend requests and the game.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textSecondary, height: 1.5),
-                ),
-              ),
           ],
         ),
       ),
@@ -582,7 +545,6 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
 
   Widget _userCard(Map<String, dynamic> user, {bool recommendation = false}) {
     final relationship = user['relationship'] as String? ?? 'none';
-    final person = widget.page == SocialPage.person;
     final inlineActions =
         recommendation &&
         relationship == 'none' &&
@@ -630,7 +592,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
               Expanded(
                 child: InkWell(
                   borderRadius: BorderRadius.circular(8),
-                  onTap: person || relationship == 'blocked'
+                  onTap: relationship == 'blocked'
                       ? null
                       : () => context.push(
                           '/people/${Uri.encodeComponent(user['id'] as String)}',
@@ -655,12 +617,6 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                               color: AppColors.textSecondary,
                             ),
                           ),
-                        if (person &&
-                            user['campus'] is Map &&
-                            (user['campus'] as Map)['name'] is String)
-                          Text((user['campus'] as Map)['name'] as String),
-                        if (person && user['graduationYear'] is int)
-                          Text('Class of ${user['graduationYear']}'),
                         if (recommendation)
                           if (user['mutualCount'] case final int count)
                             Text(

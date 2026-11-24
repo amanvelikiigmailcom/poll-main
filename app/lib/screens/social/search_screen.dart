@@ -511,7 +511,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       itemBuilder: (_, i) => _UserCard(
         user: _results[i],
         onAddFriend: () => _sendFriendRequest(_results[i]),
-        onTap: () => context.push('/profile/${_results[i].id}'),
+        onTap: () => context.push('/people/${Uri.encodeComponent(_results[i].id)}'),
       ),
     );
   }

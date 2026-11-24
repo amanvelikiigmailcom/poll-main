@@ -34,3 +34,10 @@ Unit-тесты проверяют правила и восстановлени�
 ## Отдельно на iPhone
 
 См. [device/README.md](device/README.md). Это отдельный ручной чек-лист, не автоматически исполняемый device-suite. Обычный `flutter test` его не запускает. Безопасность начислений/списаний/авторизации проверяем постоянно без телефона; настоящие Messages, APNs, Universal Links и Apple Sandbox проверяем отдельным этапом перед релизом соответствующих функций. Xcode Cloud для этих локальных проверок не требуется и сейчас запрещён владельцем.
+# Other-person profile
+
+`person_profile_screen_test.dart` covers the English other-person screen,
+relationship actions/confirmations, guarded names, paginated nomination groups,
+stale responses, self redirect and narrow-screen text scaling.
+`cooldown_navigation_test.dart` verifies both profile routes preserve search and
+the unfinished round in the real router. See `docs/person-profile.md`.

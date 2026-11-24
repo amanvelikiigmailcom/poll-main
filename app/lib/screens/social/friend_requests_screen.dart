@@ -204,7 +204,7 @@ class FriendRequestsScreen extends ConsumerWidget {
                   onDecline: () => notifier.decline(req.id),
                   onRemoveAccepted: () =>
                       notifier.removeAccepted(req.id),
-                  onTapProfile: () => context.push('/profile/${req.id}'),
+                  onTapProfile: () => context.push('/people/${Uri.encodeComponent(req.id)}'),
                 );
               },
             ),

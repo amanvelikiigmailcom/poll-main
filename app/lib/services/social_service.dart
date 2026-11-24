@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import '../services/api_service.dart';
 import '../services/storage_service.dart';
+import '../models/person_profile.dart';
 
 /// Every response is bound to the credential that initiated it. No cross-account cache.
 class SocialService {
@@ -65,6 +66,13 @@ class SocialService {
   Future<Map<String, dynamic>> suggestions() => request('/suggestions');
   Future<Map<String, dynamic>> profile(String id) =>
       request('/users/${Uri.encodeComponent(id)}');
+  Future<PersonNominations> nominations(String id, {String? cursor}) async =>
+      PersonNominations.fromJson(
+        await request(
+          '/users/${Uri.encodeComponent(id)}/nominations'
+          '${cursor == null ? '' : '?cursor=${Uri.encodeComponent(cursor)}'}',
+        ),
+      );
   Future<Map<String, dynamic>> act(String id, String action) =>
       request('/users/${Uri.encodeComponent(id)}/$action', method: 'POST');
   Future<String> saveHandle(String username) async =>

@@ -240,7 +240,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
                     itemBuilder: (context, i) => _FriendCard(
                       friend: filtered[i],
                       onTap: () => context
-                          .push('/profile/${filtered[i].id}'),
+                          .push('/people/${Uri.encodeComponent(filtered[i].id)}'),
                       onRemove: () =>
                           _confirmRemove(context, filtered[i], notifier),
                     ),
@@ -475,7 +475,7 @@ class _FriendCard extends StatelessWidget {
               title: const Text('Открыть профиль'),
               onTap: () {
                 Navigator.pop(context);
-                context.push('/profile/${friend.id}');
+                context.push('/people/${Uri.encodeComponent(friend.id)}');
               },
             ),
             ListTile(

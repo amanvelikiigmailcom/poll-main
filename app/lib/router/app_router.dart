@@ -20,6 +20,7 @@ import '../screens/voting/star_received_screen.dart';
 import '../screens/voting/timer_screen.dart';
 import '../screens/social/invite_friend_screen.dart';
 import '../screens/profile/profile_screen.dart';
+import '../screens/profile/person_profile_screen.dart';
 import '../screens/profile/edit_profile_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/settings/delete_account_screen.dart';
@@ -375,17 +376,13 @@ GoRouter createAppRouter({bool showInvitationIntro = true}) => GoRouter(
           routes: [
             GoRoute(
               path: '/p/:handle',
-              builder: (_, state) => SocialScreen(
-                page: SocialPage.person,
-                username: state.pathParameters['handle'],
-              ),
+              builder: (_, state) =>
+                  PersonProfileScreen(username: state.pathParameters['handle']),
             ),
             GoRoute(
               path: '/people/:id',
-              builder: (_, state) => SocialScreen(
-                page: SocialPage.person,
-                userId: state.pathParameters['id'],
-              ),
+              builder: (_, state) =>
+                  PersonProfileScreen(userId: state.pathParameters['id']),
             ),
             GoRoute(
               path: AppRoutes.search,
