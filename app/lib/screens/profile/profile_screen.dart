@@ -56,7 +56,11 @@ class ProfileScreen extends ConsumerWidget {
                     children: [
                       _ProfileHeaderCard(user: user, local: local),
                       const _CampusProfileRow(),
-                      const ProfileSocialSection(),
+                       const ProfileSocialSection(),
+                       const Padding(
+                         padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+                         child: CollectionProfileCard(),
+                       ),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 16),
                         child: WaitPassCard(),
@@ -191,11 +195,36 @@ class _ProfileHeaderCard extends ConsumerWidget {
               .when(
                 skipLoadingOnRefresh: false,
                 skipLoadingOnReload: false,
-                data: (value) => Text('⭐ ${value ?? '—'} Stars'),
+                data: (value) => TextButton(
+                  onPressed: () => context.push(AppRoutes.collection),
+                  child: Text('⭐ ${value ?? '—'} Stars'),
+                ),
                 loading: () => const Text('⭐ — Stars'),
                 error: (_, _) => const Text('⭐ — Stars'),
               ),
         ],
+      ),
+    );
+  }
+}
+
+class CollectionProfileCard extends ConsumerWidget {
+  const CollectionProfileCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final balance = ref.watch(starBalanceProvider).asData?.value;
+    return Material(
+      color: AppColors.white,
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: const Text('⭐', style: TextStyle(fontSize: 30)),
+        title: const Text('Collection', style: TextStyle(fontWeight: FontWeight.w700)),
+        subtitle: Text('${balance == null ? 'Your stars' : '$balance stars'} · Promote yourself'),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: () => context.push(AppRoutes.collection),
       ),
     );
   }

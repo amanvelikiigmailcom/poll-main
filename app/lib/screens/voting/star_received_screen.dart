@@ -258,7 +258,7 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                               ),
                               const SizedBox(height: 12),
                               const Text(
-                                'Your choices are saved only on this device.\nTap Reveal to see your round.',
+                                'Your round is complete.\nTap Reveal to see your choices.',
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: Colors.white60,
@@ -283,6 +283,20 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       backgroundColor: Colors.amber,
                       foregroundColor: const Color(0xFF1A237E)),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => context.push(AppRoutes.collection),
+                    icon: const Icon(Icons.star_outline_rounded),
+                    label: const Text('Collection'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white70),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),

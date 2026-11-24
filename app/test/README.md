@@ -34,3 +34,9 @@ Unit-тесты проверяют правила и восстановлени�
 ## Отдельно на iPhone
 
 См. [device/README.md](device/README.md). Это отдельный ручной чек-лист, не автоматически исполняемый device-suite. Обычный `flutter test` его не запускает. Безопасность начислений/списаний/авторизации проверяем постоянно без телефона; настоящие Messages, APNs, Universal Links и Apple Sandbox проверяем отдельным этапом перед релизом соответствующих функций. Xcode Cloud для этих локальных проверок не требуется и сейчас запрещён владельцем.
+# Collection / boosts
+
+`collection_service_test.dart` covers persisted purchase IDs, uncertain replies,
+account switches and server-only balances. `collection_screen_test.dart` covers
+profile/reward navigation, buy/cancel, retry, insufficient stars and large text.
+These tests do not replace native device or real database acceptance.

@@ -3,6 +3,7 @@ import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/account_balance_service.dart';
+import '../services/collection_service.dart';
 import '../services/local_game_service.dart';
 import '../services/notification_preferences_service.dart';
 import '../services/activity_service.dart';
@@ -34,6 +35,12 @@ final storageServiceProvider = Provider<StorageService>((ref) {
 final apiServiceProvider = Provider<ApiService>((ref) {
   return ApiService(ref.watch(storageServiceProvider));
 });
+
+final collectionServiceProvider = ChangeNotifierProvider.autoDispose<CollectionService>(
+  (ref) => CollectionService(
+    ref.watch(apiServiceProvider), ref.watch(storageServiceProvider),
+  ),
+);
 
 final invitationServiceProvider = ChangeNotifierProvider<InvitationService>((
   ref,

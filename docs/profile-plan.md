@@ -8,7 +8,8 @@
 - Five accepted friends and See all. Show server-projected first + last name and
   @username; missing names fall back to handle. No mutual-friend annotation.
 - Reuse existing friends/Received request screens and actual `/people/:id`.
-- No new Collection entry; received votes belong to Likes.
+- Collection is a separate stars/boosts card and reward-screen action, per the
+  updated owner request. Received votes still belong to Likes.
 - Likes now requests a private paginated received-vote feed with historical server
   count. Never return voter identity. Loading/error/empty are different states.
 - Share profile copies `https://api.flyprox.com/p/@username`, with toast and
@@ -16,6 +17,7 @@
   block checks. iOS universal-link association adds `/p/*`; web fallback offers
   handle search without exposing profile existence.
 - Defer incoming profile links while age/onboarding/round flows are active.
+- Other-person destinations use `PersonProfileScreen`; see [person-profile.md](person-profile.md).
 - Full Flutter and backend checks required. No push, deployment or native/cloud
   build is authorized by this plan. Real universal-link device QA remains separate.
 
