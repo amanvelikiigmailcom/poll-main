@@ -158,6 +158,13 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const Divider(height: 1),
             _ArrowTile(
+              icon: Icons.live_help_outlined,
+              title: 'FAQ',
+              subtitle: '37 answers about rounds, stars and privacy',
+              onTap: () => context.push(AppRoutes.faq),
+            ),
+            const Divider(height: 1),
+            _ArrowTile(
               icon: Icons.support_agent,
               title: 'Support and safety',
               onTap: () => context.push(AppRoutes.safetyCenter),
