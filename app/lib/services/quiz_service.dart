@@ -90,6 +90,7 @@ class QuizSession {
   final bool supportsRoundSubmission;
   final bool schoolVoting;
   final bool serverCandidatesOnly;
+  final bool preferenceFallback;
 
   const QuizSession({
     required this.sessionId,
@@ -100,6 +101,7 @@ class QuizSession {
     this.supportsRoundSubmission = false,
     this.schoolVoting = false,
     this.serverCandidatesOnly = false,
+    this.preferenceFallback = false,
   });
 
   factory QuizSession.fromJson(Map<String, dynamic> json) {
@@ -114,6 +116,7 @@ class QuizSession {
       supportsRoundSubmission: json['supportsRoundSubmission'] == true,
       schoolVoting: json['votingMode'] == 'school',
       serverCandidatesOnly: json['serverCandidatesOnly'] == true,
+      preferenceFallback: json['preferenceFallback'] == true,
     );
   }
 }

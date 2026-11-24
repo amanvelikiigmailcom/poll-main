@@ -121,4 +121,19 @@ void main() {
     expect(cards[1].graduationYear, isNull);
     expect(cards[1].isFriend, isFalse);
   });
+  test('round parses the preference fallback flag with a false default', () {
+    final fallback = QuizSession.fromJson({
+      'sessionId': 'round',
+      'questions': [],
+      'totalQuestions': 12,
+      'preferenceFallback': true,
+    });
+    expect(fallback.preferenceFallback, isTrue);
+    final plain = QuizSession.fromJson({
+      'sessionId': 'round',
+      'questions': [],
+      'totalQuestions': 12,
+    });
+    expect(plain.preferenceFallback, isFalse);
+  });
 }

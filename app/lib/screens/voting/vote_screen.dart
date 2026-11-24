@@ -128,6 +128,7 @@ class _VoteScreenState extends State<VoteScreen>
   ServerRoundSource? _source;
   String? _sessionId;
   bool _schoolVoting = false;
+  bool _preferenceFallback = false;
   String? _sessionKey;
   String? _ownerId;
   bool _editingFromReview = false;
@@ -279,6 +280,7 @@ class _VoteScreenState extends State<VoteScreen>
       _ownerId = ownerId;
       _sealed = draft['sealed'] == true;
       _editingFromReview = draft['editingFromReview'] == true;
+      _preferenceFallback = draft['preferenceFallback'] == true;
       _useRound(
         questions,
         completed,
@@ -403,6 +405,8 @@ class _VoteScreenState extends State<VoteScreen>
       _schoolVoting = serverSession.schoolVoting;
       _sessionKey = _source!.loadedSessionKey;
       _ownerId = serverSession.ownerId;
+      _preferenceFallback =
+          serverSession.preferenceFallback && !serverSession.schoolVoting;
       await _initializeRound(questions, completed, 0, []);
       return;
     }
@@ -449,6 +453,7 @@ class _VoteScreenState extends State<VoteScreen>
     _schoolVoting = false;
     _sessionKey = null;
     _ownerId = null;
+    _preferenceFallback = false;
     await _initializeRound(questions, completed, startIndex, previous);
   }
 
@@ -517,6 +522,7 @@ class _VoteScreenState extends State<VoteScreen>
           'questions': _questions.map((q) => q.toDraft()).toList(),
           if (_sessionId != null) 'sessionId': _sessionId,
           if (_schoolVoting) 'schoolVoting': true,
+          if (_preferenceFallback) 'preferenceFallback': true,
           if (_sessionKey != null) 'sessionKey': _sessionKey,
           if (_ownerId != null) 'ownerId': _ownerId,
           'editingFromReview': _editingFromReview,
@@ -803,6 +809,7 @@ class _VoteScreenState extends State<VoteScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildQuestion(),
+                        if (_preferenceFallback) _buildFallbackNotice(),
                         if (_sessionId != null)
                           const Padding(
                             padding: EdgeInsets.only(top: 12),
@@ -987,6 +994,34 @@ class _VoteScreenState extends State<VoteScreen>
       ),
     );
   }
+
+  /// Round-level notice: the server found nobody matching the quiz filters
+  /// and dealt a plain contacts round with the local test names instead.
+  Widget _buildFallbackNotice() => Container(
+    margin: const EdgeInsets.only(top: 12),
+    padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+    decoration: BoxDecoration(
+      color: AppColors.white,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: AppColors.border),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Nobody matches your filters. Playing with your test names this round.',
+          style: TextStyle(height: 1.4),
+        ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            onPressed: () => showQuizPreferences(context),
+            child: const Text('Change filters'),
+          ),
+        ),
+      ],
+    ),
+  );
 
   Widget _buildQuestion() {
     return Text(
