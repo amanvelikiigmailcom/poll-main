@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../config/school_launch.dart';
 import '../../providers/service_providers.dart';
 import '../../router/app_router.dart';
 import '../../services/content_service.dart';
@@ -114,6 +115,37 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
         });
       }
     }
+  }
+
+  void _select(Map<String, dynamic> school) {
+    if (!SchoolLaunch.isOpen(school, fallbackCountry: country)) {
+      _unavailable(school);
+      return;
+    }
+    setState(() => selected = school);
+  }
+
+  Future<void> _unavailable(Map<String, dynamic> school) async {
+    final email = ContentService.instance.text('support_email');
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Campus not available yet'),
+        content: Text(
+          SchoolLaunch.closedMessage(
+            country: school['country'] as String? ?? country,
+            schoolName: school['name'] as String? ?? 'This campus',
+            email: email,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _next({bool skip = false}) async {
@@ -281,7 +313,7 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
               child: OutlinedButton(
                 onPressed: saving
                     ? null
-                    : () => setState(() => selected = school),
+                    : () => _select(school),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: selected?['id'] == school['id']
                       ? onboardingBlue
