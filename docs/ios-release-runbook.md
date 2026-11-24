@@ -16,6 +16,10 @@ Backend runtime и client build — разные стадии: [backend referenc
    не обновлять SDK/Pods как побочный эффект сборки. Проверить соответствие Pods Manifest.
 4. Для разрешённого нового upload сверить доступные builds в App Store Connect;
    source version не доказывает доступность build. Номер не выбирать по старой истории.
+   Также прочитать appStoreVersions: новая marketing version должна быть выше
+   последней READY_FOR_SALE. У уже выпущенной версии pre-release train может быть
+   закрыт даже при свободном build number. Согласовать pubspec/Archive/IPA с открытой
+   версией до Archive; существующий PREPARE_FOR_SUBMISSION использовать по задаче.
 5. Проверить release config, API URL и наличие Superwall key без вывода значения.
    Локальный ключ может быть skip-worktree: placeholder в Git не доказывает отсутствие
    ключа на машине. Не перезаписывать локальный ключ при checkout/merge.
