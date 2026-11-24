@@ -44,6 +44,38 @@ class FakeSocial extends SocialService {
   };
 }
 
+class UnblockSocial extends FakeSocial {
+  UnblockSocial(super.api, super.storage);
+
+  bool blocked = true;
+  final user = {'id': 'one', 'username': 'alex_123', 'relationship': 'none'};
+
+  @override
+  Future<Map<String, dynamic>> search(String username, {String? cursor}) async {
+    searches.add(username);
+    return {
+      'users': blocked ? [] : [user],
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> list(String kind, {String? cursor}) async => {
+    'users': blocked && kind == 'blocked'
+        ? [
+            {...user, 'relationship': 'blocked'},
+          ]
+        : [],
+  };
+
+  @override
+  Future<Map<String, dynamic>> act(String id, String action) async {
+    expect(id, 'one');
+    expect(action, 'unblock');
+    blocked = false;
+    return {'relationship': 'none'};
+  }
+}
+
 void main() {
   test('game belongs to Home; each other destination has its own tab', () {
     for (final route in ['/home', '/vote', '/timer', '/star-received']) {
@@ -249,5 +281,51 @@ void main() {
     await tester.tap(find.byTooltip('Clear search'));
     await tester.pumpAndSettle();
     expect(find.text('@alex_123'), findsOneWidget);
+  });
+
+  testWidgets('unblock refreshes a mounted search without changing its query', (
+    tester,
+  ) async {
+    final storage = SessionStorage();
+    final social = UnblockSocial(ApiService(storage), storage);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storageServiceProvider.overrideWithValue(storage),
+          socialServiceProvider.overrideWithValue(social),
+        ],
+        child: const MaterialApp(
+          home: Row(
+            children: [
+              Expanded(child: SocialScreen(page: SocialPage.search)),
+              Expanded(child: SocialScreen(page: SocialPage.blocked)),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final search = find.byWidgetPredicate(
+      (widget) => widget is SocialScreen && widget.page == SocialPage.search,
+    );
+    final field = find.descendant(of: search, matching: find.byType(TextField));
+    await tester.enterText(field, 'alex_123');
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: search, matching: find.text('@alex_123')),
+      findsNothing,
+    );
+    await tester.tap(find.text('Unblock'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirm'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(field).controller!.text, 'alex_123');
+    expect(
+      find.descendant(of: search, matching: find.text('@alex_123')),
+      findsOneWidget,
+    );
+    expect(find.text('Unblock'), findsNothing);
+    expect(social.searches, ['alex_123', 'alex_123']);
   });
 }

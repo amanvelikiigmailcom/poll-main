@@ -10,6 +10,17 @@ import '../../theme/app_colors.dart';
 
 enum SocialPage { search, friends, blocked, person }
 
+final _visibilityRevision = NotifierProvider<_VisibilityRevision, int>(
+  _VisibilityRevision.new,
+);
+
+class _VisibilityRevision extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void changed() => state++;
+}
+
 /// Real server data only. Search/recommendations never expose a directory.
 class SocialScreen extends ConsumerStatefulWidget {
   const SocialScreen({
@@ -216,7 +227,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
             action == 'block'
                 ? 'You won’t find each other in search or be able to send new requests or online votes to each other.'
                 : action == 'unblock'
-                ? 'This does not restore your friendship. A new request will be needed.'
+                ? 'You can find each other and send requests again unless they still block you. You’ll need a new request to become friends.'
                 : 'You will both be removed from each other’s friends list.',
           ),
           actions: [
@@ -236,8 +247,10 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
     setState(() => _busy = true);
     try {
       await ref.read(socialServiceProvider).act(user['id'] as String, action);
-      ref.invalidate(socialSummaryProvider);
       if (!mounted) return;
+      ref.invalidate(socialSummaryProvider);
+      final visibilityChanged = action == 'block' || action == 'unblock';
+      if (visibilityChanged) ref.read(_visibilityRevision.notifier).changed();
       if (action == 'report') {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -246,7 +259,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
         );
       } else if (widget.page == SocialPage.person && action == 'block') {
         context.pop();
-      } else {
+      } else if (!visibilityChanged || widget.page == SocialPage.person) {
         await _load();
       }
     } catch (error) {
@@ -270,6 +283,12 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
   Widget build(BuildContext context) {
     if (widget.page != SocialPage.blocked) {
       ref.listen(onboardingDetailsProvider, (_, _) {
+        _debounce?.cancel();
+        unawaited(_load());
+      });
+    }
+    if (widget.page != SocialPage.person) {
+      ref.listen(_visibilityRevision, (_, _) {
         _debounce?.cancel();
         unawaited(_load());
       });
