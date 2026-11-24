@@ -1,626 +1,399 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
-
 import '../../providers/service_providers.dart';
+import '../../router/app_router.dart';
+import '../../services/collection_service.dart';
 import '../../theme/app_colors.dart';
 
-// ---------------------------------------------------------------------------
-// Collection item model
-// ---------------------------------------------------------------------------
-
-enum _CollectionCategory { frames, badges, effects, titles }
-
-class _CollectionItem {
-  const _CollectionItem({
-    required this.id,
-    required this.label,
-    required this.icon,
-    required this.category,
-    this.isUnlocked = false,
-    this.cost = 0,
-    this.isEquipped = false,
-  });
-
-  final String id;
-  final String label;
-  final IconData icon;
-  final _CollectionCategory category;
-  final bool isUnlocked;
-  final int cost;
-  final bool isEquipped;
-}
-
-// ---------------------------------------------------------------------------
-// Providers
-// ---------------------------------------------------------------------------
-
-class _CollectionState {
-  const _CollectionState({
-    required this.items,
-    this.selectedCategory,
-  });
-
-  final List<_CollectionItem> items;
-  final _CollectionCategory? selectedCategory;
-
-  List<_CollectionItem> get filtered {
-    if (selectedCategory == null) return items;
-    return items.where((i) => i.category == selectedCategory).toList();
-  }
-
-  _CollectionState copyWith({
-    List<_CollectionItem>? items,
-    _CollectionCategory? selectedCategory,
-    bool clearCategory = false,
-  }) {
-    return _CollectionState(
-      items: items ?? this.items,
-      selectedCategory:
-          clearCategory ? null : selectedCategory ?? this.selectedCategory,
-    );
-  }
-}
-
-class _CollectionNotifier extends StateNotifier<_CollectionState> {
-  _CollectionNotifier()
-      : super(_CollectionState(items: _kAllItems));
-
-  void selectCategory(_CollectionCategory? cat) {
-    if (state.selectedCategory == cat) {
-      state = state.copyWith(clearCategory: true);
-    } else {
-      state = state.copyWith(selectedCategory: cat);
-    }
-  }
-
-  void equip(String id) {
-    final updated = state.items.map((item) {
-      if (item.category !=
-          state.items.firstWhere((i) => i.id == id).category) {
-        return item;
-      }
-      return _CollectionItem(
-        id: item.id,
-        label: item.label,
-        icon: item.icon,
-        category: item.category,
-        isUnlocked: item.isUnlocked,
-        cost: item.cost,
-        isEquipped: item.id == id && item.isUnlocked,
-      );
-    }).toList();
-    state = state.copyWith(items: updated);
-  }
-
-  static const _kAllItems = [
-    // Frames
-    _CollectionItem(
-      id: 'frame_gold',
-      label: 'Gold frame',
-      icon: Icons.circle_outlined,
-      category: _CollectionCategory.frames,
-      isUnlocked: true,
-      cost: 0,
-    ),
-    _CollectionItem(
-      id: 'frame_blue',
-      label: 'Blue frame',
-      icon: Icons.radio_button_unchecked,
-      category: _CollectionCategory.frames,
-      isUnlocked: true,
-      cost: 500,
-    ),
-    _CollectionItem(
-      id: 'frame_rainbow',
-      label: 'Rainbow frame',
-      icon: Icons.panorama_fish_eye,
-      category: _CollectionCategory.frames,
-      isUnlocked: false,
-      cost: 2000,
-    ),
-    _CollectionItem(
-      id: 'frame_flame',
-      label: 'Fire frame',
-      icon: Icons.local_fire_department_outlined,
-      category: _CollectionCategory.frames,
-      isUnlocked: false,
-      cost: 5000,
-    ),
-    // Badges
-    _CollectionItem(
-      id: 'badge_vote',
-      label: 'First vote',
-      icon: Icons.how_to_vote_outlined,
-      category: _CollectionCategory.badges,
-      isUnlocked: true,
-      cost: 0,
-    ),
-    _CollectionItem(
-      id: 'badge_popular',
-      label: 'Popular',
-      icon: Icons.local_fire_department_outlined,
-      category: _CollectionCategory.badges,
-      isUnlocked: true,
-      cost: 0,
-    ),
-    _CollectionItem(
-      id: 'badge_school',
-      label: 'School friend',
-      icon: Icons.school_outlined,
-      category: _CollectionCategory.badges,
-      isUnlocked: false,
-      cost: 3000,
-    ),
-    _CollectionItem(
-      id: 'badge_star',
-      label: 'Star',
-      icon: Icons.star_outline,
-      category: _CollectionCategory.badges,
-      isUnlocked: false,
-      cost: 10000,
-    ),
-    _CollectionItem(
-      id: 'badge_mystery',
-      label: 'Mysterious',
-      icon: Icons.person_outline,
-      category: _CollectionCategory.badges,
-      isUnlocked: false,
-      cost: 7500,
-    ),
-    _CollectionItem(
-      id: 'badge_activist',
-      label: 'Activist',
-      icon: Icons.campaign_outlined,
-      category: _CollectionCategory.badges,
-      isUnlocked: false,
-      cost: 4000,
-    ),
-    // Effects
-    _CollectionItem(
-      id: 'effect_sparkle',
-      label: 'Glitter',
-      icon: Icons.auto_awesome,
-      category: _CollectionCategory.effects,
-      isUnlocked: false,
-      cost: 8000,
-    ),
-    _CollectionItem(
-      id: 'effect_glow',
-      label: 'Glow',
-      icon: Icons.light_mode_outlined,
-      category: _CollectionCategory.effects,
-      isUnlocked: false,
-      cost: 6000,
-    ),
-    // Titles
-    _CollectionItem(
-      id: 'title_king',
-      label: 'Class king',
-      icon: Icons.emoji_events_outlined,
-      category: _CollectionCategory.titles,
-      isUnlocked: false,
-      cost: 15000,
-    ),
-    _CollectionItem(
-      id: 'title_genius',
-      label: 'Genius',
-      icon: Icons.lightbulb_outline,
-      category: _CollectionCategory.titles,
-      isUnlocked: false,
-      cost: 12000,
-    ),
-  ];
-}
-
-final _collectionProvider =
-    StateNotifierProvider<_CollectionNotifier, _CollectionState>(
-  (_) => _CollectionNotifier(),
-);
-
-// ---------------------------------------------------------------------------
-// Screen
-// ---------------------------------------------------------------------------
-
-class CollectionScreen extends ConsumerWidget {
+class CollectionScreen extends ConsumerStatefulWidget {
   const CollectionScreen({super.key});
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final colState = ref.watch(_collectionProvider);
-    final stars = ref.watch(starBalanceProvider).when(
-      skipLoadingOnRefresh:false,skipLoadingOnReload:false,
-      data:(value)=>value,error:(_,_)=>null,loading:()=>null);
+  ConsumerState<CollectionScreen> createState() => _CollectionScreenState();
+}
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new,
-              color: AppColors.textPrimary, size: 20),
-          onPressed: () => context.pop(),
-        ),
-        title: const Text(
-          'Collection',
-          style: TextStyle(
-            color: AppColors.textPrimary,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
+class _CollectionScreenState extends ConsumerState<CollectionScreen> {
+  bool _purchaseFlow = false;
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      if (mounted) ref.read(collectionServiceProvider).load();
+    });
+  }
+
+  Future<void> _buy(CollectionService shop, StarBoost boost) async {
+    if (_purchaseFlow || shop.buying) return;
+    _purchaseFlow = true;
+    try {
+      await _confirmAndBuy(shop, boost);
+    } finally {
+      _purchaseFlow = false;
+    }
+  }
+
+  Future<void> _confirmAndBuy(CollectionService shop, StarBoost boost) async {
+    final owner = shop.accountId;
+    final storage = ref.read(storageServiceProvider);
+    final token = await storage.getToken();
+    if (!mounted || owner == null || token == null || owner != shop.accountId) {
+      return;
+    }
+    if (shop.pendingBoostId == null) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          scrollable: true,
+          title: const Text('Buy boost?'),
+          content: Text(
+            'Buy “${boost.title}” for ${_format(boost.price)} stars?\n\n'
+            '${boost.id == 'four_questions' ? 'Your name will appear in 4 random questions in one other player’s round, with at most 1 crush question.' : 'Your name will appear in 1 crush question in another player’s round.'}\n\n'
+            'Active immediately for future eligible campus rounds. Votes are not guaranteed.',
           ),
-        ),
-      ),
-      body: Column(
-        children: [
-          _BalanceCard(stars: stars),
-          _CategoryChips(
-            selected: colState.selectedCategory,
-            onSelect: (cat) =>
-                ref.read(_collectionProvider.notifier).selectCategory(cat),
-          ),
-          Expanded(
-            child: _ItemsGrid(
-              items: colState.filtered,
-              onEquip: (id) =>
-                  ref.read(_collectionProvider.notifier).equip(id),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Balance card
-// ---------------------------------------------------------------------------
-
-class _BalanceCard extends StatelessWidget {
-  const _BalanceCard({required this.stars});
-
-  final int? stars;
-
-  String _fmt(int? n) {
-    if (n == null) return "—";
-    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
-    return n.toString();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primaryBlue.withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'YOUR BALANCE',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 11,
-                  letterSpacing: 1.2,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  Text(
-                    _fmt(stars),
-                    style: const TextStyle(
-                      color: AppColors.white,
-                      fontSize: 36,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text('⭐', style: TextStyle(fontSize: 28)),
-                ],
-              ),
-              const SizedBox(height: 2),
-              const Text(
-                'Use stars to unlock items',
-                style: TextStyle(
-                  color: Colors.white60,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Category chips
-// ---------------------------------------------------------------------------
-
-class _CategoryChips extends StatelessWidget {
-  const _CategoryChips({
-    required this.selected,
-    required this.onSelect,
-  });
-
-  final _CollectionCategory? selected;
-  final ValueChanged<_CollectionCategory?> onSelect;
-
-  static const _labels = {
-    _CollectionCategory.frames: 'Frames',
-    _CollectionCategory.badges: 'Badges',
-    _CollectionCategory.effects: 'Эффекты',
-    _CollectionCategory.titles: 'Титулы',
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 44,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        children: [
-          _Chip(
-            label: 'Все',
-            isSelected: selected == null,
-            onTap: () => onSelect(null),
-          ),
-          ..._CollectionCategory.values.map(
-            (cat) => _Chip(
-              label: _labels[cat]!,
-              isSelected: selected == cat,
-              onTap: () => onSelect(cat),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Buy'),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Chip extends StatelessWidget {
-  const _Chip({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        margin: const EdgeInsets.only(right: 8),
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primaryBlue
-              : AppColors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected
-                ? AppColors.primaryBlue
-                : AppColors.border,
-          ),
+          ],
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected
-                ? AppColors.white
-                : AppColors.textSecondary,
-            fontSize: 13,
-            fontWeight: isSelected
-                ? FontWeight.w600
-                : FontWeight.normal,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Items grid
-// ---------------------------------------------------------------------------
-
-class _ItemsGrid extends StatelessWidget {
-  const _ItemsGrid({required this.items, required this.onEquip});
-
-  final List<_CollectionItem> items;
-  final ValueChanged<String> onEquip;
-
-  @override
-  Widget build(BuildContext context) {
-    if (items.isEmpty) {
-      return const Center(
-        child: Text(
-          'Нет предметов',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+    if (token != await storage.getToken() ||
+        owner != shop.accountId ||
+        !mounted) {
+      return;
+    }
+    final success = await shop.purchase(boost);
+    if (!mounted) return;
+    if (success) {
+      ref.invalidate(starBalanceProvider);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Boost activated for future eligible rounds.'),
         ),
       );
     }
-
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.78,
-      ),
-      itemCount: items.length,
-      itemBuilder: (context, index) =>
-          _CollectionCard(item: items[index], onEquip: onEquip),
-    );
-  }
-}
-
-class _CollectionCard extends StatelessWidget {
-  const _CollectionCard({required this.item, required this.onEquip});
-
-  final _CollectionItem item;
-  final ValueChanged<String> onEquip;
-
-  String _fmtCost(int cost) {
-    if (cost >= 1000) return '${(cost / 1000).toStringAsFixed(0)}K ⭐';
-    return '$cost ⭐';
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: item.isEquipped
-              ? AppColors.primaryBlue
-              : item.isUnlocked
-                  ? AppColors.border
-                  : AppColors.divider,
-          width: item.isEquipped ? 2 : 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+    final shop = ref.watch(collectionServiceProvider);
+    return Scaffold(
+      backgroundColor: const Color(0xFF101A42),
+      body: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF1D3072), Color(0xFF0B122C)],
           ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Icon / lock
-          Stack(
-            alignment: Alignment.center,
+        ),
+        child: SafeArea(
+          child: Column(
             children: [
               Container(
-                width: 54,
-                height: 54,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: item.isUnlocked
-                      ? AppColors.primaryBlue.withValues(alpha: 0.12)
-                      : AppColors.surface,
+                margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 12,
                 ),
-                child: Icon(
-                  item.icon,
-                  size: 26,
-                  color: item.isUnlocked
-                      ? AppColors.primaryBlue
-                      : AppColors.textHint,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Row(
+                  children: [
+                    IconButton(
+                      tooltip: 'Close',
+                      onPressed: () => context.canPop()
+                          ? context.pop()
+                          : context.go(AppRoutes.profile),
+                      icon: const Icon(Icons.close, color: Colors.black),
+                    ),
+                    const Expanded(
+                      child: Text(
+                        'IN-GAME POINTS',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 48),
+                  ],
                 ),
               ),
-              if (!item.isUnlocked)
-                Container(
-                  width: 54,
-                  height: 54,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.black.withValues(alpha: 0.25),
-                  ),
-                  child: const Icon(
-                    Icons.lock,
-                    color: Colors.white,
-                    size: 20,
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: shop.buying ? () async {} : shop.load,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(20),
+                    children: [
+                      const SizedBox(height: 12),
+                      const Text(
+                        'YOUR BALANCE',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white60,
+                          letterSpacing: 1.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      if (shop.loading) ...[
+                        const _ShopSkeleton(height: 60),
+                        const SizedBox(height: 28),
+                        const _ShopSkeleton(height: 120),
+                        const SizedBox(height: 12),
+                        const _ShopSkeleton(height: 120),
+                      ] else if (shop.guest) ...[
+                        const _ShopHeading('Sign in to use your stars'),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Guest stars stay on this device and cannot buy server boosts.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                        TextButton(
+                          onPressed: () => context.go(AppRoutes.phone),
+                          child: const Text(
+                            'Sign in',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ] else if (shop.error != null) ...[
+                        Text(
+                          shop.error!,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                        TextButton(
+                          onPressed: shop.load,
+                          child: const Text(
+                            'Retry',
+                            style: TextStyle(color: Colors.white),
+                          ),
+                        ),
+                      ] else ...[
+                        Text(
+                          '⭐ ${shop.balance == null ? '—' : _format(shop.balance!)}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 48,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 28),
+                        const _ShopHeading('Promote yourself'),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Use stars to put your name in more polls.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white60, fontSize: 15),
+                        ),
+                        const SizedBox(height: 20),
+                        if (!shop.eligible)
+                          const Padding(
+                            padding: EdgeInsets.only(bottom: 16),
+                            child: Text(
+                              'Choose your campus before buying a boost.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.white70),
+                            ),
+                          ),
+                        for (final boost in shop.catalog)
+                          _BoostCard(
+                            boost: boost,
+                            shop: shop,
+                            onBuy: () => _buy(shop, boost),
+                          ),
+                        if (shop.purchaseError != null) ...[
+                          Text(
+                            shop.purchaseError!,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Color(0xFFFFD1CA)),
+                          ),
+                          if (shop.balance == null)
+                            TextButton(
+                              onPressed: shop.buying ? null : shop.load,
+                              child: const Text('Refresh balance'),
+                            ),
+                          const SizedBox(height: 16),
+                        ],
+                        if (shop.activeBoosts.isNotEmpty) ...[
+                          const _ShopHeading('Active boosts'),
+                          const SizedBox(height: 12),
+                          for (final active in shop.activeBoosts)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Text(
+                                '${active['boostId'] == 'sympathy' ? 'Crush question' : '4-question boost'} · '
+                                '${active['remaining']} placements · '
+                                '${active['status'] == 'waiting_for_campus' ? 'Waiting for original campus' : 'Queued'}',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: Colors.white70),
+                              ),
+                            ),
+                        ],
+                        const SizedBox(height: 24),
+                        const _ShopHeading('How do I earn stars?'),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Earn 1,000 stars for each completed 12-question round.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.white60, height: 1.5),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Boosts join the queue immediately. They apply to future eligible campus rounds, not rounds already issued. A placement is not a guaranteed vote.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white54,
+                            fontSize: 12,
+                            height: 1.5,
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                    ],
                   ),
                 ),
+              ),
             ],
           ),
-          const SizedBox(height: 8),
-          // Label
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Text(
-              item.label,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: item.isUnlocked
-                    ? AppColors.textPrimary
-                    : AppColors.textHint,
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          // Action button or equipped badge
-          if (item.isEquipped)
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: AppColors.primaryBlue,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text(
-                'Надет',
-                style: TextStyle(
-                  color: AppColors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            )
-          else if (item.isUnlocked)
-            GestureDetector(
-              onTap: () => onEquip(item.id),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+        ),
+      ),
+    );
+  }
+}
+
+String _format(int value) => value.toString().replaceAllMapped(
+  RegExp(r'(\d)(?=(\d{3})+(?!\d))'),
+  (match) => '${match[1]},',
+);
+
+class _ShopHeading extends StatelessWidget {
+  const _ShopHeading(this.text);
+  final String text;
+  @override
+  Widget build(BuildContext context) => Text(
+    text,
+    textAlign: TextAlign.center,
+    style: const TextStyle(
+      color: Colors.white,
+      fontSize: 24,
+      fontWeight: FontWeight.w700,
+    ),
+  );
+}
+
+class _BoostCard extends StatelessWidget {
+  const _BoostCard({
+    required this.boost,
+    required this.shop,
+    required this.onBuy,
+  });
+  final StarBoost boost;
+  final CollectionService shop;
+  final VoidCallback onBuy;
+  @override
+  Widget build(BuildContext context) {
+    final pending = shop.pendingBoostId == boost.id;
+    final enough = shop.balance != null && shop.balance! >= boost.price;
+    final enabled =
+        !shop.buying &&
+        (pending || shop.pendingBoostId == null && shop.eligible && enough);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF263047),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.primaryBlue),
-                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text(
-                  'Открыть',
-                  style: TextStyle(
-                    color: AppColors.primaryBlue,
-                    fontSize: 10,
+                child: const Text('⭐', style: TextStyle(fontSize: 24)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  boost.title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-            )
-          else
-            Text(
-              _fmtCost(item.cost),
-              style: const TextStyle(
-                fontSize: 10,
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w500,
+            ],
+          ),
+          const SizedBox(height: 14),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton(
+              onPressed: enabled ? onBuy : null,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primaryBlue,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: const Color(0xFF444C60),
+                disabledForegroundColor: Colors.white60,
               ),
+              child: shop.buying && pending
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Text(
+                      pending ? 'Check purchase' : '⭐ ${_format(boost.price)}',
+                    ),
+            ),
+          ),
+          if (!enough && !pending)
+            const Text(
+              'Not enough stars',
+              style: TextStyle(color: Colors.white60, fontSize: 12),
             ),
         ],
       ),
     );
   }
+}
+
+class _ShopSkeleton extends StatelessWidget {
+  const _ShopSkeleton({required this.height});
+  final double height;
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: 'Loading collection',
+    child: Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.white12,
+        borderRadius: BorderRadius.circular(20),
+      ),
+    ),
+  );
 }

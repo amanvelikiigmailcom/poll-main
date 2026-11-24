@@ -80,13 +80,14 @@ void main() {
     expect(controller.text, '');
   });
 
-  testWidgets('chosen university saves in profile and survives reopening',
+  testWidgets('server editor does not expose or overwrite the legacy local university',
       (tester) async {
     final game = LocalGameService.instance;
     await game.savePlayerAndFriends(
         playerName: 'Player', friends: ['Alex', 'Sam', 'Jordan']);
     await game.saveFullName('Player', 'Smith');
     await game.saveUsername('player_123');
+    await game.saveUniversity('Harvard University');
     final storage = StorageService();
     await storage.init();
     testAppRouter.go(AppRoutes.profile);
@@ -97,26 +98,14 @@ void main() {
     await tester.pumpAndSettle();
     testAppRouter.push(AppRoutes.editProfile);
     await tester.pumpAndSettle();
-    await tester
-        .ensureVisible(find.byKey(const Key('university-picker-field')));
-    await tester.tap(find.byKey(const Key('university-picker-field')));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-        find.byKey(const Key('university-search')), 'Harvard University');
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ListTile, 'Harvard University'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Save'));
-    await tester.tap(find.text('Save'));
-    await tester.pumpAndSettle();
+    expect(find.text('Sign in to edit your profile.'), findsOneWidget);
+    expect(find.byKey(const Key('university-picker-field')), findsNothing);
+    expect(find.text('Harvard University'), findsNothing);
     expect(await game.getUniversity(), 'Harvard University');
-    expect(
-        testAppRouter.routeInformationProvider.value.uri.path, AppRoutes.profile);
-    testAppRouter.push(AppRoutes.editProfile);
+    await tester.tap(find.byIcon(Icons.close));
     await tester.pumpAndSettle();
-    final field = tester.widget<TextFormField>(
-        find.byKey(const Key('university-picker-field')));
-    expect(field.controller!.text, 'Harvard University');
+    expect(testAppRouter.routeInformationProvider.value.uri.path, AppRoutes.profile);
+    expect(await game.getUniversity(), 'Harvard University');
     await tester.pumpWidget(const SizedBox());
   });
 }

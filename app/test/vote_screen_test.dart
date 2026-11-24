@@ -172,6 +172,40 @@ void main() {
     expect(saved?.draftAnswers?.single.optionId, 'friend');
   });
 
+  testWidgets('preference-aware contacts never reinsert excluded local names', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'contact_labels_by_hash_v1': '{"matched-hash":"Маша"}',
+    });
+    await LocalGameService.instance.savePlayerAndFriends(
+      playerName: 'Аман', friends: ['Али', 'Маша', 'Даня', 'Саша'],
+    );
+    final quiz = MockQuizService();
+    when(() => quiz.getQuizzes()).thenAnswer((_) async => server.QuizSession(
+      sessionId: 'filtered', ownerId: 'me', totalQuestions: 12,
+      supportsRoundSubmission: true, serverCandidatesOnly: true,
+      questions: [
+        for (var i = 0; i < 12; i++) server.QuizQuestion(
+          id: 'filtered-$i', text: 'Filtered question $i', category: 'normal',
+          candidates: const [
+            server.QuizCandidate(id: 'matched', firstName: 'Registered name',
+              lastName: '', grade: 8, contactHash: 'matched-hash'),
+          ],
+        ),
+      ],
+    ));
+    final source = ServerRoundSource(quiz, isLoggedIn: () async => true);
+    await tester.pumpWidget(MaterialApp(home: VoteScreen(serverSource: source)));
+    await tester.pumpAndSettle();
+    expect(find.text('Filtered question 0'), findsOneWidget);
+    expect(find.text('Маша'), findsOneWidget);
+    for (final name in ['Али', 'Даня', 'Саша', 'Registered name']) {
+      expect(find.text(name), findsNothing);
+    }
+    await choose(tester, 'Маша');
+    final progress = await LocalGameService.instance.loadRoundProgress();
+    expect(progress?.draftAnswers?.single.optionId, 'matched');
+  });
+
   testWidgets('online draft edits, resumes and retries the exact final batch', (
     tester,
   ) async {

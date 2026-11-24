@@ -131,11 +131,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   List<SearchUserResult> _localUsers = [];
 
   // Recent searches (persisted locally in real app)
-  final List<String> _recentSearches = [
-    'Анна',
-    'Школа №5',
-    'anna_p',
-  ];
+  final List<String> _recentSearches = ['Анна', 'Школа №5', 'anna_p'];
 
   @override
   void initState() {
@@ -300,16 +296,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         onSubmitted: (v) {
           if (v.trim().isNotEmpty) _addRecentSearch(v.trim());
         },
-        style: const TextStyle(
-          fontSize: 15,
-          color: AppColors.textPrimary,
-        ),
+        style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
         decoration: InputDecoration(
           hintText: 'Поиск по имени или @логину...',
-          hintStyle: const TextStyle(
-            color: AppColors.textHint,
-            fontSize: 15,
-          ),
+          hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 15),
           prefixIcon: const Icon(
             Icons.search,
             color: AppColors.textHint,
@@ -330,7 +320,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
+            borderSide: const BorderSide(
+              color: AppColors.primaryBlue,
+              width: 1.5,
+            ),
           ),
           contentPadding: const EdgeInsets.symmetric(vertical: 12),
         ),
@@ -404,10 +397,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ),
               child: const Text(
                 'Очистить',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: AppColors.primaryBlue,
-                ),
+                style: TextStyle(fontSize: 13, color: AppColors.primaryBlue),
               ),
             ),
           ],
@@ -454,11 +444,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.person_search,
-            size: 64,
-            color: AppColors.textHint,
-          ),
+          const Icon(Icons.person_search, size: 64, color: AppColors.textHint),
           const SizedBox(height: 16),
           const Text(
             'Пользователи не найдены',
@@ -471,10 +457,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           const SizedBox(height: 8),
           Text(
             'Нет результатов для "$_query"',
-            style: const TextStyle(
-              fontSize: 14,
-              color: AppColors.textHint,
-            ),
+            style: const TextStyle(fontSize: 14, color: AppColors.textHint),
           ),
           const SizedBox(height: 24),
           OutlinedButton.icon(
@@ -511,7 +494,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       itemBuilder: (_, i) => _UserCard(
         user: _results[i],
         onAddFriend: () => _sendFriendRequest(_results[i]),
-        onTap: () => context.push('/people/${Uri.encodeComponent(_results[i].id)}'),
+        onTap: () =>
+            context.push('/people/${Uri.encodeComponent(_results[i].id)}'),
       ),
     );
   }

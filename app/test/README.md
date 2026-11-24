@@ -34,10 +34,25 @@ Unit-тесты проверяют правила и восстановлени�
 ## Отдельно на iPhone
 
 См. [device/README.md](device/README.md). Это отдельный ручной чек-лист, не автоматически исполняемый device-suite. Обычный `flutter test` его не запускает. Безопасность начислений/списаний/авторизации проверяем постоянно без телефона; настоящие Messages, APNs, Universal Links и Apple Sandbox проверяем отдельным этапом перед релизом соответствующих функций. Xcode Cloud для этих локальных проверок не требуется и сейчас запрещён владельцем.
+# Collection / boosts
+
+`collection_service_test.dart`: server-only spendable balance, persisted purchase
+ID, lost replies/restart/retry, double tap and stale account responses.
+`collection_screen_test.dart`: confirmation/cancel, skeleton/error/retry, insufficient
+stars, guest sign-in, profile and reward navigation, small display/large text.
+No network or native build required. These tests are not production DB/device QA.
 # Other-person profile
 
 `person_profile_screen_test.dart` covers the English other-person screen,
 relationship actions/confirmations, guarded names, paginated nomination groups,
 stale responses, self redirect and narrow-screen text scaling.
-`cooldown_navigation_test.dart` verifies both profile routes preserve search and
-the unfinished round in the real router. See `docs/person-profile.md`.
+Backend API/privacy checks live in `flyprox_backend/tests/person-profile.test.js`
+and `tests/social_api.test.js`; see `docs/person-profile.md`.
+# Quiz preferences coverage
+
+`quiz_preferences_screen_test.dart` covers server values, dropdown selection,
+cancel/swipe, save/reopen, retries, lost-reply reconciliation, session changes
+and small-phone large-text layout. `quiz_preferences_service_test.dart` verifies
+the backend contract and stale-session isolation. `server_round_source_test.dart`
+also prevents authenticated load failures from bypassing filters via local play.
+These fake tests do not prove device UI or production rollout.

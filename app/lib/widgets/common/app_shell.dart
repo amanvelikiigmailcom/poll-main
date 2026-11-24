@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../providers/service_providers.dart';
 
 import '../../router/app_router.dart';
 import '../../services/local_game_service.dart';
 import 'bottom_nav_bar.dart';
 
 /// Local-game pages with five tabs at the bottom.
-class AppShell extends StatelessWidget {
+class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.child, this.navigationShell});
 
   final StatefulNavigationShell? navigationShell;
@@ -39,8 +41,13 @@ class AppShell extends StatelessWidget {
     return 0; // Home, questions, results and cooldown belong to the same game tab.
   }
 
-  Future<void> _onTap(BuildContext context, int index) async {
+  Future<void> _onTap(BuildContext context, WidgetRef ref, int index) async {
     final path = GoRouterState.of(context).uri.path;
+    if (path == AppRoutes.editProfile) {
+      final leave = ref.read(profileEditNavigationGuardProvider).leave;
+      if (leave != null && !await leave()) return;
+      if (!context.mounted) return;
+    }
     if (index == 0 &&
         indexFor(path) == 0 &&
         (path == AppRoutes.home ||
@@ -81,7 +88,7 @@ class AppShell extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final path = GoRouterState.of(context).uri.path;
     return Scaffold(
       body: child,
@@ -90,7 +97,7 @@ class AppShell extends StatelessWidget {
         currentIndex: path == AppRoutes.activity
             ? -1
             : navigationShell?.currentIndex ?? indexFor(path),
-        onTap: (i) => _onTap(context, i),
+        onTap: (i) => _onTap(context, ref, i),
       ),
     );
   }

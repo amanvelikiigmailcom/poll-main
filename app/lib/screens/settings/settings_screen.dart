@@ -13,6 +13,7 @@ import '../../services/game_settings.dart';
 import '../../services/subscription_service.dart';
 import '../../services/app_info_service.dart';
 import '../../widgets/common/reset_game_action.dart';
+import 'settings_quiz_screen.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -57,6 +58,13 @@ class SettingsScreen extends ConsumerWidget {
               title: 'Reset game',
               color: AppColors.accentRed,
               onTap: () => showResetGameDialog(context, ref),
+            ),
+            const Divider(height: 1),
+            _ArrowTile(
+              icon: Icons.tune,
+              title: 'Quiz preferences',
+              subtitle: 'Who appears in your quizzes',
+              onTap: () => showQuizPreferences(context),
             ),
           ]),
           const _SectionHeader(title: 'EFFECTS'),

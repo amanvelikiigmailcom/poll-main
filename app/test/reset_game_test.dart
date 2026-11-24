@@ -97,7 +97,6 @@ void main() {
 
   for (final route in [
     AppRoutes.settings,
-    AppRoutes.editProfile,
     AppRoutes.deleteAccount,
   ]) {
     final deleteWording = route == AppRoutes.deleteAccount;
@@ -183,6 +182,17 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
   }
+
+  testWidgets('Edit profile cannot reset a guest game or silently edit local identity', (tester) async {
+    final container = await mountResetApp(tester, AppRoutes.editProfile);
+    expect(find.text('Sign in to edit your profile.'), findsOneWidget);
+    expect(find.text('Reset game'), findsNothing);
+    expect(await LocalGameService.instance.getPlayerName(), 'Old player');
+    expect(await LocalGameService.instance.getStars(), 1000);
+    expect(await LocalGameService.instance.secondsUntilNextRound(), greaterThan(0));
+    expect(container.read(localProfileProvider).playerName, 'Old player');
+    await tester.pumpWidget(const SizedBox());
+  });
 
   test('cache clear defeats an already pending refresh', () async {
     final container = ProviderContainer();

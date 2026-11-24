@@ -57,6 +57,19 @@ void main() {
     expect(await source.tryLoadSession(), isNull);
   });
 
+  test('authenticated load errors cannot bypass preferences through local fallback', () async {
+    for (final error in [
+      const ApiException('No eligible people match your preference yet.', statusCode: 409),
+      Exception('offline'),
+    ]) {
+      final quiz = MockQuizService();
+      when(() => quiz.getQuizzes(sessionToken: 'owner')).thenThrow(error);
+      final source = ServerRoundSource(quiz,
+        isLoggedIn: () async => true, readToken: () async => 'owner');
+      await expectLater(source.tryLoadSession(), throwsA(isA<ApiException>()));
+    }
+  });
+
   test('login check failure resolves to null', () async {
     final quiz = MockQuizService();
     final source = ServerRoundSource(

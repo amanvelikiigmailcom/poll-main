@@ -93,8 +93,8 @@ class _FriendsListNotifier extends StateNotifier<_FriendsListState> {
 
 final friendsListProvider =
     StateNotifierProvider<_FriendsListNotifier, _FriendsListState>(
-  (_) => _FriendsListNotifier(),
-);
+      (_) => _FriendsListNotifier(),
+    );
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -130,8 +130,7 @@ class FriendsListScreen extends ConsumerStatefulWidget {
   const FriendsListScreen({super.key});
 
   @override
-  ConsumerState<FriendsListScreen> createState() =>
-      _FriendsListScreenState();
+  ConsumerState<FriendsListScreen> createState() => _FriendsListScreenState();
 }
 
 class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
@@ -155,8 +154,11 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
         backgroundColor: AppColors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new,
-              color: AppColors.textPrimary, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: AppColors.textPrimary,
+            size: 20,
+          ),
           onPressed: () => context.pop(),
         ),
         title: Row(
@@ -171,8 +173,7 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
             ),
             const SizedBox(width: 10),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
                 color: AppColors.primaryBlue,
                 borderRadius: BorderRadius.circular(12),
@@ -194,21 +195,24 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
           // Search bar
           Container(
             color: AppColors.white,
-            padding:
-                const EdgeInsets.fromLTRB(16, 8, 16, 14),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
             child: TextField(
               controller: _searchCtrl,
               onChanged: notifier.setQuery,
               decoration: InputDecoration(
                 hintText: 'Поиск друзей...',
                 hintStyle: const TextStyle(
-                    color: AppColors.textHint, fontSize: 14),
-                prefixIcon: const Icon(Icons.search,
-                    color: AppColors.textHint),
+                  color: AppColors.textHint,
+                  fontSize: 14,
+                ),
+                prefixIcon: const Icon(Icons.search, color: AppColors.textHint),
                 suffixIcon: _searchCtrl.text.isNotEmpty
                     ? IconButton(
-                        icon: const Icon(Icons.close,
-                            color: AppColors.textHint, size: 18),
+                        icon: const Icon(
+                          Icons.close,
+                          color: AppColors.textHint,
+                          size: 18,
+                        ),
                         onPressed: () {
                           _searchCtrl.clear();
                           notifier.setQuery('');
@@ -221,26 +225,23 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding:
-                    const EdgeInsets.symmetric(vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
           ),
           // List
           Expanded(
             child: filtered.isEmpty
-                ? _EmptyState(
-                    isSearching: state.query.isNotEmpty,
-                  )
+                ? _EmptyState(isSearching: state.query.isNotEmpty)
                 : ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemCount: filtered.length,
-                    separatorBuilder: (_, __) =>
-                        const SizedBox(height: 8),
+                    separatorBuilder: (_, __) => const SizedBox(height: 8),
                     itemBuilder: (context, i) => _FriendCard(
                       friend: filtered[i],
-                      onTap: () => context
-                          .push('/people/${Uri.encodeComponent(filtered[i].id)}'),
+                      onTap: () => context.push(
+                        '/people/${Uri.encodeComponent(filtered[i].id)}',
+                      ),
                       onRemove: () =>
                           _confirmRemove(context, filtered[i], notifier),
                     ),
@@ -259,12 +260,14 @@ class _FriendsListScreenState extends ConsumerState<FriendsListScreen> {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16)),
-        title: const Text('Удалить из друзей?',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          'Удалить из друзей?',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         content: Text(
-            'Вы уверены, что хотите удалить ${friend.name} из друзей?'),
+          'Вы уверены, что хотите удалить ${friend.name} из друзей?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -321,9 +324,10 @@ class _FriendCard extends StatelessWidget {
             Text(
               'Удалить',
               style: TextStyle(
-                  color: AppColors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600),
+                color: AppColors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
         ),
@@ -334,11 +338,13 @@ class _FriendCard extends StatelessWidget {
           context: context,
           builder: (_) => AlertDialog(
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16)),
-            title: const Text('Удалить из друзей?',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            content: Text(
-                'Вы уверены, что хотите удалить ${friend.name}?'),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Text(
+              'Удалить из друзей?',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            content: Text('Вы уверены, что хотите удалить ${friend.name}?'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -470,8 +476,10 @@ class _FriendCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             ListTile(
-              leading: const Icon(Icons.person_outline,
-                  color: AppColors.primaryBlue),
+              leading: const Icon(
+                Icons.person_outline,
+                color: AppColors.primaryBlue,
+              ),
               title: const Text('Открыть профиль'),
               onTap: () {
                 Navigator.pop(context);
@@ -479,8 +487,10 @@ class _FriendCard extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.person_remove_outlined,
-                  color: AppColors.accentRed),
+              leading: const Icon(
+                Icons.person_remove_outlined,
+                color: AppColors.accentRed,
+              ),
               title: const Text(
                 'Удалить из друзей',
                 style: TextStyle(color: AppColors.accentRed),
@@ -533,10 +543,7 @@ class _EmptyState extends StatelessWidget {
                 ? 'Попробуйте другой запрос'
                 : 'Приглашайте одноклассников\nи добавляйте их в друзья',
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 14,
-              color: AppColors.textHint,
-            ),
+            style: const TextStyle(fontSize: 14, color: AppColors.textHint),
           ),
         ],
       ),

@@ -3,11 +3,14 @@ import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/account_balance_service.dart';
+import '../services/collection_service.dart';
 import '../services/local_game_service.dart';
 import '../services/notification_preferences_service.dart';
 import '../services/activity_service.dart';
 import '../services/onboarding_details_service.dart';
 import '../services/social_service.dart';
+import '../services/profile_edit_service.dart';
+import '../services/quiz_preferences_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import '../services/api_service.dart';
@@ -34,6 +37,12 @@ final storageServiceProvider = Provider<StorageService>((ref) {
 final apiServiceProvider = Provider<ApiService>((ref) {
   return ApiService(ref.watch(storageServiceProvider));
 });
+
+final collectionServiceProvider = ChangeNotifierProvider.autoDispose<CollectionService>(
+  (ref) => CollectionService(
+    ref.watch(apiServiceProvider), ref.watch(storageServiceProvider),
+  ),
+);
 
 final invitationServiceProvider = ChangeNotifierProvider<InvitationService>((
   ref,
@@ -85,6 +94,21 @@ final socialServiceProvider = Provider<SocialService>(
   (ref) => SocialService(
     ref.watch(apiServiceProvider),
     ref.watch(storageServiceProvider),
+  ),
+);
+
+final profileEditServiceProvider = Provider<ProfileEditService>(
+  (ref) => ProfileEditService(
+    ref.watch(apiServiceProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
+final profileEditNavigationGuardProvider = Provider(
+  (ref) => ProfileEditNavigationGuard(),
+);
+final quizPreferencesServiceProvider = Provider<QuizPreferencesService>(
+  (ref) => QuizPreferencesService(
+    ref.watch(apiServiceProvider), ref.watch(storageServiceProvider),
   ),
 );
 

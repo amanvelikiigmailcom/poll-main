@@ -47,43 +47,43 @@ class _FriendRequest {
 
 class _RequestsNotifier extends StateNotifier<List<_FriendRequest>> {
   _RequestsNotifier()
-      : super(const [
-          _FriendRequest(
-            id: '1',
-            name: 'Анна Петрова',
-            grade: 10,
-            schoolName: 'Школа №5',
-            mutualFriends: 3,
-          ),
-          _FriendRequest(
-            id: '2',
-            name: 'Дмитрий Смирнов',
-            grade: 11,
-            schoolName: 'Гимназия №3',
-            mutualFriends: 1,
-          ),
-          _FriendRequest(
-            id: '3',
-            name: 'Мария Иванова',
-            grade: 9,
-            schoolName: 'Лицей №1',
-            mutualFriends: 0,
-          ),
-          _FriendRequest(
-            id: '4',
-            name: 'Алексей Козлов',
-            grade: 10,
-            schoolName: 'Школа №7',
-            mutualFriends: 2,
-          ),
-          _FriendRequest(
-            id: '5',
-            name: 'Зарина Асанова',
-            grade: 8,
-            schoolName: 'Назарбаевская школа',
-            mutualFriends: 5,
-          ),
-        ]);
+    : super(const [
+        _FriendRequest(
+          id: '1',
+          name: 'Анна Петрова',
+          grade: 10,
+          schoolName: 'Школа №5',
+          mutualFriends: 3,
+        ),
+        _FriendRequest(
+          id: '2',
+          name: 'Дмитрий Смирнов',
+          grade: 11,
+          schoolName: 'Гимназия №3',
+          mutualFriends: 1,
+        ),
+        _FriendRequest(
+          id: '3',
+          name: 'Мария Иванова',
+          grade: 9,
+          schoolName: 'Лицей №1',
+          mutualFriends: 0,
+        ),
+        _FriendRequest(
+          id: '4',
+          name: 'Алексей Козлов',
+          grade: 10,
+          schoolName: 'Школа №7',
+          mutualFriends: 2,
+        ),
+        _FriendRequest(
+          id: '5',
+          name: 'Зарина Асанова',
+          grade: 8,
+          schoolName: 'Назарбаевская школа',
+          mutualFriends: 5,
+        ),
+      ]);
 
   void accept(String id) {
     state = [
@@ -106,8 +106,8 @@ class _RequestsNotifier extends StateNotifier<List<_FriendRequest>> {
 
 final friendRequestsProvider =
     StateNotifierProvider<_RequestsNotifier, List<_FriendRequest>>(
-  (_) => _RequestsNotifier(),
-);
+      (_) => _RequestsNotifier(),
+    );
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -154,8 +154,11 @@ class FriendRequestsScreen extends ConsumerWidget {
         backgroundColor: AppColors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new,
-              color: AppColors.textPrimary, size: 20),
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: AppColors.textPrimary,
+            size: 20,
+          ),
           onPressed: () => context.pop(),
         ),
         title: Row(
@@ -171,8 +174,7 @@ class FriendRequestsScreen extends ConsumerWidget {
             if (requests.isNotEmpty) ...[
               const SizedBox(width: 10),
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: AppColors.accentRed,
                   borderRadius: BorderRadius.circular(12),
@@ -202,9 +204,9 @@ class FriendRequestsScreen extends ConsumerWidget {
                   request: req,
                   onAccept: () => notifier.accept(req.id),
                   onDecline: () => notifier.decline(req.id),
-                  onRemoveAccepted: () =>
-                      notifier.removeAccepted(req.id),
-                  onTapProfile: () => context.push('/people/${Uri.encodeComponent(req.id)}'),
+                  onRemoveAccepted: () => notifier.removeAccepted(req.id),
+                  onTapProfile: () =>
+                      context.push('/people/${Uri.encodeComponent(req.id)}'),
                 );
               },
             ),
@@ -355,17 +357,15 @@ class _PendingCard extends StatelessWidget {
                   onPressed: onDecline,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.textSecondary,
-                    side: const BorderSide(
-                        color: AppColors.border, width: 1.5),
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 10),
+                    side: const BorderSide(color: AppColors.border, width: 1.5),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                   child: const Text(
                     'Отклонить',
-                    style: TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -376,16 +376,15 @@ class _PendingCard extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryBlue,
                     foregroundColor: AppColors.white,
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 10),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                   child: const Text(
                     'Принять',
-                    style: TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -413,9 +412,7 @@ class _AcceptedCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.success.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.success.withValues(alpha: 0.4),
-        ),
+        border: Border.all(color: AppColors.success.withValues(alpha: 0.4)),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
@@ -457,8 +454,7 @@ class _AcceptedCard extends StatelessWidget {
             ),
           ),
           Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: AppColors.success,
               borderRadius: BorderRadius.circular(10),
@@ -474,8 +470,7 @@ class _AcceptedCard extends StatelessWidget {
           ),
           const SizedBox(width: 4),
           IconButton(
-            icon: const Icon(Icons.close,
-                color: AppColors.textHint, size: 18),
+            icon: const Icon(Icons.close, color: AppColors.textHint, size: 18),
             onPressed: onDismiss,
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(minWidth: 28, minHeight: 28),

@@ -1,6 +1,7 @@
 import '../../services/contact_sync_service.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../settings/settings_quiz_screen.dart';
 import '../../services/game_settings.dart';
 import 'package:go_router/go_router.dart';
 import '../../theme/app_colors.dart';
@@ -313,21 +314,26 @@ class _VoteScreenState extends State<VoteScreen>
       }
       for (final q in serverSession.questions) {
         final options = <QuizOption>[];
-        if (serverSession.schoolVoting) {
+        if (serverSession.schoolVoting || serverSession.serverCandidatesOnly) {
           for (final candidate in q.candidates.where(
             (c) => !c.isSelf && c.id != serverSession.ownerId,
           )) {
             options.add(
               QuizOption(
                 id: candidate.id,
-                name: candidate.firstName,
+                name: serverSession.schoolVoting
+                    ? candidate.firstName
+                    : localLabels[candidate.contactHash]?.trim().isNotEmpty == true
+                    ? localLabels[candidate.contactHash]!.trim()
+                    : candidate.firstName,
                 grade: '',
                 serverUserId: candidate.id,
               ),
             );
           }
         }
-        for (final (index, name) in names.indexed) {
+        final localNames = serverSession.serverCandidatesOnly ? <String>[] : names;
+        for (final (index, name) in localNames.indexed) {
           // Labels, not strangers' profile names. Ambiguous matches stay local.
           final matches = q.candidates
               .where(
@@ -709,6 +715,14 @@ class _VoteScreenState extends State<VoteScreen>
                   TextButton(
                     onPressed: _startLoading,
                     child: const Text('Try again'),
+                  ),
+                  TextButton(
+                    onPressed: () => showQuizPreferences(context),
+                    child: const Text('Quiz preferences'),
+                  ),
+                  TextButton(
+                    onPressed: () => context.go(AppRoutes.home),
+                    child: const Text('Back'),
                   ),
                   if (_canDiscardDraft)
                     TextButton(

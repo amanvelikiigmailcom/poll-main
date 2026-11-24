@@ -6,7 +6,7 @@ import 'api_service.dart';
 import 'quiz_service.dart';
 
 /// Server branch of the quiz: online + logged in → questions and votes go
-/// through the backend. A failed initial load allows a new local round;
+/// through the backend. Authenticated production loads never fall back locally;
 /// submission of an existing online draft must be explicitly acknowledged.
 class ServerRoundSource {
   final QuizService _quiz;
@@ -45,21 +45,33 @@ class ServerRoundSource {
 
   /// Loads the current server session, or null when the local game applies.
   Future<QuizSession?> tryLoadSession() async {
+    var authenticatedAttempt = false;
     try {
-      if (!await _loginSettled()) return null;
+      if (readToken == null && !await _loginSettled()) return null;
+      authenticatedAttempt = readToken != null;
       final token = await _token();
       if (token == null || (readToken != null && token.isEmpty)) return null;
       final session = readToken == null
           ? await _quiz.getQuizzes()
           : await _quiz.getQuizzes(sessionToken: token);
-      if (await _token() != token) return null;
+      if (await _token() != token) {
+        if (authenticatedAttempt) {
+          throw const ApiException('Account changed. Please try again.');
+        }
+        return null;
+      }
       _loadedToken = token;
       return session;
     } on ApiException catch (error) {
       // A server daily limit must never become permission for local fallback.
-      if (error.statusCode == 429) rethrow;
+      if (authenticatedAttempt || error.statusCode == 429) rethrow;
       return null;
     } catch (_) {
+      if (authenticatedAttempt) {
+        throw const ApiException(
+          'Couldn’t load your quiz. Check your connection and try again.',
+        );
+      }
       return null;
     }
   }

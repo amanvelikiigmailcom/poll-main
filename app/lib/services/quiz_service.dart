@@ -76,6 +76,7 @@ class QuizSession {
   final int answeredCount;
   final bool supportsRoundSubmission;
   final bool schoolVoting;
+  final bool serverCandidatesOnly;
 
   const QuizSession({
     required this.sessionId,
@@ -85,6 +86,7 @@ class QuizSession {
     this.answeredCount = 0,
     this.supportsRoundSubmission = false,
     this.schoolVoting = false,
+    this.serverCandidatesOnly = false,
   });
 
   factory QuizSession.fromJson(Map<String, dynamic> json) {
@@ -98,6 +100,7 @@ class QuizSession {
       answeredCount: json['answeredCount'] as int? ?? 0,
       supportsRoundSubmission: json['supportsRoundSubmission'] == true,
       schoolVoting: json['votingMode'] == 'school',
+      serverCandidatesOnly: json['serverCandidatesOnly'] == true,
     );
   }
 }
@@ -160,7 +163,7 @@ class QuizService {
   Future<QuizSession> getQuizzes({String? sessionToken}) async {
     final response = await _api.get<Map<String, dynamic>>(
       '/api/quizzes/current',
-      queryParameters: {'lang': 'en', 'schoolVoting': '1'},
+      queryParameters: {'lang': 'en', 'schoolVoting': '1', 'quizPreferences': '1'},
       options: _sessionOptions(sessionToken),
     );
     return QuizSession.fromJson(response.data!);
