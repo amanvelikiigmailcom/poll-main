@@ -125,26 +125,12 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
     setState(() => selected = school);
   }
 
-  Future<void> _unavailable(Map<String, dynamic> school) async {
-    final email = ContentService.instance.text('support_email');
-    await showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Campus not available yet'),
-        content: Text(
-          SchoolLaunch.closedMessage(
-            country: school['country'] as String? ?? country,
-            schoolName: school['name'] as String? ?? 'This campus',
-            email: email,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
+  Future<void> _unavailable(Map<String, dynamic> school) {
+    return SchoolLaunch.showUnavailableDialog(
+      context,
+      country: school['country'] as String? ?? country,
+      schoolName: school['name'] as String? ?? 'This campus',
+      email: ContentService.instance.text('support_email'),
     );
   }
 
@@ -152,6 +138,12 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
     if (saving) return;
     if (!skip &&
         (selected == null || !(form.currentState?.validate() ?? false))) {
+      return;
+    }
+    // Restored selections (reinstall, re-login) bypass _select: re-check here
+    // so a closed region always sees the same dialog instead of proceeding.
+    if (!skip && !SchoolLaunch.isOpen(selected!, fallbackCountry: country)) {
+      await _unavailable(selected!);
       return;
     }
     FocusManager.instance.primaryFocus?.unfocus();

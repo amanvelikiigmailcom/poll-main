@@ -4,8 +4,10 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../config/school_launch.dart';
 import '../../providers/service_providers.dart';
 import '../../services/api_service.dart';
+import '../../services/content_service.dart';
 import '../../services/profile_edit_service.dart';
 import '../../services/storage_service.dart';
 import '../../theme/app_colors.dart';
@@ -708,6 +710,19 @@ class _CampusPickerState extends ConsumerState<_CampusPicker> {
     }
   }
 
+  void _pick(Map<String, dynamic> school) {
+    if (!SchoolLaunch.isOpen(school, fallbackCountry: widget.country)) {
+      SchoolLaunch.showUnavailableDialog(
+        context,
+        country: school['country'] as String? ?? widget.country,
+        schoolName: school['name'] as String? ?? 'This campus',
+        email: ContentService.instance.text('support_email'),
+      );
+      return;
+    }
+    Navigator.pop(context, school);
+  }
+
   @override
   void dispose() {
     _generation++;
@@ -766,7 +781,7 @@ class _CampusPickerState extends ConsumerState<_CampusPicker> {
                         school['region'],
                       ].whereType<String>().join(' · '),
                     ),
-                    onTap: () => Navigator.pop(context, school),
+                    onTap: () => _pick(school),
                   ),
                 if (_cursor.isNotEmpty)
                   TextButton(

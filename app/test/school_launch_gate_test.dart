@@ -79,6 +79,44 @@ void main() {
       expect(SchoolLaunch.isOpen(school(region: 'Anywhere', country: 'XX')), isTrue);
     });
 
+    test('team test campus stays open outside launch regions', () {
+      final byId = school(
+        id: 'US-CCD-010033001264',
+        name: 'New Horizon Alternative School',
+        city: 'Bessemer',
+        region: 'ALABAMA',
+      );
+      expect(SchoolLaunch.isTestSchool(byId), isTrue);
+      expect(SchoolLaunch.isOpen(byId), isTrue);
+      final byName = school(
+        id: 'US-CCD-changed-after-reimport',
+        name: 'new horizon alternative school',
+        city: 'Bessemer',
+        region: 'AL',
+      );
+      expect(SchoolLaunch.isTestSchool(byName), isTrue);
+      expect(SchoolLaunch.isOpen(byName), isTrue);
+    });
+
+    test('other Alabama campuses stay closed', () {
+      expect(
+        SchoolLaunch.isOpen(
+          school(name: 'Bessemer High', city: 'Bessemer', region: 'ALABAMA'),
+        ),
+        isFalse,
+      );
+      expect(
+        SchoolLaunch.isOpen(
+          school(
+            name: 'New Horizon Alternative School',
+            city: 'Anaheim',
+            region: 'CALIFORNIA',
+          ),
+        ),
+        isFalse,
+      );
+    });
+
     test('closed message names the school, open region and support email', () {
       final message = SchoolLaunch.closedMessage(
         country: 'US',
@@ -94,6 +132,7 @@ void main() {
   Future<void> mount(
     WidgetTester tester, {
     required List<Map<String, dynamic>> results,
+    Map<String, dynamic>? preseed,
   }) async {
     final storage = StorageService();
     await storage.init();
@@ -111,6 +150,7 @@ void main() {
       ),
     );
     final service = OnboardingDetailsService(api, storage);
+    if (preseed != null) await service.draft(preseed);
     testAppRouter.go(AppRoutes.profileDetails);
     await tester.pumpWidget(
       ProviderScope(
@@ -182,4 +222,50 @@ void main() {
     expect(find.text('Campus not available yet'), findsNothing);
     expect(find.textContaining('Selected: Central High'), findsOneWidget);
   });
+
+  testWidgets('team test campus selects normally outside launch regions', (
+    tester,
+  ) async {
+    await mount(
+      tester,
+      results: [
+        school(
+          id: 'US-CCD-010033001264',
+          name: 'New Horizon Alternative School',
+          city: 'Bessemer',
+          region: 'ALABAMA',
+        ),
+      ],
+    );
+    await profile(tester);
+    await search(tester, 'Horizon');
+    await tester.ensureVisible(find.text('New Horizon Alternative School'));
+    await tester.tap(find.text('New Horizon Alternative School'));
+    await tester.pumpAndSettle();
+    expect(find.text('Campus not available yet'), findsNothing);
+    expect(
+      find.textContaining('Selected: New Horizon Alternative School'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+    'restored closed-region selection still hits the gate on continue',
+    (tester) async {
+      final closed = school(name: 'West High', region: 'CALIFORNIA');
+      await mount(
+        tester,
+        results: [closed],
+        preseed: {'school': closed, 'graduationYear': 2030, 'country': 'US'},
+      );
+      await profile(tester);
+      expect(find.textContaining('Selected: West High'), findsOneWidget);
+      await tester.ensureVisible(find.text('Continue'));
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+      expect(find.text('Campus not available yet'), findsOneWidget);
+      expect(find.textContaining('support@flyprox.com'), findsOneWidget);
+      expect(find.text('Add your contacts'), findsNothing);
+    },
+  );
 }

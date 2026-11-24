@@ -13,6 +13,15 @@ import 'fakes/social_storage.dart';
 
 class EditorOnboardingFake extends OnboardingDetailsService {
   EditorOnboardingFake(super.api, super.storage);
+  List<Map<String, String>> results = [
+    {
+      'id': 'new-campus',
+      'name': 'West Campus',
+      'city': 'Austin',
+      'region': 'Texas',
+      'country': 'US',
+    },
+  ];
   @override
   Future<void> restore() async {}
   @override
@@ -21,9 +30,7 @@ class EditorOnboardingFake extends OnboardingDetailsService {
     String cursor = '',
     String? countryOverride,
   }) async => {
-    'schools': [
-      {'id': 'new-campus', 'name': 'West Campus', 'city': 'Austin'},
-    ],
+    'schools': results,
     'available': true,
   };
 }
@@ -85,10 +92,13 @@ Future<({GoRouter router, SessionStorage storage, EditorFake service})> mount(
   WidgetTester tester, {
   void Function(EditorFake)? configure,
   bool shell = false,
+  List<Map<String, String>>? onboardingSchools,
 }) async {
   final storage = SessionStorage();
   final service = EditorFake(ApiService(storage), storage);
   configure?.call(service);
+  final onboarding = EditorOnboardingFake(ApiService(storage), storage);
+  if (onboardingSchools != null) onboarding.results = onboardingSchools;
   final routes = [
     GoRoute(
       path: '/base',
@@ -120,9 +130,7 @@ Future<({GoRouter router, SessionStorage storage, EditorFake service})> mount(
       overrides: [
         storageServiceProvider.overrideWithValue(storage),
         profileEditServiceProvider.overrideWithValue(service),
-        onboardingDetailsProvider.overrideWith(
-          (ref) => EditorOnboardingFake(ApiService(storage), storage),
-        ),
+        onboardingDetailsProvider.overrideWith((ref) => onboarding),
       ],
       child: MaterialApp.router(routerConfig: router),
     ),
@@ -332,6 +340,38 @@ void main() {
     await tap(tester, 'Save');
     await tap(tester, 'Confirm and save');
     expect(f.service.writes.single['changes'], {'schoolId': 'new-campus'});
+  });
+
+  testWidgets('closed-region campus in picker shows the support dialog', (
+    tester,
+  ) async {
+    await mount(
+      tester,
+      onboardingSchools: [
+        {
+          'id': 'ca-campus',
+          'name': 'West High',
+          'city': 'Fresno',
+          'region': 'CALIFORNIA',
+          'country': 'US',
+        },
+      ],
+    );
+    await tester.ensureVisible(find.byKey(const Key('edit-campus')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('edit-campus')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Search campuses'),
+      'West',
+    );
+    await tester.pump(const Duration(milliseconds: 301));
+    await tester.pumpAndSettle();
+    await tap(tester, 'West High');
+    expect(find.text('Campus not available yet'), findsOneWidget);
+    expect(find.textContaining('support@flyprox.com'), findsOneWidget);
+    await tap(tester, 'OK');
+    expect(find.widgetWithText(TextField, 'Search campuses'), findsOneWidget);
   });
 
   testWidgets(
