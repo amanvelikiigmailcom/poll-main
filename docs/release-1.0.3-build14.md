@@ -57,7 +57,8 @@ Published Notion Terms/Privacy were updated with the owner's approval using
 - ASC read-back:1.0.3(14), processingState `VALID`, expired false,
   internalBuildState `READY_FOR_BETA_TESTING`, external `READY_FOR_BETA_SUBMISSION`.
 - App: [App Store Connect / TestFlight](https://appstoreconnect.apple.com/apps/6828862522/testflight/ios).
-  No App Review/public submit or tester email notification was requested or sent.
+  No App Review/public submit, tester-group assignment or tester notification
+  request was made.
 
 ## Remaining device acceptance
 
