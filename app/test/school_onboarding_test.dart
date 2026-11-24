@@ -333,9 +333,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Add your campus'), findsOneWidget);
       expect(find.widgetWithText(TextFormField, 'Campus name'), findsOneWidget);
+      // US has a canonical region list: a dropdown replaces free text.
+      expect(find.byKey(const Key('missing-region')), findsOneWidget);
       expect(
         find.widgetWithText(TextFormField, 'State / region'),
-        findsOneWidget,
+        findsNothing,
       );
     },
   );

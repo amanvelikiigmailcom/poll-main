@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../config/school_regions.dart';
 import '../../providers/service_providers.dart';
 import '../../services/api_service.dart';
 import '../../services/profile_edit_service.dart';
@@ -630,7 +631,7 @@ class _CampusPickerState extends ConsumerState<_CampusPicker> {
   late final Future<String?> _owner;
   Timer? _timer;
   int _generation = 0;
-  String _cursor = '';
+  String _cursor = '', _region = '';
   List<Map<String, dynamic>> _schools = [];
   bool _loading = false;
   String? _error;
@@ -665,6 +666,19 @@ class _CampusPickerState extends ConsumerState<_CampusPicker> {
     );
   }
 
+  void _regionChanged(String? value) {
+    _timer?.cancel();
+    final generation = ++_generation;
+    setState(() {
+      _region = value ?? '';
+      _schools = [];
+      _cursor = '';
+      _error = null;
+      _loading = false;
+    });
+    if (_query.text.trim().length >= 3) _search(generation);
+  }
+
   Future<void> _search(int generation, {bool more = false}) async {
     setState(() {
       _loading = true;
@@ -679,6 +693,7 @@ class _CampusPickerState extends ConsumerState<_CampusPicker> {
             _query.text.trim(),
             countryOverride: widget.country,
             cursor: more ? _cursor : '',
+            region: _region,
           );
       if (!mounted ||
           generation != _generation ||
@@ -731,6 +746,35 @@ class _CampusPickerState extends ConsumerState<_CampusPicker> {
               icon: const Icon(Icons.close),
             ),
           ),
+          if (SchoolRegions.hasRegions(widget.country))
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: DropdownButtonFormField<String>(
+                key: const Key('campus-pick-region'),
+                initialValue: _region,
+                isExpanded: true,
+                menuMaxHeight: 320,
+                decoration: const InputDecoration(
+                  labelText: 'State / region (optional)',
+                ),
+                items: [
+                  const DropdownMenuItem(
+                    value: '',
+                    child: Text('All regions'),
+                  ),
+                  for (final entry
+                      in SchoolRegions.forCountry(widget.country))
+                    DropdownMenuItem(
+                      value: entry.value,
+                      child: Text(
+                        entry.label,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
+                onChanged: _regionChanged,
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: TextField(
