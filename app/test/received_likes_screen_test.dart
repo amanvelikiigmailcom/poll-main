@@ -272,9 +272,10 @@ void main() {
     await tester.tap(find.text('Who makes everyone smile?'));
     await tester.pumpAndSettle();
     expect(find.text('Vote details'), findsOneWidget);
-    expect(find.text('Someone picked you!'), findsOneWidget);
     expect(find.text('Who makes everyone smile?'), findsOneWidget);
     expect(find.text('The voter stays anonymous.'), findsOneWidget);
-    expect(find.text('Share'), findsOneWidget);
+    expect(find.text('Someone picked you!'), findsNothing);
+    expect(find.text('Share'), findsNothing);
+    expect(find.text('Find out who voted for you'), findsNothing);
   });
 }

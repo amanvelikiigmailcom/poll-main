@@ -42,6 +42,7 @@ import '../screens/settings/notifications_settings_screen.dart';
 import '../screens/settings/language_settings_screen.dart';
 import '../screens/settings/hidden_users_screen.dart';
 import '../screens/settings/settings_quiz_screen.dart';
+import '../screens/social/like_person_screen.dart';
 import '../screens/social/likes_result_screen.dart';
 import '../screens/social/received_likes_screen.dart';
 import '../screens/social/room_screen.dart';
@@ -106,6 +107,7 @@ abstract final class AppRoutes {
   static const likesFilled = '/likes';
   static const likesEmpty = '/likes-empty';
   static const likesResult = '/likes-result';
+  static const likesPerson = '/likes-person';
   static const room = '/room';
   static const createRoom = '/create-room';
   static const faq = '/faq';
@@ -408,6 +410,17 @@ GoRouter createAppRouter({bool showInvitationIntro = true}) => GoRouter(
                 final extra = state.extra;
                 return LikesResultScreen(
                   like: extra is Map
+                      ? Map<String, dynamic>.from(extra)
+                      : null,
+                );
+              },
+            ),
+            GoRoute(
+              path: AppRoutes.likesPerson,
+              builder: (_, state) {
+                final extra = state.extra;
+                return LikePersonScreen(
+                  data: extra is Map
                       ? Map<String, dynamic>.from(extra)
                       : null,
                 );
