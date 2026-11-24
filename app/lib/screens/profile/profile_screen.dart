@@ -1,4 +1,4 @@
-import '../../widgets/common/friends_link.dart';
+import 'profile_social_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -36,8 +36,9 @@ class ProfileScreen extends ConsumerWidget {
       body: SafeArea(
         bottom: false,
         child: userState.isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: AppColors.primaryBlue),
+            ? const Padding(
+                padding: EdgeInsets.all(24),
+                child: ProfileSkeleton(),
               )
             : RefreshIndicator(
                 color: AppColors.primaryBlue,
@@ -45,6 +46,8 @@ class ProfileScreen extends ConsumerWidget {
                   await ref.read(localProfileProvider.notifier).refresh();
                   ref.invalidate(_campusProfileProvider);
                   ref.invalidate(starBalanceProvider);
+                  ref.invalidate(socialSummaryProvider);
+                  ref.invalidate(profileIdentityProvider);
                   await ref.read(invitationServiceProvider).refresh();
                 },
                 child: SingleChildScrollView(
@@ -53,6 +56,7 @@ class ProfileScreen extends ConsumerWidget {
                     children: [
                       _ProfileHeaderCard(user: user, local: local),
                       const _CampusProfileRow(),
+                      const ProfileSocialSection(),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 16),
                         child: WaitPassCard(),
@@ -73,26 +77,48 @@ class ProfileScreen extends ConsumerWidget {
 // Header card: avatar + name + school + stats
 // ---------------------------------------------------------------------------
 
-class _ProfileHeaderCard extends StatelessWidget {
+class _ProfileHeaderCard extends ConsumerWidget {
   const _ProfileHeaderCard({this.user, required this.local});
 
   final User? user;
   final LocalProfile local;
 
   @override
-  Widget build(BuildContext context) {
-    final displayName = local.playerName.isNotEmpty
+  Widget build(BuildContext context, WidgetRef ref) {
+    final identityState = ref.watch(profileIdentityProvider);
+    final identity = identityState.isLoading || identityState.hasError
+        ? null
+        : identityState.asData?.value;
+    final guest =
+        !identityState.isLoading &&
+        !identityState.hasError &&
+        identityState.hasValue &&
+        identity == null;
+    final serverName = [
+      identity?['firstName'],
+      identity?['lastName'],
+    ].whereType<String>().where((part) => part.trim().isNotEmpty).join(' ');
+    final displayName = !guest
+        ? (serverName.isEmpty ? 'Your profile' : serverName)
+        : local.playerName.isNotEmpty
         ? local.playerName
         : (user?.firstName ?? '');
-    final login = local.username.isNotEmpty
-        ? local.username
-        : (user?.username ?? '');
+    final login =
+        identity?['username'] as String? ??
+        (!guest
+            ? ''
+            : local.username.isNotEmpty
+            ? local.username
+            : (user?.username ?? ''));
     final username = login.isNotEmpty ? '@$login' : '';
-    final universityInfo = local.universityLine;
 
     return Container(
       width: double.infinity,
-      color: AppColors.white,
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       child: Column(
         children: [
@@ -119,19 +145,16 @@ class _ProfileHeaderCard extends StatelessWidget {
               ),
               FutureBuilder<bool>(
                 future: SubscriptionService.instance.isPro(),
-                builder: (context, snapshot) {
-                  if (snapshot.data != true) {
-                    return const SizedBox.shrink();
-                  }
-                  return const Padding(
-                    padding: EdgeInsets.only(left: 6),
-                    child: Icon(
-                      Icons.verified,
-                      color: Color(0xFF4B6EF5),
-                      size: 22,
-                    ),
-                  );
-                },
+                builder: (context, snapshot) => snapshot.data != true
+                    ? const SizedBox.shrink()
+                    : const Padding(
+                        padding: EdgeInsets.only(left: 6),
+                        child: Icon(
+                          Icons.verified,
+                          color: Color(0xFF4B6EF5),
+                          size: 22,
+                        ),
+                      ),
               ),
             ],
           ),
@@ -154,19 +177,24 @@ class _ProfileHeaderCard extends StatelessWidget {
               child: const Text('Edit username'),
             ),
           ],
-          if (universityInfo.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            Text(
-              universityInfo,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.textSecondary,
+          TextButton(
+            onPressed: () async {
+              await context.push(AppRoutes.editProfile);
+              if (!context.mounted) return;
+              ref.invalidate(profileIdentityProvider);
+              ref.invalidate(_campusProfileProvider);
+            },
+            child: const Text('Edit profile'),
+          ),
+          ref
+              .watch(starBalanceProvider)
+              .when(
+                skipLoadingOnRefresh: false,
+                skipLoadingOnReload: false,
+                data: (value) => Text('⭐ ${value ?? '—'} Stars'),
+                loading: () => const Text('⭐ — Stars'),
+                error: (_, _) => const Text('⭐ — Stars'),
               ),
-            ),
-          ],
-          const SizedBox(height: 22),
-          _StatsRow(local: local),
         ],
       ),
     );
@@ -214,6 +242,7 @@ class _UsernameEditorState extends ConsumerState<_UsernameEditor> {
       await LocalGameService.instance.saveUsername(name);
       if (!mounted) return;
       await ref.read(localProfileProvider.notifier).refresh();
+      ref.invalidate(profileIdentityProvider);
       if (mounted) Navigator.pop(context);
     } catch (failure) {
       if (mounted) {
@@ -313,7 +342,9 @@ class _CampusProfileRow extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final result = ref.watch(_campusProfileProvider);
-    final info = result.asData?.value;
+    final info = result.isLoading || result.hasError
+        ? null
+        : result.asData?.value;
     final campus = info?.data['school'] as Map?;
     final name = campus?['name'] as String? ?? '';
     final location = [
@@ -321,6 +352,7 @@ class _CampusProfileRow extends ConsumerWidget {
       campus?['region'],
     ].whereType<String>().where((part) => part.isNotEmpty).join(' · ');
     final used = info?.data['campusChangeUsed'] == true;
+    final year = info?.data['graduationYear'] as int?;
     return ListTile(
       title: const Text('Campus'),
       subtitle: Text(
@@ -336,6 +368,7 @@ class _CampusProfileRow extends ConsumerWidget {
                 else
                   'Campus selected',
                 if (location.isNotEmpty) location,
+                if (year != null) 'Class of $year',
                 if (used)
                   'Campus change used'
                 else if (info != null && info.sessionKey == null)
@@ -362,79 +395,6 @@ class _CampusProfileRow extends ConsumerWidget {
 // Stats row
 // ---------------------------------------------------------------------------
 
-class _StatsRow extends ConsumerWidget {
-  const _StatsRow({required this.local});
-
-  final LocalProfile local;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        _StatItem(emoji: '⭐', value: ref.watch(starBalanceProvider).when(
-          skipLoadingOnRefresh: false, skipLoadingOnReload: false,
-          data: (n) => n == null ? '—' : _format(n),
-          error: (_, _) => '—', loading: () => '—'), label: 'Stars'),
-        _Divider(),
-        _StatItem(
-          emoji: '👥',
-          value: _format(local.peopleCount),
-          label: 'Named',
-        ),
-      ],
-    );
-  }
-
-  String _format(int n) {
-    if (n >= 1000000) return '${(n / 1000000).toStringAsFixed(1)}M';
-    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
-    return n.toString();
-  }
-}
-
-class _StatItem extends StatelessWidget {
-  const _StatItem({
-    required this.emoji,
-    required this.value,
-    required this.label,
-  });
-
-  final String emoji;
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(emoji, style: const TextStyle(fontSize: 20)),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-        ),
-      ],
-    );
-  }
-}
-
-class _Divider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Container(height: 44, width: 1, color: AppColors.border);
-  }
-}
-
 class _ProfileActions extends StatelessWidget {
   const _ProfileActions();
 
@@ -444,15 +404,6 @@ class _ProfileActions extends StatelessWidget {
       color: AppColors.white,
       child: Column(
         children: [
-          const FriendsLink(),
-          const Divider(height: 1),
-          ListTile(
-            leading: const Icon(Icons.edit_outlined),
-            title: const Text('Edit profile'),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () => context.push(AppRoutes.editProfile),
-          ),
-          const Divider(height: 1),
           ListTile(
             leading: const Icon(Icons.ios_share_outlined),
             title: const Text('Share Flyprox'),

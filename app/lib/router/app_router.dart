@@ -41,7 +41,7 @@ import '../screens/settings/notifications_settings_screen.dart';
 import '../screens/settings/language_settings_screen.dart';
 import '../screens/settings/hidden_users_screen.dart';
 import '../screens/settings/settings_quiz_screen.dart';
-import '../screens/social/likes_empty_screen.dart';
+import '../screens/social/received_likes_screen.dart';
 import '../screens/social/room_screen.dart';
 import '../screens/social/create_room_screen.dart';
 import '../screens/premium/premium_screen.dart';
@@ -374,6 +374,13 @@ GoRouter createAppRouter({bool showInvitationIntro = true}) => GoRouter(
           initialLocation: AppRoutes.search,
           routes: [
             GoRoute(
+              path: '/p/:handle',
+              builder: (_, state) => SocialScreen(
+                page: SocialPage.person,
+                username: state.pathParameters['handle'],
+              ),
+            ),
+            GoRoute(
               path: '/people/:id',
               builder: (_, state) => SocialScreen(
                 page: SocialPage.person,
@@ -391,15 +398,15 @@ GoRouter createAppRouter({bool showInvitationIntro = true}) => GoRouter(
           routes: [
             GoRoute(
               path: AppRoutes.likesFilled,
-              builder: (_, __) => const LikesEmptyScreen(),
+              builder: (_, __) => const ReceivedLikesScreen(),
             ),
             GoRoute(
               path: AppRoutes.likesEmpty,
-              builder: (_, __) => const LikesEmptyScreen(),
+              builder: (_, __) => const ReceivedLikesScreen(),
             ),
             GoRoute(
               path: AppRoutes.likesResult,
-              builder: (_, __) => const LikesEmptyScreen(),
+              builder: (_, __) => const ReceivedLikesScreen(),
             ),
           ],
         ),

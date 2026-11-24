@@ -35,12 +35,20 @@ void main() {
         'country': 'US',
       };
       var campus = oldCampus;
+      var currentHandle = 'old_name';
       api.dio.interceptors.add(
         InterceptorsWrapper(
           onRequest: (request, handler) {
             Map<String, dynamic> reply = {};
             var status = 200;
             switch (request.path) {
+              case '/api/social/me':
+                reply = {
+                  'username': currentHandle,
+                  'firstName': 'Alex',
+                  'lastName': 'Smith',
+                  'votesReceived': 2,
+                };
               case '/api/social/handle':
                 final handle = request.data['username'] as String;
                 handleWrites.add(handle);
@@ -50,6 +58,7 @@ void main() {
                     'message': 'This username is taken. Choose another.',
                   };
                 } else {
+                  currentHandle = handle.toLowerCase();
                   reply = {'username': handle.toLowerCase()};
                 }
               case '/api/schools':

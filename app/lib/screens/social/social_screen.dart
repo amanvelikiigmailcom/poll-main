@@ -7,6 +7,7 @@ import '../../router/app_router.dart';
 import '../../services/api_service.dart';
 import '../../services/storage_service.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/common/social_identity.dart';
 
 enum SocialPage { search, friends, blocked, person }
 
@@ -27,10 +28,12 @@ class SocialScreen extends ConsumerStatefulWidget {
     super.key,
     required this.page,
     this.userId,
+    this.username,
     this.initialKind = 'friends',
   });
   final SocialPage page;
   final String? userId;
+  final String? username;
   final String initialKind;
   @override
   ConsumerState<SocialScreen> createState() => _SocialScreenState();
@@ -159,13 +162,26 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
         });
         return;
       }
-      final data = widget.page == SocialPage.person
-          ? {
-              'users': [await service.profile(widget.userId!)],
-            }
-          : _isSearch
-          ? await service.search(query, cursor: more ? _next : null)
-          : await service.list(_kind, cursor: more ? _next : null);
+      final Map<String, dynamic> data;
+      if (widget.page == SocialPage.person) {
+        final profile = widget.username == null
+            ? await service.profile(widget.userId!)
+            : await service.request(
+                '/handles/${Uri.encodeComponent(widget.username!)}',
+              );
+        if (!mounted || generation != _generation) return;
+        if (profile['self'] == true) {
+          context.go(AppRoutes.profile);
+          return;
+        }
+        data = {
+          'users': [profile],
+        };
+      } else {
+        data = _isSearch
+            ? await service.search(query, cursor: more ? _next : null)
+            : await service.list(_kind, cursor: more ? _next : null);
+      }
       if (!mounted || generation != _generation) return;
       setState(() {
         final users = (data['users'] as List? ?? [])
@@ -212,6 +228,8 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
 
   Future<void> _action(Map<String, dynamic> user, String action) async {
     if (_busy) return;
+    final owner = await _storage.getToken();
+    if (!mounted) return;
     if (['block', 'remove', 'unblock'].contains(action)) {
       final confirmed = await showDialog<bool>(
         context: context,
@@ -244,10 +262,16 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
       );
       if (confirmed != true || !mounted) return;
     }
+    if (owner != await _storage.getToken() || !mounted) return;
+    final generation = _generation;
     setState(() => _busy = true);
     try {
       await ref.read(socialServiceProvider).act(user['id'] as String, action);
-      if (!mounted) return;
+      if (owner != await _storage.getToken() ||
+          !mounted ||
+          generation != _generation) {
+        return;
+      }
       ref.invalidate(socialSummaryProvider);
       final visibilityChanged = action == 'block' || action == 'unblock';
       if (visibilityChanged) ref.read(_visibilityRevision.notifier).changed();
@@ -263,7 +287,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
         await _load();
       }
     } catch (error) {
-      if (mounted) {
+      if (mounted && generation == _generation) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -617,13 +641,26 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '@${user['username']}',
+                          socialDisplayName(user),
                           style: const TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 17,
                             color: AppColors.textPrimary,
                           ),
                         ),
+                        if (socialDisplayName(user) != '@${user['username']}')
+                          Text(
+                            '@${user['username']}',
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        if (person &&
+                            user['campus'] is Map &&
+                            (user['campus'] as Map)['name'] is String)
+                          Text((user['campus'] as Map)['name'] as String),
+                        if (person && user['graduationYear'] is int)
+                          Text('Class of ${user['graduationYear']}'),
                         if (recommendation)
                           if (user['mutualCount'] case final int count)
                             Text(

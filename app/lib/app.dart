@@ -6,6 +6,7 @@ import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 import 'services/game_settings.dart';
 import 'widgets/common/invitation_links.dart';
+import 'widgets/common/profile_links.dart';
 
 /// Root widget of the Flyprox application.
 ///
@@ -30,7 +31,7 @@ class FlyproxApp extends ConsumerWidget {
       builder: (context, child) => MediaQuery(
         data: MediaQuery.of(context).copyWith(disableAnimations:
           MediaQuery.disableAnimationsOf(context) || GameSettings.instance.reduceMotion),
-        child: InvitationLinks(child: child!),
+        child: ProfileLinks(child: InvitationLinks(child: child!)),
       ),
       debugShowCheckedModeBanner: false,
 
