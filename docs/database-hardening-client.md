@@ -19,8 +19,9 @@ Client source is prepared and tested, not an installed TestFlight build.
 - Contact sync sends hashes only; labels remain local. contactHash from the owned
   candidate set maps the stored label even if registered names differ. Unmatched
   or ambiguous labels do not authorize a vote for a stranger.
-- Campus voting remains separately gated in production until a compatible build.
-  Five-person threshold is for school rounds, not campus recommendations.
+- Campus voting has a separate server gate; activation and installed-client
+  compatibility are recorded in the backend runtime status. Five-person threshold
+  is for school rounds, not campus recommendations.
 - Actual purchase/restore/expiry on an App Store Sandbox device is separate from
   fake-provider backend tests. No cloud build/TestFlight upload was started.
 
