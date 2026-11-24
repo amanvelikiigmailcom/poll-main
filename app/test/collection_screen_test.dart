@@ -124,8 +124,17 @@ void main() {
     (tester) async {
       final result = await mount(tester);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('⭐ 5,000'));
-      await tester.tap(find.text('⭐ 5,000'));
+      final buy = tester
+          .widget<FilledButton>(
+            find.ancestor(
+              of: find.text('⭐ 5,000'),
+              matching: find.byType(FilledButton),
+            ),
+          )
+          .onPressed!;
+      // Deliver two activations before the dialog has blocked pointer input.
+      buy();
+      buy();
       await tester.pumpAndSettle();
       expect(find.byType(AlertDialog), findsOneWidget);
       await result.storage.clearToken();

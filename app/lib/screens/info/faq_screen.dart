@@ -93,9 +93,10 @@ class _FaqScreenState extends State<FaqScreen> {
               'only. Leave participant names and private details out.',
         ),
         _FaqItem(
-          'What is Full Reveal?',
-          'Full Reveal shows your own answers after a round. Who voted for you '
-              'is never revealed.',
+          'What can Premium reveal?',
+          'Premium includes 2 full-name voter reveals and 5 first-initial reveals '
+              'per subscription week. Only eligible new votes can be revealed; '
+              'older votes remain hidden.',
         ),
         _FaqItem(
           'Why do some rounds need 5 students?',
@@ -127,8 +128,9 @@ class _FaqScreenState extends State<FaqScreen> {
         ),
         _FaqItem(
           'How do wait passes work?',
-          'One registered friend earns one extra 12-question round — but only '
-              'the server can grant it. Sharing a link alone never earns a pass.',
+          'Messages marked sent or the first 5 qualifying WhatsApp returns in a UTC '
+              'day can earn an extra round. Later WhatsApp invitations need recipient '
+              'confirmation. Only the server grants rounds; sharing a link alone does not.',
         ),
       ],
     ),
@@ -140,8 +142,8 @@ class _FaqScreenState extends State<FaqScreen> {
       items: [
         _FaqItem(
           'How do I earn stars?',
-          'Complete a full 12-question round to collect 1,000 stars. Stars are '
-              'game progress and have no cash value.',
+          'Complete a full 12-question round to collect 1,000 stars, or 2,000 '
+              'for an online round with server-confirmed Premium. Stars have no cash value.',
         ),
         _FaqItem(
           'Where is my star balance kept?',
@@ -192,7 +194,7 @@ class _FaqScreenState extends State<FaqScreen> {
       id: 'likes',
       icon: Icons.favorite_outline_rounded,
       title: 'Likes & Activity',
-      intro: 'See the picks, never the voters.',
+      intro: 'See the picks and eligible Premium reveals.',
       items: [
         _FaqItem(
           'Where do I see my likes?',
@@ -206,7 +208,9 @@ class _FaqScreenState extends State<FaqScreen> {
         ),
         _FaqItem(
           'Can I see who voted for me?',
-          'No. Voter names and IDs are never shown.',
+          'Premium can reveal the first initial or full name behind eligible new '
+              'votes using limited weekly reveals. Older votes stay hidden. '
+              'Ordinary Likes and Activity do not show voter identities.',
         ),
       ],
     ),
@@ -278,8 +282,10 @@ class _FaqScreenState extends State<FaqScreen> {
       items: [
         _FaqItem(
           'How do Premium purchases work?',
-          'Purchases run through Superwall and are verified on the server. A '
-              'local or debug Premium flag grants no server rights.',
+          'Premium Weekly includes 2 full-name reveals, 5 first-initial reveals, '
+              'double online stars and a blue membership badge. Limits reset each '
+              'subscription week; reopening an unlocked vote is free while active. '
+              'Purchases run through Superwall and require server confirmation.',
         ),
         _FaqItem(
           'Does Premium skip the wait?',
@@ -299,8 +305,10 @@ class _FaqScreenState extends State<FaqScreen> {
     ),
   ];
 
-  int get _total =>
-      _categories.fold<int>(0, (count, category) => count + category.items.length);
+  int get _total => _categories.fold<int>(
+    0,
+    (count, category) => count + category.items.length,
+  );
 
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
@@ -345,9 +353,8 @@ class _FaqScreenState extends State<FaqScreen> {
     return text.toLowerCase().contains(_query);
   }
 
-  bool _itemMatches(_FaqCategory category, _FaqItem item) => _matches(
-        '${category.title} ${item.question} ${item.answer}',
-      );
+  bool _itemMatches(_FaqCategory category, _FaqItem item) =>
+      _matches('${category.title} ${item.question} ${item.answer}');
 
   /// Visible item indexes per category; empty categories are hidden.
   List<List<int>> get _visible => [
@@ -599,7 +606,10 @@ class _HeroCard extends StatelessWidget {
             runSpacing: 8,
             children: [
               _StatChip(icon: Icons.quiz_rounded, label: '$total answers'),
-              _StatChip(icon: Icons.folder_open_rounded, label: '$topics topics'),
+              _StatChip(
+                icon: Icons.folder_open_rounded,
+                label: '$topics topics',
+              ),
               const _StatChip(
                 icon: Icons.touch_app_rounded,
                 label: 'Tap a question',
@@ -763,7 +773,9 @@ class _CategoryChips extends StatelessWidget {
         children: [
           for (var i = 0; i < categories.length; i++)
             Padding(
-              padding: EdgeInsets.only(right: i == categories.length - 1 ? 0 : 8),
+              padding: EdgeInsets.only(
+                right: i == categories.length - 1 ? 0 : 8,
+              ),
               child: ActionChip(
                 avatar: Icon(
                   categories[i].icon,
@@ -963,9 +975,7 @@ class _HelpCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.primaryBlue.withValues(alpha: 0.07),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.primaryBlue.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.2)),
       ),
       child: Column(
         children: [

@@ -1,20 +1,17 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../router/app_router.dart';
-import '../../services/local_game_service.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/helpers.dart';
 import 'received_likes_screen.dart';
+import '../../widgets/common/voter_reveal_card.dart';
 
 /// Details of one received vote, opened from a Like card.
 ///
 /// Matches the voting screen: light background, big question and a
 /// two-column grid of participant cards. Names come from the server
-/// snapshot when the vote has one, otherwise from this device.
-/// The voter stays anonymous; the API never sends names or
-/// identity hints, so this screen promises no reveal.
+/// snapshot only. Voter identity requires a separate backend-authorized reveal.
 class LikesResultScreen extends ConsumerWidget {
   const LikesResultScreen({super.key, this.like});
 
@@ -40,10 +37,7 @@ class LikesResultScreen extends ConsumerWidget {
             ? const Center(
                 child: Text(
                   'Like not found.',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 16),
                 ),
               )
             : Column(
@@ -97,9 +91,10 @@ class LikesResultScreen extends ConsumerWidget {
                           _ParticipantsSection(
                             question: question,
                             server: participants,
+                            voteId: like['id'] as String?,
                           ),
                           const SizedBox(height: 20),
-                          const _AnonymousCard(),
+                          VoterRevealCard(voteId: like['id'] as String?),
                           const SizedBox(height: 8),
                         ],
                       ),
@@ -119,14 +114,13 @@ List<_Participant> _serverParticipants(Map<String, dynamic>? like) {
   final result = <_Participant>[];
   for (final entry in raw) {
     if (entry is! Map) continue;
-    final name = entry['name'] is String ? (entry['name'] as String).trim() : '';
+    final name = entry['name'] is String
+        ? (entry['name'] as String).trim()
+        : '';
     if (name.isEmpty) continue;
     final year = entry['graduationYear'];
     result.add(
-      _Participant(
-        name: name,
-        graduationYear: year is int ? year : null,
-      ),
+      _Participant(name: name, graduationYear: year is int ? year : null),
     );
   }
   return result;
@@ -140,77 +134,31 @@ class _Participant {
 }
 
 // ---------------------------------------------------------------------------
-// Participants grid (server snapshot, local names as fallback)
+// Participants grid (server snapshot only)
 // ---------------------------------------------------------------------------
 
 /// Everyone who was in the vote, in the voting screen card style.
 ///
-/// The server snapshot wins when the vote has one. Older votes without a
-/// snapshot fall back to the names saved on this device. The saved local
-/// pick is marked with the voting selected style in both modes.
-class _ParticipantsSection extends StatefulWidget {
-  const _ParticipantsSection({required this.question, required this.server});
+/// Missing historical snapshots show an empty state, never on-device guesses.
+class _ParticipantsSection extends StatelessWidget {
+  const _ParticipantsSection({
+    required this.question,
+    required this.server,
+    this.voteId,
+  });
 
   final String question;
   final List<_Participant> server;
-
-  @override
-  State<_ParticipantsSection> createState() => _ParticipantsSectionState();
-}
-
-class _ParticipantsSectionState extends State<_ParticipantsSection> {
-  List<String>? _names;
-  String? _pick;
-
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    List<String> names = const [];
-    String? pick;
-    try {
-      final game = LocalGameService.instance;
-      names = await game.selectedOptions();
-      final answers = [
-        ...await game.getRoundAnswers(),
-        ...await game.getRoundAnswers(completed: true),
-      ];
-      for (final answer in answers) {
-        if (answer.question == widget.question && answer.choice != null) {
-          pick = answer.choice;
-          break;
-        }
-      }
-    } catch (_) {
-      names = const [];
-      pick = null;
-    }
-    if (mounted) {
-      setState(() {
-        _names = names;
-        _pick = pick;
-      });
-    }
-  }
+  final String? voteId;
 
   @override
   Widget build(BuildContext context) {
-    final names = _names;
-    final fromServer = widget.server.isNotEmpty;
-    final participants = fromServer
-        ? widget.server
-        : [
-            for (final name in names ?? const <String>[])
-              _Participant(name: name),
-          ];
+    final participants = server;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          fromServer ? 'Participants' : 'Your voting circle',
+          'Participants',
           style: const TextStyle(
             color: AppColors.textPrimary,
             fontSize: 16,
@@ -219,18 +167,11 @@ class _ParticipantsSectionState extends State<_ParticipantsSection> {
         ),
         const SizedBox(height: 6),
         Text(
-          fromServer
-              ? 'Everyone who was in this vote.'
-              : 'People you vote with on this device.',
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 13,
-          ),
+          'Everyone who was in this vote.',
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
         ),
         const SizedBox(height: 14),
-        if (!fromServer && names == null)
-          const SizedBox(height: 8)
-        else if (participants.isEmpty)
+        if (participants.isEmpty)
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
@@ -240,7 +181,7 @@ class _ParticipantsSectionState extends State<_ParticipantsSection> {
               border: Border.all(color: AppColors.border),
             ),
             child: const Text(
-              'Play a round to see your voting circle.',
+              'Participants are not available for this vote.',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
             ),
@@ -258,13 +199,14 @@ class _ParticipantsSectionState extends State<_ParticipantsSection> {
                       width: cardWidth,
                       child: _ParticipantCard(
                         participant: participant,
-                        isPick: participant.name == _pick,
+                        isPick: false,
                         onTap: () => context.push(
                           AppRoutes.likesPerson,
                           extra: {
                             'name': participant.name,
-                            'question': widget.question,
-                            'isPick': participant.name == _pick,
+                            'question': question,
+                            'isPick': false,
+                            'voteId': voteId,
                             if (participant.graduationYear != null)
                               'graduationYear': participant.graduationYear,
                           },
@@ -399,89 +341,3 @@ class _ParticipantCard extends StatelessWidget {
 // ---------------------------------------------------------------------------
 // Anonymous voter card
 // ---------------------------------------------------------------------------
-
-class _AnonymousCard extends StatelessWidget {
-  const _AnonymousCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Voter',
-            style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: ImageFiltered(
-                    imageFilter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 10,
-                        horizontal: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryBlue.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Text(
-                        'Anonymous voter',
-                        style: TextStyle(
-                          color: AppColors.primaryBlue,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryBlue.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.lock_outline,
-                  color: AppColors.primaryBlue,
-                  size: 22,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'The voter stays anonymous.',
-            style: TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 13,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

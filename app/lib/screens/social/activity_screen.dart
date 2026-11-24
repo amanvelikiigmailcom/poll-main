@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../widgets/common/premium_badge.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/service_providers.dart';
@@ -260,13 +261,24 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen>
                 spacing: 12,
                 runSpacing: 8,
                 children: [
-                  Text(
-                    item['chosenName'] as String,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          item['chosenName'] as String,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                      PremiumBadge(
+                        active: item['premiumBadge'] == true,
+                        until: item['premiumBadgeUntil'] as String?,
+                      ),
+                    ],
                   ),
                   Container(
                     key: ValueKey('activity-time-${item['id']}'),

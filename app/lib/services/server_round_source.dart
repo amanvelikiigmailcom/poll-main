@@ -13,6 +13,7 @@ class ServerRoundSource {
   final Future<bool> Function() _isLoggedIn;
   final Future<String?> Function()? readToken;
   String? _loadedToken;
+  int? lastStarsAwarded;
 
   ServerRoundSource(this._quiz, {required this._isLoggedIn, this.readToken});
 
@@ -82,6 +83,7 @@ class ServerRoundSource {
     String? ownerId,
     required Map<String, String?> answers,
   }) async {
+    lastStarsAwarded = null;
     final token = await _token();
     if (token == null || !await _matchesDraft(token, sessionKey, ownerId)) {
       throw const ApiException('This draft belongs to another sign-in.');
@@ -94,6 +96,10 @@ class ServerRoundSource {
     if (await _token() != token) {
       throw const ApiException('Sign-in changed during submission.');
     }
+    lastStarsAwarded = _quiz.awardedFor(
+      sessionId,
+      readToken == null ? null : token,
+    );
   }
 
   /// The token lives in secure storage; never let a slow keychain hang the

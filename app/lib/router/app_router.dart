@@ -364,7 +364,11 @@ GoRouter createAppRouter({bool showInvitationIntro = true}) => GoRouter(
             ),
             GoRoute(
               path: AppRoutes.starReceived,
-              builder: (_, __) => const StarReceivedScreen(),
+              builder: (_, state) => StarReceivedScreen(
+                starsAwarded: state.extra is Map
+                    ? (state.extra as Map)['starsAwarded'] as int?
+                    : null,
+              ),
             ),
             GoRoute(
               path: AppRoutes.timer,
@@ -407,9 +411,7 @@ GoRouter createAppRouter({bool showInvitationIntro = true}) => GoRouter(
               builder: (_, state) {
                 final extra = state.extra;
                 return LikesResultScreen(
-                  like: extra is Map
-                      ? Map<String, dynamic>.from(extra)
-                      : null,
+                  like: extra is Map ? Map<String, dynamic>.from(extra) : null,
                 );
               },
             ),
@@ -418,9 +420,7 @@ GoRouter createAppRouter({bool showInvitationIntro = true}) => GoRouter(
               builder: (_, state) {
                 final extra = state.extra;
                 return LikePersonScreen(
-                  data: extra is Map
-                      ? Map<String, dynamic>.from(extra)
-                      : null,
+                  data: extra is Map ? Map<String, dynamic>.from(extra) : null,
                 );
               },
             ),

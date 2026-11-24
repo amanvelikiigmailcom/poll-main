@@ -8,6 +8,7 @@ import '../../services/api_service.dart';
 import '../../services/storage_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/common/social_identity.dart';
+import '../../widgets/common/premium_badge.dart';
 
 enum SocialPage { search, friends, blocked }
 
@@ -619,13 +620,23 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          socialDisplayName(user),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 17,
-                            color: AppColors.textPrimary,
-                          ),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                socialDisplayName(user),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 17,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                            PremiumBadge(
+                              active: user['premiumBadge'] == true,
+                              until: user['premiumBadgeUntil'] as String?,
+                            ),
+                          ],
                         ),
                         if (socialDisplayName(user) != '@${user['username']}')
                           Text(

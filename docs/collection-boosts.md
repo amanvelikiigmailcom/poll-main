@@ -7,7 +7,8 @@ Prepared client/backend source, not a production rollout.
 - Replaces the old local cosmetic catalog; no cosmetic entitlement backend exists.
 - English UI, navy gradient, white header, fresh server balance, two server-priced
   cards, confirmation, pending retry, active queued rights and earning explanation.
-- 1,000 stars per completed 12-question round, not per individual vote.
+- 1,000 stars per completed 12-question round, or 2,000 for an online round with
+  server-confirmed Premium; never per individual vote.
 - 5,000: 4 random questions in a single other player's round, at most1sympathy.
   20,000:1sympathy question. Only future eligible school rounds; never self/blocked/
   other campus; placements are not guaranteed votes or verified views.

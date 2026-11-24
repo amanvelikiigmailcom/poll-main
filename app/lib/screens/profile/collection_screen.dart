@@ -249,7 +249,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                         const _ShopHeading('How do I earn stars?'),
                         const SizedBox(height: 10),
                         const Text(
-                          'Earn 1,000 stars for each completed 12-question round.',
+                          'Earn 1,000 stars for each completed 12-question round, or 2,000 for an online round with server-confirmed Premium.',
                           textAlign: TextAlign.center,
                           style: TextStyle(color: Colors.white60, height: 1.5),
                         ),

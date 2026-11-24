@@ -24,6 +24,7 @@ import '../services/quiz_service.dart';
 import '../services/storage_service.dart';
 import '../services/user_service.dart';
 import '../services/invitation_service.dart';
+import '../services/premium_service.dart';
 
 /// Single [StorageService] instance shared across the app.
 /// Must be overridden in [ProviderScope] after [StorageService.init()] is called.
@@ -37,6 +38,12 @@ final storageServiceProvider = Provider<StorageService>((ref) {
 final apiServiceProvider = Provider<ApiService>((ref) {
   return ApiService(ref.watch(storageServiceProvider));
 });
+final premiumServiceProvider = Provider<PremiumService>(
+  (ref) => PremiumService(
+    ref.watch(apiServiceProvider),
+    ref.watch(storageServiceProvider),
+  ),
+);
 
 final collectionServiceProvider = ChangeNotifierProvider.autoDispose<CollectionService>(
   (ref) => CollectionService(
@@ -147,21 +154,25 @@ final activityServiceProvider = Provider<ActivityService>(
   ),
 );
 
-
 final starBalanceProvider = FutureProvider.autoDispose<int?>((ref) async {
   final storage = ref.watch(storageServiceProvider);
   void changed() => ref.invalidateSelf();
   storage.addListener(changed);
   ref.onDispose(() => storage.removeListener(changed));
   final api = ref.watch(apiServiceProvider);
-  String key(String token) => 'verified_stars_v1_${sha256.convert(utf8.encode(token))}';
+  String key(String token) =>
+      'verified_stars_v1_${sha256.convert(utf8.encode(token))}';
   return AccountBalanceService(
     readToken: storage.getToken,
-    fetchBalance: (token) async => (await api.get<Map<String,dynamic>>(
-      '/api/users/profile', options: Options(headers: {'Authorization':'Bearer $token'}),
+    fetchBalance: (token) async => (await api.get<Map<String, dynamic>>(
+      '/api/users/profile',
+      options: Options(headers: {'Authorization': 'Bearer $token'}),
     )).data?['starsCount'],
-    readCached: (token) async => (await SharedPreferences.getInstance()).getInt(key(token)),
-    writeCached: (token, value) async { await (await SharedPreferences.getInstance()).setInt(key(token),value); },
+    readCached: (token) async =>
+        (await SharedPreferences.getInstance()).getInt(key(token)),
+    writeCached: (token, value) async {
+      await (await SharedPreferences.getInstance()).setInt(key(token), value);
+    },
     guestBalance: LocalGameService.instance.getStars,
   ).load();
 });

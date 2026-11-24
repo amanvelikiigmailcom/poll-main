@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flyprox_app/screens/social/like_person_screen.dart';
+import 'fakes/premium.dart';
 
 const _question = 'Who makes everyone smile?';
 
@@ -24,22 +25,18 @@ GoRouter _router({Map<String, dynamic>? data}) {
         path: '/person',
         builder: (_, _) => LikePersonScreen(data: data),
       ),
-      GoRoute(
-        path: '/premium',
-        builder: (_, _) => const Text('Premium stub'),
-      ),
+      GoRoute(path: '/premium', builder: (_, _) => const Text('Premium stub')),
     ],
   );
   addTearDown(router.dispose);
   return router;
 }
 
-Future<void> _mount(
-  WidgetTester tester, {
-  Map<String, dynamic>? data,
-}) async {
+Future<void> _mount(WidgetTester tester, {Map<String, dynamic>? data}) async {
   await tester.pumpWidget(
-    MaterialApp.router(routerConfig: _router(data: data ?? _data())),
+    withPremium(
+      MaterialApp.router(routerConfig: _router(data: data ?? _data())),
+    ),
   );
 }
 
@@ -78,10 +75,7 @@ void main() {
   testWidgets('plain participant hides pick badge and class year', (
     tester,
   ) async {
-    await _mount(
-      tester,
-      data: _data(isPick: false, graduationYear: null),
-    );
+    await _mount(tester, data: _data(isPick: false, graduationYear: null));
     await tester.pumpAndSettle();
     expect(find.text('Rival One'), findsOneWidget);
     expect(find.text('Your pick'), findsNothing);

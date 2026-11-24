@@ -39,6 +39,8 @@ class QuizCandidate {
   final int grade;
   final String? gradeClass;
   final bool isSelf;
+  final bool premiumBadge;
+  final String? premiumBadgeUntil;
 
   const QuizCandidate({
     required this.id,
@@ -49,6 +51,8 @@ class QuizCandidate {
     required this.grade,
     this.gradeClass,
     this.isSelf = false,
+    this.premiumBadge = false,
+    this.premiumBadgeUntil,
   });
 
   String get fullName => '$firstName $lastName'.trim();
@@ -63,6 +67,8 @@ class QuizCandidate {
       grade: json['grade'] as int? ?? 8,
       gradeClass: json['gradeClass'] as String?,
       isSelf: json['isSelf'] == true,
+      premiumBadge: json['premiumBadge'] == true,
+      premiumBadgeUntil: json['premiumBadgeUntil'] as String?,
     );
   }
 }
@@ -163,7 +169,12 @@ class QuizService {
   Future<QuizSession> getQuizzes({String? sessionToken}) async {
     final response = await _api.get<Map<String, dynamic>>(
       '/api/quizzes/current',
-      queryParameters: {'lang': 'en', 'schoolVoting': '1', 'quizPreferences': '1'},
+      queryParameters: {
+        'lang': 'en',
+        'schoolVoting': '1',
+        'quizPreferences': '1',
+        'revealPolicyVersion': '1',
+      },
       options: _sessionOptions(sessionToken),
     );
     return QuizSession.fromJson(response.data!);
@@ -191,6 +202,7 @@ class QuizService {
       options: _sessionOptions(sessionToken),
       data: {
         'sessionId': sessionId,
+        'revealPolicyVersion': 1,
         'answers': [
           for (final answer in answers.entries)
             {'quizId': answer.key, 'winnerId': answer.value},
@@ -200,7 +212,21 @@ class QuizService {
     if (response.data?['success'] != true) {
       throw const ApiException('Could not confirm the round.');
     }
+    final reward = response.data?['starsAwarded'];
+    _lastReward = (
+      sessionId: sessionId,
+      token: sessionToken,
+      stars: reward is int && (reward == 1000 || reward == 2000)
+          ? reward
+          : null,
+    );
   }
+
+  ({String sessionId, String? token, int? stars})? _lastReward;
+  int? awardedFor(String sessionId, String? token) =>
+      _lastReward?.sessionId == sessionId && _lastReward?.token == token
+      ? _lastReward?.stars
+      : null;
 
   /// Submits a vote: the user chose [winnerId] for [quizId].
   Future<VoteResult> submitVote({

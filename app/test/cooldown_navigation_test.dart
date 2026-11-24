@@ -186,12 +186,12 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('profile shows the verified badge for pro members', (
+  testWidgets('local pro flag cannot grant the server membership badge', (
     tester,
   ) async {
     await SubscriptionService.instance.setPro(true);
     await mount(tester, AppRoutes.profile);
-    expect(find.byIcon(Icons.verified), findsOneWidget);
+    expect(find.byIcon(Icons.verified), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
 

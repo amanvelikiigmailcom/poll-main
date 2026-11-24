@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../router/app_router.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/helpers.dart';
+import '../../widgets/common/voter_reveal_card.dart';
 
 /// One vote participant, opened by tapping a card in vote details.
 ///
 /// Matches the voting screen: light background, initial avatar, question
-/// card, share actions and the reveal entry. The API never sends the
-/// voter's identity, so the reveal button only opens the Premium paywall.
+/// card, share actions and the backend-authorized voter reveal entry.
 class LikePersonScreen extends StatelessWidget {
   const LikePersonScreen({super.key, this.data});
 
@@ -30,10 +29,7 @@ class LikePersonScreen extends StatelessWidget {
             ? const Center(
                 child: Text(
                   'Person not found.',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 16),
                 ),
               )
             : Column(
@@ -133,7 +129,7 @@ class LikePersonScreen extends StatelessWidget {
                           const SizedBox(height: 20),
                           const _ShareSection(),
                           const SizedBox(height: 20),
-                          const _RevealButton(),
+                          VoterRevealCard(voteId: data?['voteId'] as String?),
                           const SizedBox(height: 8),
                         ],
                       ),
@@ -235,9 +231,9 @@ class _ShareSection extends StatelessWidget {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Couldn’t open Snapchat')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Couldn’t open Snapchat')));
       }
     }
   }
@@ -441,32 +437,5 @@ class _SnapchatPainter extends CustomPainter {
 }
 
 // ---------------------------------------------------------------------------
-// Reveal button (paywall entry only)
+// The voter reveal component is shared with vote details.
 // ---------------------------------------------------------------------------
-
-/// Opens the Premium paywall. It never reveals the voter by itself.
-class _RevealButton extends StatelessWidget {
-  const _RevealButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: FilledButton.icon(
-        onPressed: () => context.push(AppRoutes.premium),
-        icon: const Icon(Icons.lock_outline),
-        label: const Text('Find out who voted for you'),
-        style: FilledButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          textStyle: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-    );
-  }
-}

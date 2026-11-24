@@ -2,6 +2,7 @@ import '../../services/contact_sync_service.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../settings/settings_quiz_screen.dart';
+import '../../widgets/common/premium_badge.dart';
 import '../../services/game_settings.dart';
 import 'package:go_router/go_router.dart';
 import '../../theme/app_colors.dart';
@@ -9,7 +10,6 @@ import '../../router/app_router.dart';
 import '../../utils/helpers.dart';
 import '../../services/local_game_service.dart';
 import '../../services/question_report_service.dart';
-import '../../services/subscription_service.dart';
 import '../../widgets/common/question_report_dialog.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/service_providers.dart';
@@ -26,6 +26,8 @@ class QuizOption {
   final String grade;
   final String? avatarUrl;
   final String? serverUserId;
+  final bool premiumBadge;
+  final String? premiumBadgeUntil;
 
   const QuizOption({
     required this.id,
@@ -33,6 +35,8 @@ class QuizOption {
     required this.grade,
     this.avatarUrl,
     this.serverUserId,
+    this.premiumBadge = false,
+    this.premiumBadgeUntil,
   });
 }
 
@@ -58,7 +62,13 @@ class QuizQuestion {
     'category': category,
     'options': [
       for (final option in options)
-        {'id': option.id, 'name': option.name, 'winnerId': option.serverUserId},
+        {
+          'id': option.id,
+          'name': option.name,
+          'winnerId': option.serverUserId,
+          'premiumBadge': option.premiumBadge,
+          'premiumBadgeUntil': option.premiumBadgeUntil,
+        },
     ],
   };
 
@@ -71,6 +81,8 @@ class QuizQuestion {
       for (final option in data['options'] as List)
         QuizOption(
           id: option['id'] as String,
+          premiumBadge: option['premiumBadge'] == true,
+          premiumBadgeUntil: option['premiumBadgeUntil'] as String?,
           name: option['name'] as String,
           grade: '',
           serverUserId: option['winnerId'] as String?,
@@ -323,16 +335,21 @@ class _VoteScreenState extends State<VoteScreen>
                 id: candidate.id,
                 name: serverSession.schoolVoting
                     ? candidate.firstName
-                    : localLabels[candidate.contactHash]?.trim().isNotEmpty == true
+                    : localLabels[candidate.contactHash]?.trim().isNotEmpty ==
+                          true
                     ? localLabels[candidate.contactHash]!.trim()
                     : candidate.firstName,
                 grade: '',
                 serverUserId: candidate.id,
+                premiumBadge: candidate.premiumBadge,
+                premiumBadgeUntil: candidate.premiumBadgeUntil,
               ),
             );
           }
         }
-        final localNames = serverSession.serverCandidatesOnly ? <String>[] : names;
+        final localNames = serverSession.serverCandidatesOnly
+            ? <String>[]
+            : names;
         for (final (index, name) in localNames.indexed) {
           // Labels, not strangers' profile names. Ambiguous matches stay local.
           final matches = q.candidates
@@ -352,6 +369,10 @@ class _VoteScreenState extends State<VoteScreen>
               name: name,
               grade: '',
               serverUserId: userId,
+              premiumBadge: matches.length == 1 && matches.single.premiumBadge,
+              premiumBadgeUntil: matches.length == 1
+                  ? matches.single.premiumBadgeUntil
+                  : null,
             ),
           );
         }
@@ -609,7 +630,8 @@ class _VoteScreenState extends State<VoteScreen>
       _sealed = true;
       await _saveDraft(_totalQuestions);
       if (!mounted) return;
-      final bonus = await SubscriptionService.instance.isPro();
+      // Guest/local rounds never use a debug/SDK flag to award paid benefits.
+      const bonus = false;
       if (!mounted) return;
       final sessionId = _sessionId;
       if (sessionId != null) {
@@ -640,7 +662,16 @@ class _VoteScreenState extends State<VoteScreen>
           /* An injected offline preview may have no provider scope. */
         }
       }
-      if (mounted) context.go(AppRoutes.starReceived);
+      if (mounted) {
+        context.go(
+          AppRoutes.starReceived,
+          extra: {
+            'starsAwarded': sessionId == null
+                ? 1000
+                : _source?.lastStarsAwarded,
+          },
+        );
+      }
     } catch (error) {
       if (!mounted) return;
       if (_schoolVoting &&
@@ -760,6 +791,13 @@ class _VoteScreenState extends State<VoteScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildQuestion(),
+                        if (_sessionId != null)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 12),
+                            child: Text(
+                              'Premium recipients can reveal your first initial or full name using limited weekly reveals.',
+                            ),
+                          ),
                         const SizedBox(height: 20),
                         _buildOptionsGrid(),
                         const SizedBox(height: 16),
@@ -843,6 +881,13 @@ class _VoteScreenState extends State<VoteScreen>
                 },
               ),
             ),
+            if (_sessionId != null)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  'By submitting, you acknowledge that Premium recipients can reveal your first initial or full name using limited weekly reveals.',
+                ),
+              ),
             if (_submitError case final error?)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -1153,6 +1198,10 @@ class _OptionCard extends StatelessWidget {
                         : AppColors.textPrimary,
                     height: 1.3,
                   ),
+                ),
+                PremiumBadge(
+                  active: option.premiumBadge,
+                  until: option.premiumBadgeUntil,
                 ),
                 const SizedBox(height: 3),
                 Text(

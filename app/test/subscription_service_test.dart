@@ -45,6 +45,25 @@ void main() {
     expect(await sub.isPro(), isFalse);
   });
 
+  test(
+    'failed account identification cannot open purchase or restore for the wrong owner',
+    () async {
+      final sub = SubscriptionService.instance;
+      const id = '12345678-1234-1234-1234-123456789abc';
+      fake.identifyError = StateError('Billing offline');
+      await expectLater(sub.prepareAccountBilling(id), throwsStateError);
+      await sub.buyPro('premium_pro_weekly', expectedBillingId: id);
+      await sub.restore(expectedBillingId: id);
+      expect(fake.buyCalls, 0);
+      expect(fake.restoreCalled, isFalse);
+      fake.identifyError = null;
+      await sub.prepareAccountBilling(id);
+      await sub.bindNotificationBillingIdentity(null);
+      await sub.buyPro('premium_pro_weekly', expectedBillingId: id);
+      expect(fake.buyCalls, 0);
+    },
+  );
+
   test('reset game keeps the premium purchase', () async {
     final sub = SubscriptionService.instance;
     await sub.setPro(true, productId: 'premium_pro_weekly');

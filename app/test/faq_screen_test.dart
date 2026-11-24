@@ -30,10 +30,7 @@ void main() {
   Future<GoRouter> mount(WidgetTester tester) async {
     final router = GoRouter(
       routes: [
-        GoRoute(
-          path: '/',
-          builder: (_, _) => const FaqScreen(),
-        ),
+        GoRoute(path: '/', builder: (_, _) => const FaqScreen()),
         GoRoute(
           path: AppRoutes.safetyCenter,
           builder: (_, _) => const Scaffold(body: Text('Safety destination')),
@@ -54,10 +51,7 @@ void main() {
     final storage = SessionStorage()..token = null;
     final router = GoRouter(
       routes: [
-        GoRoute(
-          path: '/',
-          builder: (_, _) => const SettingsScreen(),
-        ),
+        GoRoute(path: '/', builder: (_, _) => const SettingsScreen()),
         GoRoute(
           path: AppRoutes.faq,
           builder: (_, _) => const Scaffold(body: Text('FAQ destination')),
@@ -128,8 +122,10 @@ void main() {
     await tester.tap(find.text('Expand all'));
     await tester.pumpAndSettle();
     expect(find.text('All questions explored — nice!'), findsOneWidget);
-    expect(find.textContaining('Premium never skips the 60-minute wait'),
-        findsOneWidget);
+    expect(
+      find.textContaining('Premium never skips the 60-minute wait'),
+      findsOneWidget,
+    );
     expect(find.textContaining('Hashing is not anonymity'), findsOneWidget);
   });
 
@@ -150,15 +146,40 @@ void main() {
     );
   });
 
+  testWidgets(
+    'new FAQ layout explains weekly Premium and removes old anonymity promise',
+    (tester) async {
+      await mount(tester);
+      await tester.enterText(
+        find.byKey(const ValueKey('faq-search')),
+        'What can Premium reveal?',
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('2 full-name voter reveals and 5 first-initial'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('older votes remain hidden'), findsOneWidget);
+      expect(find.text('What is Full Reveal?'), findsNothing);
+      await tester.enterText(
+        find.byKey(const ValueKey('faq-search')),
+        'Can I see who voted for me?',
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('limited weekly reveals'), findsOneWidget);
+      expect(
+        find.text('No. Voter names and IDs are never shown.'),
+        findsNothing,
+      );
+    },
+  );
+
   testWidgets('search filters questions and empty state clears', (
     tester,
   ) async {
     await mount(tester);
 
-    await tester.enterText(
-      find.byKey(const ValueKey('faq-search')),
-      'crush',
-    );
+    await tester.enterText(find.byKey(const ValueKey('faq-search')), 'crush');
     await tester.pumpAndSettle();
     // Matching question opens with its answer visible…
     expect(find.textContaining('1 crush question'), findsOneWidget);
@@ -173,10 +194,7 @@ void main() {
     expect(find.textContaining('No matches for'), findsOneWidget);
     await tester.tap(find.text('Clear search'));
     await tester.pumpAndSettle();
-    expect(
-      find.widgetWithText(ActionChip, 'Getting started'),
-      findsOneWidget,
-    );
+    expect(find.widgetWithText(ActionChip, 'Getting started'), findsOneWidget);
   });
 
   testWidgets('help footer navigates to safety center and guide', (
@@ -207,8 +225,10 @@ void main() {
     await scrollTo(tester, find.text('Does Premium skip the wait?'));
     await tester.tap(find.text('Does Premium skip the wait?'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Premium never skips the 60-minute wait'),
-        findsOneWidget);
+    expect(
+      find.textContaining('Premium never skips the 60-minute wait'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('settings links to the FAQ screen', (tester) async {

@@ -180,7 +180,8 @@ class _AuthInterceptor extends Interceptor {
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    if (err.response?.statusCode == 401) {
+    if (err.response?.statusCode == 401 &&
+        err.requestOptions.extra['callerHandlesUnauthorized'] != true) {
       // Token expired or invalid — clear token so app routes to login
       final token = await _storageService.getToken();
       if (token != null &&

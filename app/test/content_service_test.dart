@@ -73,22 +73,22 @@ void main() {
       'Get Premium · \$9.99',
     );
     expect(
-      content.template('upsell_reveal_note', {'shown': '3', 'total': '12'}),
-      'First 3 of 12 shown. Go Premium to reveal the whole round.',
+      content.template('paywall_term', {'price': '\$6.99'}),
+      '\$6.99 / week · 1-week auto-renewing subscription',
     );
   });
 
   test('stringList parses and pads short overrides from defaults', () {
     final content = ContentService.instance;
     final features = content.stringList('paywall_features');
-    expect(features.length, 3);
-    expect(features.first, contains('Full Reveal'));
+    expect(features.length, 4);
+    expect(features.first, contains('full-name'));
     content.debugSetOverrides({'paywall_features': '["Only one"]'});
     final padded = content.stringList('paywall_features');
-    expect(padded.length, 3);
+    expect(padded.length, 4);
     expect(padded.first, 'Only one');
     content.debugSetOverrides({'paywall_features': 'not json'});
-    expect(content.stringList('paywall_features').length, 3);
+    expect(content.stringList('paywall_features').length, 4);
   });
 
   test('load applies fresh cache', () async {

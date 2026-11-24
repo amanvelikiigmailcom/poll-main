@@ -40,6 +40,7 @@ class SubscriptionService {
   StreamSubscription<Set<String>>? _statusSub;
   bool _ready = false;
   String? _accountBillingId;
+  String? _identifiedBillingId;
   Future<void>? _identityTail;
   bool _lastRefreshSucceeded = false;
   bool _entitlementActive = false;
@@ -106,6 +107,7 @@ class SubscriptionService {
   }
 
   Future<void> _identifyCurrentIdentity() async {
+    _identifiedBillingId = null;
     try {
       final prefs = await _prefs;
       final targetAccount = _accountBillingId;
@@ -121,6 +123,7 @@ class SubscriptionService {
         await prefs.setString(_installIdKey, id);
       }
       await _gateway.identify(id);
+      _identifiedBillingId = id;
       if (targetAccount != null) {
         await prefs.setString(_sdkAccountKey, targetAccount);
       }
@@ -139,7 +142,17 @@ class SubscriptionService {
     }
     if (_accountBillingId == id) return;
     _accountBillingId = id;
+    _identifiedBillingId = null;
     if (_ready) await _identifyInstall();
+  }
+
+  Future<void> prepareAccountBilling(String id) async {
+    await bindNotificationBillingIdentity(id);
+    await _ensureReady();
+    if (_identifiedBillingId != id) await _identifyInstall();
+    if (!_ready || _accountBillingId != id || _identifiedBillingId != id) {
+      throw StateError('Could not confirm the billing account');
+    }
   }
 
   String _newInstallId() {
@@ -193,8 +206,14 @@ class SubscriptionService {
   }
 
   /// Buy through the billing backend using our own paywall UI.
-  Future<void> buyPro(String productId) async {
+  Future<void> buyPro(String productId, {String? expectedBillingId}) async {
     await _ensureReady();
+    if (expectedBillingId != null &&
+        (_accountBillingId != expectedBillingId ||
+            _identifiedBillingId != expectedBillingId)) {
+      notice.value = 'Your billing account changed. Please try again.';
+      return;
+    }
     if (!_ready) {
       notice.value = 'Purchases are not available on this device';
       return;
@@ -222,8 +241,14 @@ class SubscriptionService {
   }
 
   /// Restore past purchases through the billing backend.
-  Future<void> restore() async {
+  Future<void> restore({String? expectedBillingId}) async {
     await _ensureReady();
+    if (expectedBillingId != null &&
+        (_accountBillingId != expectedBillingId ||
+            _identifiedBillingId != expectedBillingId)) {
+      notice.value = 'Your billing account changed. Please try again.';
+      return;
+    }
     if (!_ready) {
       notice.value = 'Purchases are not available on this device';
       return;
@@ -274,6 +299,7 @@ class SubscriptionService {
     proListenable.value = false;
     purchasePending.value = false;
     _accountBillingId = null;
+    _identifiedBillingId = null;
     _identityTail = null;
     notice.value = null;
   }

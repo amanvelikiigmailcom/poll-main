@@ -46,10 +46,7 @@ GoRouter likesRouter({String initialLocation = '/'}) {
   final router = GoRouter(
     initialLocation: initialLocation,
     routes: [
-      GoRoute(
-        path: '/',
-        builder: (_, _) => const ReceivedLikesScreen(),
-      ),
+      GoRoute(path: '/', builder: (_, _) => const ReceivedLikesScreen()),
       GoRoute(
         path: '/entry',
         builder: (_, _) => Builder(
@@ -110,10 +107,7 @@ void main() {
 
   test('like time labels use short relative text', () {
     final now = DateTime(2026, 11, 24, 15, 0);
-    expect(
-      likeTimeAgo(DateTime(2026, 11, 24, 14, 59, 30), now),
-      'Just now',
-    );
+    expect(likeTimeAgo(DateTime(2026, 11, 24, 14, 59, 30), now), 'Just now');
     expect(likeTimeAgo(DateTime(2026, 11, 24, 14, 40), now), '20m ago');
     expect(likeTimeAgo(DateTime(2026, 11, 24, 12, 0), now), '3h ago');
     expect(likeTimeAgo(DateTime(2026, 11, 23, 18, 0), now), 'Yesterday');
@@ -145,10 +139,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Likes'), findsOneWidget);
     expect(find.text('Total: 3'), findsOneWidget);
-    expect(
-      find.text('Find out who picked you in votes'),
-      findsOneWidget,
-    );
+    expect(find.text('Find out who picked you in votes'), findsOneWidget);
     expect(find.text('Today'), findsOneWidget);
     // Section header plus the yesterday card's own time label.
     expect(find.text('Yesterday'), findsNWidgets(2));
@@ -220,9 +211,7 @@ void main() {
     final social = LikesFake(ApiService(storage), storage)
       ..fail = true
       ..votes = 1
-      ..page1 = [
-        vote('v1', 'Who makes everyone smile?', DateTime.now()),
-      ];
+      ..page1 = [vote('v1', 'Who makes everyone smile?', DateTime.now())];
     await mount(tester, storage, social);
     await tester.pumpAndSettle();
     expect(find.text('Couldn’t load Likes. Try again.'), findsOneWidget);
@@ -247,9 +236,7 @@ void main() {
     final social = LikesFake(ApiService(storage), storage)
       ..votes = 2
       ..page1 = [vote('v1', 'Who makes everyone smile?', now)]
-      ..page2 = [
-        vote('v2', 'Who is the smartest?', now),
-      ];
+      ..page2 = [vote('v2', 'Who is the smartest?', now)];
     await mount(tester, storage, social);
     await tester.pumpAndSettle();
     expect(find.text('Load more'), findsOneWidget);
@@ -264,18 +251,16 @@ void main() {
     final storage = SessionStorage();
     final social = LikesFake(ApiService(storage), storage)
       ..votes = 1
-      ..page1 = [
-        vote('v1', 'Who makes everyone smile?', DateTime.now()),
-      ];
+      ..page1 = [vote('v1', 'Who makes everyone smile?', DateTime.now())];
     await mount(tester, storage, social);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Who makes everyone smile?'));
     await tester.pumpAndSettle();
     expect(find.text('Vote details'), findsOneWidget);
     expect(find.text('Who makes everyone smile?'), findsOneWidget);
-    expect(find.text('The voter stays anonymous.'), findsOneWidget);
+    expect(find.text('Voter identity is hidden'), findsOneWidget);
     expect(find.text('Someone picked you!'), findsNothing);
     expect(find.text('Share'), findsNothing);
-    expect(find.text('Find out who voted for you'), findsNothing);
+    expect(find.text('Find out who voted for you'), findsOneWidget);
   });
 }

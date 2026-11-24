@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flyprox_app/screens/social/like_person_screen.dart';
 import 'package:flyprox_app/screens/social/likes_result_screen.dart';
 import 'package:flyprox_app/services/local_game_service.dart';
+import 'fakes/premium.dart';
 
 const _question = 'Who makes everyone smile?';
 const _friends = ['Alex', 'Sam', 'Jordan', 'Taylor'];
@@ -29,28 +30,22 @@ GoRouter _router({Map<String, dynamic>? like}) {
         builder: (_, state) {
           final extra = state.extra;
           return LikePersonScreen(
-            data: extra is Map
-                ? Map<String, dynamic>.from(extra)
-                : null,
+            data: extra is Map ? Map<String, dynamic>.from(extra) : null,
           );
         },
       ),
-      GoRoute(
-        path: '/premium',
-        builder: (_, _) => const Text('Premium stub'),
-      ),
+      GoRoute(path: '/premium', builder: (_, _) => const Text('Premium stub')),
     ],
   );
   addTearDown(router.dispose);
   return router;
 }
 
-Future<void> _mount(
-  WidgetTester tester, {
-  Map<String, dynamic>? like,
-}) async {
+Future<void> _mount(WidgetTester tester, {Map<String, dynamic>? like}) async {
   await tester.pumpWidget(
-    MaterialApp.router(routerConfig: _router(like: like ?? _like())),
+    withPremium(
+      MaterialApp.router(routerConfig: _router(like: like ?? _like())),
+    ),
   );
 }
 
@@ -63,30 +58,33 @@ void main() {
     );
   });
 
-  testWidgets('local fallback shows four names with the saved pick checked', (
-    tester,
-  ) async {
-    await LocalGameService.instance.recordAnswer(
-      RoundAnswer(
-        questionId: 'q1',
-        question: _question,
-        voter: 'Me',
-        choice: 'Alex',
-      ),
-    );
-    await _mount(tester);
-    await tester.pumpAndSettle();
-    expect(find.text('Vote details'), findsOneWidget);
-    expect(find.text(_question), findsOneWidget);
-    expect(find.text('The voter stays anonymous.'), findsOneWidget);
-    expect(find.text('Your voting circle'), findsOneWidget);
-    for (final name in _friends) {
-      expect(find.text(name), findsOneWidget);
-    }
-    expect(find.byIcon(Icons.check_rounded), findsOneWidget);
-    expect(find.text('Share the result'), findsNothing);
-    expect(find.text('Find out who voted for you'), findsNothing);
-  });
+  testWidgets(
+    'missing server participants never substitutes local names or picks',
+    (tester) async {
+      await LocalGameService.instance.recordAnswer(
+        RoundAnswer(
+          questionId: 'q1',
+          question: _question,
+          voter: 'Me',
+          choice: 'Alex',
+        ),
+      );
+      await _mount(tester);
+      await tester.pumpAndSettle();
+      expect(find.text('Vote details'), findsOneWidget);
+      expect(find.text(_question), findsOneWidget);
+      expect(
+        find.text('Participants are not available for this vote.'),
+        findsOneWidget,
+      );
+      for (final name in _friends) {
+        expect(find.text(name), findsNothing);
+      }
+      expect(find.byIcon(Icons.check_rounded), findsNothing);
+      expect(find.text('Share the result'), findsNothing);
+      expect(find.text('Find out who voted for you'), findsOneWidget);
+    },
+  );
 
   testWidgets('server participants win over local names with class year', (
     tester,
@@ -137,7 +135,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Participant'), findsOneWidget);
     expect(find.text('Class of 2027'), findsWidgets);
-    expect(find.text('Your pick'), findsOneWidget);
+    expect(find.text('Your pick'), findsNothing);
     expect(find.text('Share the result'), findsOneWidget);
     expect(find.text('Instagram'), findsOneWidget);
     expect(find.text('Snapchat'), findsOneWidget);
@@ -154,7 +152,7 @@ void main() {
     await _mount(tester);
     await tester.pumpAndSettle();
     expect(
-      find.text('Play a round to see your voting circle.'),
+      find.text('Participants are not available for this vote.'),
       findsOneWidget,
     );
     expect(find.text('Vote details'), findsOneWidget);
