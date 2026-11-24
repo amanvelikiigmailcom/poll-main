@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flyprox_app/providers/service_providers.dart';
 import 'package:flyprox_app/screens/social/social_screen.dart';
 import 'package:flyprox_app/services/api_service.dart';
@@ -73,6 +74,16 @@ class UnblockSocial extends FakeSocial {
     expect(action, 'unblock');
     blocked = false;
     return {'relationship': 'none'};
+  }
+}
+
+class BlockHintSocial extends FakeSocial {
+  BlockHintSocial(super.api, super.storage);
+  final actions = <String>[];
+  @override
+  Future<Map<String, dynamic>> act(String id, String action) async {
+    actions.add(action);
+    return {'relationship': 'blocked'};
   }
 }
 
@@ -328,4 +339,62 @@ void main() {
     expect(find.text('Unblock'), findsNothing);
     expect(social.searches, ['alex_123', 'alex_123']);
   });
+
+  testWidgets(
+    'blocking from search shows a hint with a shortcut to the blocked list',
+    (tester) async {
+      final storage = SessionStorage();
+      final social = BlockHintSocial(ApiService(storage), storage);
+      final router = GoRouter(
+        initialLocation: '/',
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (_, __) => const SocialScreen(page: SocialPage.search),
+          ),
+          GoRoute(
+            path: '/blocked-users',
+            builder: (_, __) =>
+                const Scaffold(body: Text('Blocked list destination')),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            storageServiceProvider.overrideWithValue(storage),
+            socialServiceProvider.overrideWithValue(social),
+          ],
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'alex_123');
+      await tester.pump(const Duration(milliseconds: 500));
+      social.results['alex_123']!.complete({
+        'users': [
+          {'id': 'one', 'username': 'alex_123', 'relationship': 'none'},
+        ],
+      });
+      await tester.pumpAndSettle();
+      expect(find.text('@alex_123'), findsOneWidget);
+      await tester.tap(find.byTooltip('Account actions'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Block account'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Confirm'));
+      await tester.pumpAndSettle();
+      expect(social.actions, ['block']);
+      expect(
+        find.text(
+          'Account blocked. Manage the list in Settings → Blocked users.',
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('View list'));
+      await tester.pumpAndSettle();
+      expect(find.text('Blocked list destination'), findsOneWidget);
+    },
+  );
 }

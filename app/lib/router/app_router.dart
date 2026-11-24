@@ -40,7 +40,6 @@ import '../screens/social/activity_screen.dart';
 import '../screens/profile/collection_screen.dart';
 import '../screens/settings/notifications_settings_screen.dart';
 import '../screens/settings/language_settings_screen.dart';
-import '../screens/settings/hidden_users_screen.dart';
 import '../screens/settings/settings_quiz_screen.dart';
 import '../screens/social/like_person_screen.dart';
 import '../screens/social/likes_result_screen.dart';
@@ -102,7 +101,6 @@ abstract final class AppRoutes {
   static const notificationsSettings = '/notifications-settings';
   static const languageSettings = '/language-settings';
   static const blockedUsers = '/blocked-users';
-  static const hiddenUsers = '/hidden-users';
   static const settingsQuiz = '/settings-quiz';
   static const likesFilled = '/likes';
   static const likesEmpty = '/likes-empty';
@@ -505,10 +503,6 @@ GoRouter createAppRouter({bool showInvitationIntro = true}) => GoRouter(
             GoRoute(
               path: AppRoutes.blockedUsers,
               builder: (_, __) => const SocialScreen(page: SocialPage.blocked),
-            ),
-            GoRoute(
-              path: AppRoutes.hiddenUsers,
-              builder: (_, __) => const HiddenUsersScreen(),
             ),
             GoRoute(
               path: AppRoutes.settingsQuiz,

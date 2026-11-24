@@ -260,6 +260,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
       } else {
         // Relationship changes also invalidate profiles and other mounted lists.
         ref.read(socialVisibilityRevisionProvider.notifier).changed();
+        if (action == 'block') _showBlockedHint();
       }
     } catch (error) {
       if (mounted && generation == _generation) {
@@ -276,6 +277,22 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
     } finally {
       if (mounted) setState(() => _busy = false);
     }
+  }
+
+  void _showBlockedHint() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          'Account blocked. Manage the list in Settings → Blocked users.',
+        ),
+        action: SnackBarAction(
+          label: 'View list',
+          onPressed: () {
+            if (mounted) context.push(AppRoutes.blockedUsers);
+          },
+        ),
+      ),
+    );
   }
 
   @override

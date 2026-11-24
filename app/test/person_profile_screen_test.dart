@@ -132,6 +132,11 @@ void main() {
           path: '/phone',
           builder: (_, _) => const Scaffold(body: Text('Sign in destination')),
         ),
+        GoRoute(
+          path: '/blocked-users',
+          builder: (_, _) =>
+              const Scaffold(body: Text('Blocked list destination')),
+        ),
       ],
     );
     addTearDown(router.dispose);
@@ -523,4 +528,31 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets(
+    'blocking shows a hint with a shortcut to the blocked list',
+    (tester) async {
+      final storage = SessionStorage();
+      final social = PersonFake(ApiService(storage), storage);
+      await mount(tester, storage, social);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Account actions'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Block account'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Block'));
+      await tester.pumpAndSettle();
+      expect(social.actions, ['block']);
+      expect(find.text('Profile unavailable.'), findsOneWidget);
+      expect(
+        find.text(
+          'Account blocked. Manage the list in Settings → Blocked users.',
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('View list'));
+      await tester.pumpAndSettle();
+      expect(find.text('Blocked list destination'), findsOneWidget);
+    },
+  );
 }

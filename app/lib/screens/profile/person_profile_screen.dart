@@ -244,15 +244,18 @@ class _PersonProfileScreenState extends ConsumerState<PersonProfileScreen>
       _emittingChange = true;
       ref.read(socialVisibilityRevisionProvider.notifier).changed();
       _emittingChange = false;
-      _toast(switch (action) {
-        'request' => 'Friend request sent',
-        'accept' => 'Friend request accepted',
-        'decline' => 'Friend request declined',
-        'cancel' => 'Friend request cancelled',
-        'remove' => 'Friend removed',
-        'block' => 'Account blocked',
-        _ => 'Report received. You can also block this account.',
-      });
+      if (action == 'block') {
+        _showBlockedHint();
+      } else {
+        _toast(switch (action) {
+          'request' => 'Friend request sent',
+          'accept' => 'Friend request accepted',
+          'decline' => 'Friend request declined',
+          'cancel' => 'Friend request cancelled',
+          'remove' => 'Friend removed',
+          _ => 'Report received. You can also block this account.',
+        });
+      }
       if (action == 'block') {
         setState(() {
           _profile = null;
@@ -287,6 +290,22 @@ class _PersonProfileScreenState extends ConsumerState<PersonProfileScreen>
 
   void _toast(String text) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+
+  void _showBlockedHint() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          'Account blocked. Manage the list in Settings → Blocked users.',
+        ),
+        action: SnackBarAction(
+          label: 'View list',
+          onPressed: () {
+            if (mounted) context.push(AppRoutes.blockedUsers);
+          },
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
