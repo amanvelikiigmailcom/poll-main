@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../providers/user_provider.dart';
+import '../../providers/service_providers.dart';
 import '../../theme/app_colors.dart';
 
 // ---------------------------------------------------------------------------
@@ -228,9 +228,10 @@ class CollectionScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(currentUserProvider);
     final colState = ref.watch(_collectionProvider);
-    final stars = user?.starsCount ?? 0;
+    final stars = ref.watch(starBalanceProvider).when(
+      skipLoadingOnRefresh:false,skipLoadingOnReload:false,
+      data:(value)=>value,error:(_,_)=>null,loading:()=>null);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -279,9 +280,10 @@ class CollectionScreen extends ConsumerWidget {
 class _BalanceCard extends StatelessWidget {
   const _BalanceCard({required this.stars});
 
-  final int stars;
+  final int? stars;
 
-  String _fmt(int n) {
+  String _fmt(int? n) {
+    if (n == null) return "—";
     if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}K';
     return n.toString();
   }

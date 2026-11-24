@@ -99,7 +99,10 @@ void main() {
       final sent = captured['contacts'] as List;
       expect(sent, hasLength(1));
       expect(sent.single['hash'], hash);
-      expect(sent.single['label'], 'Sam');
+      expect(sent.single, {'hash':hash});
+      expect(captured.toString(),isNot(contains('Sam')));
+      expect(captured.toString(),isNot(contains('+7707')));
+      expect((await ContactSyncService.localLabels())[hash],'Sam');
       // Matches persist for later screens.
       final cached = await svc.lastMatches();
       expect(cached, hasLength(1));
@@ -136,6 +139,7 @@ void main() {
       );
       await svc.clearMatches();
       expect(await svc.lastMatches(), isEmpty);
+      expect(await ContactSyncService.localLabels(),isEmpty);
     });
   });
 }

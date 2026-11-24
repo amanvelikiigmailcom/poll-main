@@ -22,6 +22,13 @@ class ContactSyncService {
   /// Must equal the backend's CONTACT_HASH_SALT (flyprox_backend rules.js).
   static const String hashSalt = 'flyprox-contacts-v1';
   static const String _matchesKey = 'contact_sync_matches';
+  static const String _labelsKey = 'contact_labels_by_hash_v1';
+
+  static Future<Map<String,String>> localLabels() async {
+    final raw = (await SharedPreferences.getInstance()).getString(_labelsKey);
+    if (raw == null) return {};
+    try { return Map<String,String>.from(jsonDecode(raw) as Map); } catch (_) { return {}; }
+  }
 
   final ApiService _api;
 
@@ -72,9 +79,11 @@ class ContactSyncService {
       final hash = hashPhone(e164);
       if (labelByHash.containsKey(hash)) continue;
       labelByHash[hash] = e.name;
-      payload.add({'hash': hash, 'label': e.name});
+      payload.add({'hash': hash});
     }
     if (payload.isEmpty) return [];
+    final labels = await localLabels()..addAll(labelByHash);
+    await (await SharedPreferences.getInstance()).setString(_labelsKey,jsonEncode(labels));
     try {
       final response = await _api.post<Map<String, dynamic>>(
         '/api/contacts',
@@ -129,5 +138,6 @@ class ContactSyncService {
   Future<void> clearMatches() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_matchesKey);
+    await prefs.remove(_labelsKey);
   }
 }

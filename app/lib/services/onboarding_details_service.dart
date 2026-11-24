@@ -310,6 +310,45 @@ class OnboardingDetailsService extends ChangeNotifier {
     return data['stage'] == null || data['status'] == 'selected';
   }
 
+  Future<({bool school, int joined, int threshold})?> votingMode() async {
+    try {
+      final token = await storage.getToken();
+      if (token == null || token.isEmpty) return null;
+      final local = await read();
+      if (local['status'] != 'selected' || token != await storage.getToken()) {
+        return null;
+      }
+      final data = (await api.get<Map<String, dynamic>>(
+        '/api/quizzes/mode',
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+          receiveTimeout: const Duration(seconds: 4),
+        ),
+      )).data;
+      if (token != await storage.getToken() || data?['enrolled'] != true) {
+        return null;
+      }
+      final joined = data?['joined'];
+      final threshold = data?['threshold'];
+      if (joined is! int || threshold is! int) return null;
+      return (
+        school: data?['mode'] == 'school',
+        joined: joined,
+        threshold: threshold,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> skipContactsWhenSchoolReady() async {
+    final mode = await votingMode();
+    if (mode?.school != true) return false;
+    final details = await read();
+    if (details['stage'] == 'contacts') await draft({'stage': 'username'});
+    return true;
+  }
+
   Future<Map<String, dynamic>> search(
     String q, {
     String cursor = '',

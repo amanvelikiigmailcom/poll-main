@@ -132,6 +132,12 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
     }
+    expect(find.text('Review your answers'), findsOneWidget);
+    expect(find.text('Reveal'), findsNothing);
+    expect(await game.getStars(), 0);
+    expect(await game.secondsUntilNextRound(), 0);
+    await tester.tap(find.text('Finish round'));
+    await tester.pumpAndSettle();
     expect(find.text('Reveal'), findsOneWidget);
     expect(await game.getRoundAnswers(completed: true), hasLength(12));
     expect(await game.getStars(), 1000);
@@ -223,6 +229,8 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
     }
+    await tester.tap(find.text('Finish round'));
+    await tester.pumpAndSettle();
     expect(await game.getStars(), 2000);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());

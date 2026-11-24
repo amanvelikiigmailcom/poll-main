@@ -180,6 +180,7 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
       } else {
         await service.selectSchool(selected!, int.parse(year.text));
       }
+      final schoolReady = !skip && await service.skipContactsWhenSchoolReady();
       final hasNames = await LocalGameService.instance.hasEnoughNames();
       final pendingUsername = await LocalGameService.instance
           .isUsernameSetupPending();
@@ -188,7 +189,7 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
         await service.finish();
         if (mounted) context.go(AppRoutes.home);
       } else {
-        context.go(AppRoutes.namesEntry);
+        context.go(schoolReady ? AppRoutes.username : AppRoutes.namesEntry);
       }
     } catch (failure) {
       if (mounted) {

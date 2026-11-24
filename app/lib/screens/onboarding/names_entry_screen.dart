@@ -30,12 +30,32 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
   bool _choosing = false;
   bool _syncing = false;
   List<ContactMatch> _matches = [];
+  ({bool school, int joined, int threshold})? _campusMode;
   bool get _busy => _loading || _saving || _choosing || _syncing;
 
   @override
   void initState() {
     super.initState();
     _prefill();
+    _loadCampusMode();
+  }
+
+  Future<void> _loadCampusMode() async {
+    final service = ref.read(onboardingDetailsProvider);
+    final mode = await service.votingMode();
+    if (!mounted || mode == null) return;
+    if (mode.school) {
+      final stage = (await service.read())['stage'];
+      if (!mounted) return;
+      if (stage == 'contacts') {
+        await service.draft({'stage': 'username'});
+        if (mounted) context.go(AppRoutes.username);
+      } else if (stage == 'done') {
+        context.go(AppRoutes.home);
+      }
+    } else {
+      setState(() => _campusMode = mode);
+    }
   }
 
   Future<void> _prefill() async {
@@ -118,11 +138,18 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
       _maxPickedContacts,
     );
     if (remaining == 0) return;
+    final region = _defaultRegion();
+    final ownPhone = _savedOwnPhone(region);
     setState(() => _choosing = true);
     final picked = await picker.pickEntries(
       maxNames: single ? 1 : remaining,
       excludeLower: exclude,
       single: single,
+      isOwnPhone: ownPhone == null
+          ? null
+          : (raw) =>
+                ContactSyncService.normalizePhone(raw, defaultRegion: region) ==
+                ownPhone,
     );
     if (!mounted) return;
     setState(() => _choosing = false);
@@ -132,6 +159,19 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
       _matches = [];
     });
     await _syncMatches(picked);
+  }
+
+  String? _savedOwnPhone(IsoCode region) {
+    // A guest or an already saved names-only contact has no verified identity.
+    // Never guess by name or read more contacts to try to identify them.
+    try {
+      final phone = ref.read(storageServiceProvider).getPhone();
+      return phone == null
+          ? null
+          : ContactSyncService.normalizePhone(phone, defaultRegion: region);
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Uploads hashes of picked numbers (logged-in users only) and shows which
@@ -198,9 +238,11 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'Add your contacts',
-                  style: TextStyle(
+                Text(
+                  _campusMode == null
+                      ? 'Add your contacts'
+                      : 'Play with your contacts for now',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 30,
                     fontWeight: FontWeight.bold,
@@ -208,9 +250,11 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'Choose at least 4 contacts to start your quiz.',
-                  style: TextStyle(
+                Text(
+                  _campusMode == null
+                      ? 'Choose at least 4 contacts to start your quiz.'
+                      : 'School voting opens automatically when ${_campusMode!.threshold} students from your campus join Flyprox. Until then, choose at least 4 contacts to play.',
+                  style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 16,
                     height: 1.4,

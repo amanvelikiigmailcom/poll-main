@@ -44,6 +44,7 @@ class ProfileScreen extends ConsumerWidget {
                 onRefresh: () async {
                   await ref.read(localProfileProvider.notifier).refresh();
                   ref.invalidate(_campusProfileProvider);
+                  ref.invalidate(starBalanceProvider);
                   await ref.read(invitationServiceProvider).refresh();
                 },
                 child: SingleChildScrollView(
@@ -361,17 +362,20 @@ class _CampusProfileRow extends ConsumerWidget {
 // Stats row
 // ---------------------------------------------------------------------------
 
-class _StatsRow extends StatelessWidget {
+class _StatsRow extends ConsumerWidget {
   const _StatsRow({required this.local});
 
   final LocalProfile local;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _StatItem(emoji: '⭐', value: _format(local.stars), label: 'Stars'),
+        _StatItem(emoji: '⭐', value: ref.watch(starBalanceProvider).when(
+          skipLoadingOnRefresh: false, skipLoadingOnReload: false,
+          data: (n) => n == null ? '—' : _format(n),
+          error: (_, _) => '—', loading: () => '—'), label: 'Stars'),
         _Divider(),
         _StatItem(
           emoji: '👥',

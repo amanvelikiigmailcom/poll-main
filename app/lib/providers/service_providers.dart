@@ -1,3 +1,9 @@
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
+import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/account_balance_service.dart';
+import '../services/local_game_service.dart';
 import '../services/notification_preferences_service.dart';
 import '../services/activity_service.dart';
 import '../services/onboarding_details_service.dart';
@@ -116,3 +122,22 @@ final activityServiceProvider = Provider<ActivityService>(
     ref.watch(storageServiceProvider),
   ),
 );
+
+
+final starBalanceProvider = FutureProvider.autoDispose<int?>((ref) async {
+  final storage = ref.watch(storageServiceProvider);
+  void changed() => ref.invalidateSelf();
+  storage.addListener(changed);
+  ref.onDispose(() => storage.removeListener(changed));
+  final api = ref.watch(apiServiceProvider);
+  String key(String token) => 'verified_stars_v1_${sha256.convert(utf8.encode(token))}';
+  return AccountBalanceService(
+    readToken: storage.getToken,
+    fetchBalance: (token) async => (await api.get<Map<String,dynamic>>(
+      '/api/users/profile', options: Options(headers: {'Authorization':'Bearer $token'}),
+    )).data?['starsCount'],
+    readCached: (token) async => (await SharedPreferences.getInstance()).getInt(key(token)),
+    writeCached: (token, value) async { await (await SharedPreferences.getInstance()).setInt(key(token),value); },
+    guestBalance: LocalGameService.instance.getStars,
+  ).load();
+});

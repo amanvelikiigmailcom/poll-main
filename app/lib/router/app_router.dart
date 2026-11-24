@@ -176,6 +176,12 @@ Future<String?> _ageRedirect(BuildContext context, GoRouterState state) async {
         path != AppRoutes.profileDetails) {
       return AppRoutes.schoolSetup;
     }
+    if (stage == 'username' &&
+        path != AppRoutes.username &&
+        path != AppRoutes.schoolSetup &&
+        path != AppRoutes.profileDetails) {
+      return AppRoutes.username;
+    }
     if (stage == 'contacts' &&
         !{
           AppRoutes.namesEntry,
@@ -209,12 +215,13 @@ class _SplashRedirectState extends ConsumerState<_SplashRedirect> {
       context.go(AppRoutes.onboarding);
       return;
     }
+    final details = await ref.read(onboardingDetailsProvider).read();
     final hasNames = await LocalGameService.instance.hasEnoughNames();
     final pendingUsername = await LocalGameService.instance
         .isUsernameSetupPending();
     if (!mounted) return;
     final introDone = ref.read(storageServiceProvider).isOnboardingDone();
-    if (hasNames &&
+    if ((hasNames || details['stage'] == 'done') &&
         await InviteCodeStore.code() != null &&
         !await InviteCodeStore.accepted()) {
       if (mounted) context.go(AppRoutes.invitationCode, extra: true);
@@ -222,7 +229,9 @@ class _SplashRedirectState extends ConsumerState<_SplashRedirect> {
     }
     if (!mounted) return;
     context.go(
-      hasNames
+      details['stage'] == 'username'
+          ? AppRoutes.username
+          : hasNames || details['stage'] == 'done'
           ? (pendingUsername ? AppRoutes.username : AppRoutes.home)
           : introDone
           ? AppRoutes.phone
@@ -282,10 +291,18 @@ GoRouter createAppRouter({bool showInvitationIntro = true}) => GoRouter(
     ),
     GoRoute(
       path: AppRoutes.username,
-      redirect: (_, __) async =>
-          await LocalGameService.instance.hasEnoughNames()
-          ? null
-          : AppRoutes.namesEntry,
+      redirect: (context, _) async {
+        final service = ProviderScope.containerOf(
+          context,
+          listen: false,
+        ).read(onboardingDetailsProvider);
+        final stage = (await service.read())['stage'];
+        return stage == 'username' ||
+                stage == 'done' ||
+                await LocalGameService.instance.hasEnoughNames()
+            ? null
+            : AppRoutes.namesEntry;
+      },
       builder: (_, __) => const UsernameScreen(),
     ),
     GoRoute(

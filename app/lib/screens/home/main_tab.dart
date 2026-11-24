@@ -18,40 +18,58 @@ class MainTab extends ConsumerStatefulWidget {
   ConsumerState<MainTab> createState() => _MainTabState();
 }
 
-class _MainTabState extends ConsumerState<MainTab> {
+class _MainTabState extends ConsumerState<MainTab> with WidgetsBindingObserver {
   _HomeTabState _tabState = _HomeTabState.loading;
 
   int _secondsRemaining = 0;
   Timer? _ticker;
 
-  int _starsCount = 0;
   int _peopleCount = 0;
   bool _hasProgress = false;
+  bool _schoolDraft = false;
   bool _schoolWaiting = false;
+  ({bool school, int joined, int threshold})? _mode;
+  int _modeRequest = 0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadState();
+    _loadMode();
   }
 
   @override
   void dispose() {
     _ticker?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadMode();
+      ref.invalidate(starBalanceProvider);
+    }
+  }
+
+  Future<void> _loadMode() async {
+    final generation = ++_modeRequest;
+    final mode = await ref.read(onboardingDetailsProvider).votingMode();
+    if (mounted && generation == _modeRequest) setState(() => _mode = mode);
   }
 
   Future<void> _loadState() async {
     final waiting = !await ref.read(onboardingDetailsProvider).votingAllowed();
     final remaining = await LocalGameService.instance.secondsUntilNextRound();
-    final stars = await LocalGameService.instance.getStars();
     final progress = await LocalGameService.instance.loadRoundProgress();
     final people = (await LocalGameService.instance.getNames()).length;
     if (!mounted) return;
     setState(() {
       _schoolWaiting = waiting;
-      _starsCount = stars;
       _hasProgress = progress != null;
+      _schoolDraft = progress?.draft?['schoolVoting'] == true;
       _peopleCount = people;
       _secondsRemaining = remaining;
       _tabState = remaining > 0
@@ -89,7 +107,13 @@ class _MainTabState extends ConsumerState<MainTab> {
   Future<void> _startVote() async {
     final ready = await LocalGameService.instance.hasEnoughNames();
     if (!mounted) return;
-    if (ready) {
+    final progress = await LocalGameService.instance.loadRoundProgress();
+    if (!mounted) return;
+    if (ready ||
+        progress?.draft != null ||
+        (await ref.read(onboardingDetailsProvider).votingMode())?.school ==
+            true) {
+      if (!mounted) return;
       context.push(AppRoutes.vote);
       return;
     }
@@ -108,7 +132,11 @@ class _MainTabState extends ConsumerState<MainTab> {
   @override
   Widget build(BuildContext context) {
     ref.listen(onboardingDetailsProvider, (_, __) {
-      if (mounted) _loadState();
+      if (mounted) {
+        setState(() => _mode = null);
+        _loadState();
+        _loadMode();
+      }
     });
     ref.listen(invitationServiceProvider, (_, __) {
       if (mounted) _loadState();
@@ -121,7 +149,10 @@ class _MainTabState extends ConsumerState<MainTab> {
       body: SafeArea(
         bottom: false,
         child: RefreshIndicator(
-          onRefresh: _loadState,
+          onRefresh: () async {
+            ref.invalidate(starBalanceProvider);
+            await Future.wait([_loadState(), _loadMode()]);
+          },
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
@@ -185,6 +216,26 @@ class _MainTabState extends ConsumerState<MainTab> {
                 _buildTimerCard(),
               if (!_schoolWaiting && _tabState == _HomeTabState.voteAvailable)
                 _buildVoteCard(decorative),
+              if (!_schoolWaiting)
+                if (_mode case final mode?)
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.school_outlined),
+                      title: Text(
+                        mode.school
+                            ? (_hasProgress && !_schoolDraft
+                                  ? 'School voting opens next round'
+                                  : 'School voting is open')
+                            : '${mode.joined} of ${mode.threshold} students joined',
+                      ),
+                      subtitle: mode.school
+                          ? null
+                          : TextButton(
+                              onPressed: () => context.push(AppRoutes.invite),
+                              child: const Text('Invite classmates'),
+                            ),
+                    ),
+                  ),
               const SizedBox(height: 20),
               IntrinsicHeight(
                 child: Row(
@@ -194,7 +245,10 @@ class _MainTabState extends ConsumerState<MainTab> {
                       child: _StatCard(
                         icon: Icons.star_rounded,
                         iconColor: const Color(0xFFECA900),
-                        value: '$_starsCount',
+                        value: ref.watch(starBalanceProvider).when(
+                          skipLoadingOnRefresh: false, skipLoadingOnReload: false,
+                          data: (n) => n?.toString() ?? '—',
+                          error: (_, _) => '—', loading: () => '—'),
                         label: 'Stars',
                       ),
                     ),

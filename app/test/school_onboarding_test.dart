@@ -33,10 +33,12 @@ void main() {
     WidgetTester tester, {
     String route = AppRoutes.profileDetails,
     double scale = 1,
+    bool schoolMode = false,
     void Function(RequestOptions, RequestInterceptorHandler)? search,
   }) async {
     final storage = StorageService();
     await storage.init();
+    if (schoolMode) await storage.saveToken('fixture-session');
     final api = ApiService(storage);
     api.dio.interceptors.add(
       InterceptorsWrapper(
@@ -48,7 +50,14 @@ void main() {
           handler.resolve(
             Response(
               requestOptions: req,
-              data: req.path == '/api/schools'
+              data: req.path == '/api/quizzes/mode' && schoolMode
+                  ? {
+                      'mode': 'school',
+                      'enrolled': true,
+                      'joined': 5,
+                      'threshold': 5,
+                    }
+                  : req.path == '/api/schools'
                   ? {
                       'schools': [school],
                       'available': true,
@@ -99,6 +108,33 @@ void main() {
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
   }
+
+  testWidgets(
+    'five enrolled students bypass contact permission and open username setup',
+    (tester) async {
+      final service = await mount(tester, schoolMode: true);
+      await profile(tester);
+      await tester.enterText(find.byKey(const Key('school-search')), 'Central');
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Central High'));
+      await tester.tap(find.text('Central High'));
+      await tester.pumpAndSettle();
+      final picker = find.byKey(const Key('graduation-year'));
+      await tester.ensureVisible(picker);
+      await tester.tap(picker);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('${DateTime.now().year + 15}').last);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Continue'));
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('onboarding-username')), findsOneWidget);
+      expect(find.text('Choose from contacts'), findsNothing);
+      expect((await service.read())['stage'], 'username');
+      expect(await LocalGameService.instance.getNames(), isEmpty);
+    },
+  );
 
   test(
     'graduation menu includes past and future years without a narrow cohort cutoff',

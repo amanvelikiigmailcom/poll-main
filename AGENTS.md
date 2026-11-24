@@ -5,6 +5,12 @@
 Контракт24таблиц находится в `/Users/amanyessen/projects/flyprox_backend/src/database-schema.js`; справочник полей/связей/индексов генерируется в backend `docs/database-schema.md`. Поля в AGENTS.md и отдельную схему в приложении не копировать. При изменении backend/API/таблиц обновлять в том же commit затронутые contracts, миграцию при изменении БД, справочник/API docs и необходимые backend/client tests. Проверять совместимость старого клиента; пустые миграции не создавать. Подробный согласованный план: backend `docs/database-hardening-plan.md`.
 
 
+## Database hardening — current24.11.2026
+
+Backend runtime d2c3574, local/public health200;15indexes migrated after approval/duplicate preflight/private backup. Real Appwrite atomic rollback/replay and real-storage authenticated campus boundaries verified; QA rows removed. Additional backend source (contacts/token ownership/verified Premium/outbox/retention) prepared separately; actorId/index migration pending approval. Historical rollout paragraphs below are older snapshots; read actual ExecStart and backend docs/database-hardening-plan.md for current state.
+
+Client now uses server star balance for signed-in Home/Profile/Collection, session-isolated confirmed cache, local guest balance; online completion does not add guest stars. Contact hashes only in new client uploads; local hash-label map resolves candidates. Reviewed existing round draft reused, not reverted. Contract: docs/database-hardening-client.md. Full267Flutter/analyze0errors0warnings22existing infos. Source changes do not mean a new installed build. No cloud/TestFlight started. Server label cutover and school voting activation remain off until compatible client release.
+
 ## Search, друзья и Activity: только свой кампус
 
 - Владелец одобрил две реальные секции **Friends of friends** и **From your campus** во вкладке Search под строкой `@username`, без глобального каталога. Пять карточек сначала, затем See more. Карточки: `@username`, нейтральный аватар, Hide, Add / Request sent / Accept · Decline; не показывать имена общих друзей, телефон, возраст, класс и год выпуска. В маленьком кампусе выдавать всех подходящих участников с ником; при росте — максимум 50 карточек кампуса. Порог 5 учеников относится к школьному голосованию, а не к рекомендациям.

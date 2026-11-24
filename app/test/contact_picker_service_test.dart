@@ -63,6 +63,32 @@ void main() {
       expect(await svc.pickNames(maxNames: 4), isEmpty);
     });
 
+    test(
+      'own secondary number is excluded before deduping a namesake',
+      () async {
+        final svc = ContactPickerService.instance
+          ..debugDriver(
+            FakeContactPickerDriver(
+              manyResult: [
+                Contact(
+                  fullName: 'Alex',
+                  phoneNumbers: ['other', 'own-number'],
+                ),
+                Contact(fullName: 'Alex', phoneNumbers: ['friend-number']),
+                Contact(fullName: 'Sam'),
+              ],
+            ),
+          );
+        addTearDown(svc.resetDriverForTest);
+        final picked = await svc.pickEntries(
+          maxNames: 3,
+          isOwnPhone: (phone) => phone == 'own-number',
+        );
+        expect(picked.map((contact) => contact.name), ['Alex', 'Sam']);
+        expect(picked.first.phone, 'friend-number');
+      },
+    );
+
     test('single sessions loop until maxNames or cancel', () async {
       final fake = FakeContactPickerDriver(
         multiPick: false,

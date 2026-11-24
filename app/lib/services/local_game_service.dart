@@ -30,11 +30,15 @@ class RoundProgress {
   final int round;
   final int questionIndex;
   final List<String> questionIds;
+  final List<RoundAnswer>? draftAnswers;
+  final Map<String, dynamic>? draft;
 
   const RoundProgress({
     required this.round,
     required this.questionIndex,
     required this.questionIds,
+    this.draftAnswers,
+    this.draft,
   });
 }
 
@@ -45,22 +49,26 @@ class RoundAnswer {
     required this.question,
     required this.voter,
     this.choice,
+    this.optionId,
   });
   final String questionId;
   final String question;
   final String voter;
   final String? choice;
+  final String? optionId;
   Map<String, dynamic> toJson() => {
     'id': questionId,
     'question': question,
     'voter': voter,
     'choice': choice,
+    if (optionId != null) 'optionId': optionId,
   };
   factory RoundAnswer.fromJson(Map<String, dynamic> json) => RoundAnswer(
     questionId: json['id'] as String,
     question: json['question'] as String,
     voter: json['voter'] as String,
     choice: json['choice'] as String?,
+    optionId: json['optionId'] as String?,
   );
 }
 
@@ -103,6 +111,7 @@ class LocalGameService {
   static final RegExp usernamePattern = RegExp(r'^[a-zA-Z0-9_]+$');
 
   final Random _random = Random();
+  bool _finishingDraft = false;
 
   Future<SharedPreferences> get _prefs => SharedPreferences.getInstance();
 
@@ -111,6 +120,10 @@ class LocalGameService {
   static const _avatarKey = 'local_avatar';
 
   Future<List<RoundAnswer>> getRoundAnswers({bool completed = false}) async {
+    if (!completed) {
+      final draft = (await loadRoundProgress())?.draftAnswers;
+      if (draft != null) return draft;
+    }
     final raw = (await _prefs).getString(
       completed ? _lastAnswersKey : _answersKey,
     );
@@ -389,7 +402,8 @@ class LocalGameService {
     return remaining > 0 ? remaining : 0;
   }
 
-  Future<String?> cooldownKey() async => (await _prefs).getInt(_lastRoundKey)?.toString();
+  Future<String?> cooldownKey() async =>
+      (await _prefs).getInt(_lastRoundKey)?.toString();
 
   /// A late server response must never clear a newer round's waiting period.
   Future<void> bypassTimerFor(String key) async {
@@ -398,7 +412,10 @@ class LocalGameService {
 
   Future<(String, String)> getFullName() async {
     final prefs = await _prefs;
-    return (prefs.getString('local_first_name_v1') ?? '', prefs.getString('local_last_name_v1') ?? '');
+    return (
+      prefs.getString('local_first_name_v1') ?? '',
+      prefs.getString('local_last_name_v1') ?? '',
+    );
   }
 
   Future<void> saveFullName(String first, String last) async {
@@ -426,7 +443,7 @@ class LocalGameService {
   /// Called when a 12-question round finishes: awards the flat 1000 stars,
   /// saves the latest reveal, counts the round, clears mid-round progress and
   /// starts the 60-minute break before the next round unlocks.
-  Future<int> completeRound() async {
+  Future<int> completeRound({bool bonus = false, bool awardStars = true}) async {
     final answers = await getRoundAnswers();
     await (await _prefs).setString(
       _lastAnswersKey,
@@ -438,7 +455,33 @@ class LocalGameService {
     final done = await getCompletedRounds();
     await prefs.setInt(_completedRoundsKey, done + 1);
     await _clearRoundProgress();
-    return addStars(starsPerRound);
+    return awardStars ? addStars(bonus ? starsPerRound * 2 : starsPerRound) : getStars();
+  }
+
+  Future<void> finishRoundDraft(int round, {required bool bonus, bool awardStars = true}) async {
+    if (_finishingDraft) {
+      throw StateError('Round completion already in progress');
+    }
+    _finishingDraft = true;
+    try {
+      final completed = await getCompletedRounds();
+      if (completed == round + 1) return;
+      final progress = await loadRoundProgress();
+      if (completed != round ||
+          progress?.round != round ||
+          progress?.draft?['sealed'] != true ||
+          progress?.draftAnswers?.length != roundLength) {
+        throw StateError('Round draft is no longer active');
+      }
+      await completeRound(bonus: bonus, awardStars: awardStars);
+    } finally {
+      _finishingDraft = false;
+    }
+  }
+
+  Future<void> discardRoundDraft() async {
+    await beginRoundAnswers();
+    await _clearRoundProgress();
   }
 
   /// Skips the 60-minute wait (e.g. after "inviting a friend").
@@ -467,12 +510,22 @@ class LocalGameService {
     required int round,
     required int questionIndex,
     required List<String> questionIds,
+    List<RoundAnswer>? draftAnswers,
+    Map<String, dynamic>? draft,
   }) async {
     final prefs = await _prefs;
-    await prefs.setString(
+    final saved = await prefs.setString(
       _roundProgressKey,
-      jsonEncode({'round': round, 'index': questionIndex, 'ids': questionIds}),
+      jsonEncode({
+        'round': round,
+        'index': questionIndex,
+        'ids': questionIds,
+        if (draftAnswers != null)
+          'answers': draftAnswers.map((a) => a.toJson()).toList(),
+        if (draft != null) 'draft': draft,
+      }),
     );
+    if (!saved) throw StateError('Could not save round progress');
   }
 
   Future<RoundProgress?> loadRoundProgress() async {
@@ -489,6 +542,10 @@ class LocalGameService {
         round: round,
         questionIndex: index,
         questionIds: ids,
+        draftAnswers: (map['answers'] as List?)
+            ?.map((a) => RoundAnswer.fromJson(a as Map<String, dynamic>))
+            .toList(),
+        draft: map['draft'] as Map<String, dynamic>?,
       );
     } catch (_) {
       return null;

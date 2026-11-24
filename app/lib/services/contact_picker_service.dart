@@ -51,11 +51,13 @@ class ContactPickerService {
     required int maxNames,
     Set<String> excludeLower = const {},
     bool single = false,
+    bool Function(String phone)? isOwnPhone,
   }) async {
     final raw = await _pickRaw(
       maxNames: maxNames,
       excludeLower: excludeLower,
       single: single,
+      isOwnPhone: isOwnPhone,
     );
     return raw.map((c) {
       String? phone;
@@ -74,17 +76,26 @@ class ContactPickerService {
     required int maxNames,
     Set<String> excludeLower = const {},
     bool single = false,
+    bool Function(String phone)? isOwnPhone,
   }) async {
     if (maxNames <= 0) return [];
+    bool eligible(Contact contact) =>
+        isOwnPhone == null ||
+        !(contact.phoneNumbers ?? const <String>[]).any(isOwnPhone);
     try {
       if (single) {
         final picked = await _driver.pickOne();
-        return picked == null ? [] : _dedupe([picked], excludeLower);
+        return picked == null || !eligible(picked)
+            ? []
+            : _dedupe([picked], excludeLower);
       }
       if (_driver.supportsMultiPick) {
         final picked = await _driver.pickMany(maxNames: maxNames);
         if (picked == null) return [];
-        return _dedupe(picked, excludeLower).take(maxNames).toList();
+        return _dedupe(
+          picked.where(eligible),
+          excludeLower,
+        ).take(maxNames).toList();
       }
       final out = <Contact>[];
       final seen = <String>{...excludeLower};
@@ -95,6 +106,7 @@ class ContactPickerService {
         attempts++;
         final one = await _driver.pickOne();
         if (one == null) break;
+        if (!eligible(one)) continue;
         final name = (one.fullName ?? '').trim();
         final key = name.toLowerCase();
         if (name.isEmpty || seen.contains(key)) continue;

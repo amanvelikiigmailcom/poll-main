@@ -1,3 +1,4 @@
+import '../../services/contact_sync_service.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../services/game_settings.dart';
@@ -12,6 +13,7 @@ import '../../widgets/common/question_report_dialog.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/service_providers.dart';
 import '../../services/server_round_source.dart';
+import '../../services/api_service.dart';
 
 // ---------------------------------------------------------------------------
 // Data models
@@ -47,6 +49,33 @@ class QuizQuestion {
     required this.category,
     required this.options,
   });
+
+  Map<String, dynamic> toDraft() => {
+    'id': id,
+    'text': question,
+    'emoji': emoji,
+    'category': category,
+    'options': [
+      for (final option in options)
+        {'id': option.id, 'name': option.name, 'winnerId': option.serverUserId},
+    ],
+  };
+
+  factory QuizQuestion.fromDraft(Map<String, dynamic> data) => QuizQuestion(
+    id: data['id'] as String,
+    question: data['text'] as String,
+    emoji: data['emoji'] as String,
+    category: data['category'] as String,
+    options: [
+      for (final option in data['options'] as List)
+        QuizOption(
+          id: option['id'] as String,
+          name: option['name'] as String,
+          grade: '',
+          serverUserId: option['winnerId'] as String?,
+        ),
+    ],
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -71,11 +100,21 @@ class VoteScreen extends StatefulWidget {
 
 class _VoteScreenState extends State<VoteScreen>
     with SingleTickerProviderStateMixin {
-  static const int _totalQuestions = 12;
+  static const int _totalQuestions = LocalGameService.roundLength;
 
-  /// Null without providers, offline, logged out or on server failure.
   ServerRoundSource? _source;
-  bool _serverRound = false;
+  String? _sessionId;
+  bool _schoolVoting = false;
+  String? _sessionKey;
+  String? _ownerId;
+  bool _editingFromReview = false;
+  bool _sealed = false;
+  bool _submitting = false;
+  String? _submitError;
+  String? _loadError;
+  bool _canDiscardDraft = false;
+  final Map<String, RoundAnswer> _answers = {};
+  bool get _isReview => _currentIndex == _totalQuestions;
 
   ServerRoundSource? _resolveSource() {
     if (widget.serverSource != null) return widget.serverSource;
@@ -84,6 +123,7 @@ class _VoteScreenState extends State<VoteScreen>
       return ServerRoundSource(
         container.read(quizServiceProvider),
         isLoggedIn: container.read(authServiceProvider).isLoggedIn,
+        readToken: container.read(storageServiceProvider).getToken,
       );
     } catch (_) {
       return null;
@@ -129,24 +169,49 @@ class _VoteScreenState extends State<VoteScreen>
     super.didChangeDependencies();
     if (_roundLoadStarted) return;
     _roundLoadStarted = true;
-    final languageCode =
-        Localizations.maybeLocaleOf(context)?.languageCode ?? 'en';
-    _loadRound(languageCode);
+    _startLoading();
+  }
+
+  Future<void> _startLoading({bool discard = false}) async {
+    final language = Localizations.maybeLocaleOf(context)?.languageCode ?? 'en';
+    setState(() {
+      _loading = true;
+      _loadError = null;
+      _canDiscardDraft = false;
+    });
+    try {
+      if (discard) await LocalGameService.instance.discardRoundDraft();
+      await _loadRound(language);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _loadError = 'Couldn’t open your round. Please try again.';
+      });
+    }
   }
 
   Future<void> _loadRound(String languageCode) async {
     final ready = await LocalGameService.instance.hasEnoughNames();
     if (!mounted) return;
-    if (!ready) {
-      // Not enough setup yet — only names onboarding, never a fake "need 5 people" gate
+    final svc = LocalGameService.instance;
+    final saved = await svc.loadRoundProgress();
+    if (!mounted) return;
+    final mode = saved?.draft == null ? await _schoolMode() : null;
+    if (!mounted) return;
+    if (!ready && saved?.draft == null && mode != true) {
       context.go(AppRoutes.namesEntry);
       return;
     }
 
     try {
-      await ProviderScope.containerOf(context).read(invitationServiceProvider).refresh()
+      await ProviderScope.containerOf(context)
+          .read(invitationServiceProvider)
+          .refresh()
           .timeout(const Duration(seconds: 6));
-    } catch (_) { /* Offline play keeps its locally saved waiting period. */ }
+    } catch (_) {
+      /* Offline play keeps its locally saved waiting period. */
+    }
     final remaining = await LocalGameService.instance.secondsUntilNextRound();
     if (!mounted) return;
     if (remaining > 0) {
@@ -154,28 +219,121 @@ class _VoteScreenState extends State<VoteScreen>
       return;
     }
 
-    // Server branch: logged in + online → shared questions, votes also land
-    // server-side (and trigger pushes). Anything else keeps the local game.
+    final completed = await svc.getCompletedRounds();
+    if (!mounted) return;
     _source = _resolveSource();
-    final serverSession = await _source?.tryLoadSession();
+    final draft = saved?.draft;
+    if (saved != null && saved.round == completed && draft != null) {
+      final sessionKey = draft['sessionKey'] as String?;
+      final sessionId = draft['sessionId'] as String?;
+      final ownerId = draft['ownerId'] as String?;
+      if (sessionId != null &&
+          (sessionKey == null ||
+              await _source?.ownsDraft(sessionKey, ownerId: ownerId) != true)) {
+        if (!mounted) return;
+        setState(() {
+          _loading = false;
+          _loadError =
+              'This online draft was saved under a different sign-in or your session is unavailable.';
+          _canDiscardDraft = true;
+        });
+        return;
+      }
+      if (!mounted) return;
+      final questions = (draft['questions'] as List)
+          .cast<Map<String, dynamic>>()
+          .map(QuizQuestion.fromDraft)
+          .toList();
+      if (questions.length != _totalQuestions ||
+          saved.questionIndex > _totalQuestions) {
+        throw StateError('Invalid draft');
+      }
+      _sessionId = sessionId;
+      _schoolVoting = draft['schoolVoting'] == true;
+      _sessionKey = sessionKey;
+      _ownerId = ownerId;
+      _sealed = draft['sealed'] == true;
+      _editingFromReview = draft['editingFromReview'] == true;
+      _useRound(
+        questions,
+        completed,
+        saved.questionIndex,
+        saved.draftAnswers ?? [],
+      );
+      return;
+    }
+
+    // Resume an older local draft before looking for a new online round.
+    List<GeneratedQuestion>? generated;
+    var startIndex = 0;
+    List<RoundAnswer> previous = [];
+    if (saved != null &&
+        saved.round == completed &&
+        saved.questionIndex < _totalQuestions) {
+      generated = await svc.restoreRound(
+        ids: saved.questionIds,
+        languageCode: languageCode,
+      );
+      if (generated?.length == _totalQuestions) {
+        startIndex = saved.questionIndex;
+        previous = await svc.getRoundAnswers();
+      } else {
+        generated = null;
+      }
+    }
+    final serverSession = generated == null
+        ? await _source?.tryLoadSession()
+        : null;
     if (!mounted) return;
     if (serverSession != null &&
-        serverSession.questions.length >= _totalQuestions) {
-      final svc = LocalGameService.instance;
-      final completed = await svc.getCompletedRounds();
-      if (!mounted) return;
+        serverSession.supportsRoundSubmission &&
+        serverSession.answeredCount == 0 &&
+        serverSession.sessionId.isNotEmpty &&
+        serverSession.questions.length == _totalQuestions) {
       final questions = <QuizQuestion>[];
-      for (final q in serverSession.questions.take(_totalQuestions)) {
-        final names = await svc.selectedOptions();
+      final localLabels = await ContactSyncService.localLabels();
+      if (!mounted) return;
+      final names = serverSession.schoolVoting
+          ? <String>[]
+          : await svc.selectedOptions();
+      if (!mounted) return;
+      if (!serverSession.schoolVoting && !ready) {
+        if (mode == true) {
+          setState(() {
+            _loading = false;
+            _loadError =
+                'A contact round is already open. Finish it on the device where you started it.';
+          });
+        } else {
+          context.go(AppRoutes.namesEntry);
+        }
+        return;
+      }
+      for (final q in serverSession.questions) {
         final options = <QuizOption>[];
+        if (serverSession.schoolVoting) {
+          for (final candidate in q.candidates.where(
+            (c) => !c.isSelf && c.id != serverSession.ownerId,
+          )) {
+            options.add(
+              QuizOption(
+                id: candidate.id,
+                name: candidate.firstName,
+                grade: '',
+                serverUserId: candidate.id,
+              ),
+            );
+          }
+        }
         for (final (index, name) in names.indexed) {
           // Labels, not strangers' profile names. Ambiguous matches stay local.
           final matches = q.candidates
               .where(
                 (c) =>
                     !c.isSelf &&
-                    c.fullName.trim().toLowerCase() ==
-                        name.trim().toLowerCase(),
+                    (c.contactHash != null
+                      ? localLabels[c.contactHash]?.trim().toLowerCase()
+                      : c.fullName.trim().toLowerCase()) == name.trim().toLowerCase(),
               )
               .toList();
           final userId = matches.length == 1 ? matches.single.id : null;
@@ -198,59 +356,30 @@ class _VoteScreenState extends State<VoteScreen>
           ),
         );
       }
-      await svc.beginRoundAnswers();
-      await svc.saveRoundProgress(
-        round: completed,
-        questionIndex: 0,
-        questionIds: questions.map((q) => q.id).toList(),
-      );
       if (!mounted) return;
+      _sessionId = serverSession.sessionId;
+      _schoolVoting = serverSession.schoolVoting;
+      _sessionKey = _source!.loadedSessionKey;
+      _ownerId = serverSession.ownerId;
+      await _initializeRound(questions, completed, 0, []);
+      return;
+    }
+    if (generated == null && mode == true) {
       setState(() {
-        _questions = questions;
-        _currentIndex = 0;
-        _roundNumber = completed;
-        _serverRound = true;
-        _shuffledOptions = questions.isNotEmpty
-            ? List.from(questions[0].options)
-            : [];
         _loading = false;
+        _loadError =
+            'Couldn’t start a school round. Check your connection and try again.';
       });
       return;
     }
-
-    final svc = LocalGameService.instance;
-    final completed = await svc.getCompletedRounds();
-    if (!mounted) return;
-
-    // Resume the current round without losing locally saved choices.
-    List<GeneratedQuestion> generated = [];
-    var startIndex = 0;
-    {
-      final saved = await svc.loadRoundProgress();
-      if (!mounted) return;
-      if (saved != null &&
-          saved.round == completed &&
-          saved.questionIndex < _totalQuestions) {
-        final restored = await svc.restoreRound(
-          ids: saved.questionIds,
-          languageCode: languageCode,
-        );
-        if (!mounted) return;
-        if (restored != null && restored.length == _totalQuestions) {
-          generated = restored;
-          startIndex = saved.questionIndex;
-        }
-      }
-    }
-    final fresh = generated.isEmpty;
-    if (fresh) {
-      generated = await svc.generateRound(languageCode: languageCode);
-      if (!mounted) return;
-    }
-
-    if (generated.isEmpty) {
-      setState(() => _loading = false);
+    if (!ready) {
+      context.go(AppRoutes.namesEntry);
       return;
+    }
+    generated ??= await svc.generateRound(languageCode: languageCode);
+    if (!mounted) return;
+    if (generated.length != _totalQuestions) {
+      throw StateError('Incomplete round');
     }
 
     final questions = generated
@@ -274,24 +403,99 @@ class _VoteScreenState extends State<VoteScreen>
           ),
         )
         .toList();
-    if (fresh) {
-      await svc.beginRoundAnswers();
-      await svc.saveRoundProgress(
-        round: completed,
-        questionIndex: 0,
-        questionIds: questions.map((q) => q.id).toList(),
-      );
-      if (!mounted) return;
+    _sessionId = null;
+    _schoolVoting = false;
+    _sessionKey = null;
+    _ownerId = null;
+    await _initializeRound(questions, completed, startIndex, previous);
+  }
+
+  Future<bool?> _schoolMode() async {
+    try {
+      final details = ProviderScope.containerOf(
+        context,
+        listen: false,
+      ).read(onboardingDetailsProvider);
+      return (await details.votingMode())?.school;
+    } catch (_) {
+      return null;
     }
+  }
+
+  Future<void> _initializeRound(
+    List<QuizQuestion> questions,
+    int round,
+    int index,
+    List<RoundAnswer> answers,
+  ) async {
+    _questions = questions;
+    _roundNumber = round;
+    _editingFromReview = false;
+    _sealed = false;
+    final byId = {for (final answer in answers) answer.questionId: answer};
+    _answers
+      ..clear()
+      ..addAll({
+        for (final question in questions)
+          if (byId[question.id] case final answer?) question.id: answer,
+      });
+    await _saveDraft(index);
+    if (mounted) _useRound(questions, round, index, _answers.values.toList());
+  }
+
+  void _useRound(
+    List<QuizQuestion> questions,
+    int round,
+    int index,
+    List<RoundAnswer> answers,
+  ) {
     setState(() {
       _questions = questions;
-      _currentIndex = startIndex;
-      _roundNumber = completed;
-      _shuffledOptions = questions.isNotEmpty
-          ? List.from(questions[startIndex].options)
-          : [];
+      _roundNumber = round;
+      _answers
+        ..clear()
+        ..addEntries(
+          answers.map((answer) => MapEntry(answer.questionId, answer)),
+        );
+      _showPosition(index);
       _loading = false;
     });
+  }
+
+  Future<void> _saveDraft(int index) =>
+      LocalGameService.instance.saveRoundProgress(
+        round: _roundNumber,
+        questionIndex: index,
+        questionIds: _questions.map((q) => q.id).toList(),
+        draftAnswers: [
+          for (final q in _questions)
+            if (_answers[q.id] case final a?) a,
+        ],
+        draft: {
+          'questions': _questions.map((q) => q.toDraft()).toList(),
+          if (_sessionId != null) 'sessionId': _sessionId,
+          if (_schoolVoting) 'schoolVoting': true,
+          if (_sessionKey != null) 'sessionKey': _sessionKey,
+          if (_ownerId != null) 'ownerId': _ownerId,
+          'editingFromReview': _editingFromReview,
+          'sealed': _sealed,
+        },
+      );
+
+  void _showPosition(int index) {
+    _currentIndex = index;
+    _shuffledOptions = _isReview ? [] : List.of(_currentQuestion.options);
+    _selectedOptionId = _isReview ? null : _savedOptionId(_currentQuestion);
+  }
+
+  String? _savedOptionId(QuizQuestion question) {
+    final answer = _answers[question.id];
+    if (answer?.optionId != null) return answer!.optionId;
+    if (answer?.choice == null) return null;
+    for (final option in question.options) {
+      if (option.name == answer!.choice) return option.id;
+    }
+    return null;
   }
 
   @override
@@ -302,93 +506,161 @@ class _VoteScreenState extends State<VoteScreen>
 
   QuizQuestion get _currentQuestion => _questions[_currentIndex];
 
-  void _selectOption(String optionId) {
-    if (_selectedOptionId != null || _isAdvancing) return;
+  Future<void> _choose(QuizOption? option) async {
+    if (_isAdvancing || _sealed) return;
     GameSettings.instance.feedback();
-    setState(() => _selectedOptionId = optionId);
-    _autoAdvance();
-  }
-
-  Future<void> _autoAdvance() async {
-    setState(() => _isAdvancing = true);
+    final question = _currentQuestion;
+    final old = _answers[question.id];
+    final oldEditing = _editingFromReview;
+    final next = oldEditing ? _totalQuestions : _currentIndex + 1;
+    setState(() {
+      _isAdvancing = true;
+      _selectedOptionId = option?.id;
+    });
     try {
-      final question = _currentQuestion;
-      final selected = _selectedOptionId;
-      await LocalGameService.instance.recordAnswer(
-        RoundAnswer(
-          questionId: question.id,
-          question: question.question,
-          voter: await LocalGameService.instance.getPlayerName() ?? 'You',
-          choice: selected == null
-              ? null
-              : question.options.firstWhere((o) => o.id == selected).name,
-        ),
+      final voter = await LocalGameService.instance.getPlayerName() ?? 'You';
+      if (!mounted) return;
+      _answers[question.id] = RoundAnswer(
+        questionId: question.id,
+        question: question.question,
+        voter: voter,
+        choice: option?.name,
+        optionId: option?.id,
       );
-      if (_serverRound) {
-        final winner = selected == null
-            ? null
-            : question.options.firstWhere((o) => o.id == selected).serverUserId;
-        await _source?.trySubmitVote(quizId: question.id, winnerId: winner);
-      }
+      _editingFromReview = false;
+      await _saveDraft(next);
     } catch (_) {
       if (!mounted) return;
+      if (old == null) {
+        _answers.remove(question.id);
+      } else {
+        _answers[question.id] = old;
+      }
       setState(() {
+        _editingFromReview = oldEditing;
         _isAdvancing = false;
-        _selectedOptionId = null;
+        _selectedOptionId = _savedOptionId(question);
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Couldn’t save your choice. Please try again.'),
-        ),
-      );
+      _showSaveError();
       return;
     }
     if (!mounted) return;
     _slideController.duration = GameSettings.instance.effectiveReduceMotion
         ? Duration.zero
         : const Duration(milliseconds: 350);
-    // Brief pause to show selection highlight
-    await Future.delayed(const Duration(milliseconds: 650));
+    if (!GameSettings.instance.effectiveReduceMotion) {
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+    }
     if (!mounted) return;
-    // Slide out
     await _slideController.reverse();
     if (!mounted) return;
-    if (_currentIndex >= _totalQuestions - 1) {
-      await LocalGameService.instance.completeRound();
-      if (await SubscriptionService.instance.isPro()) {
-        await LocalGameService.instance.addStars(
-          LocalGameService.starsPerRound,
-        );
-      }
-      if (!mounted) return;
-      context.go(AppRoutes.starReceived);
-    } else {
-      setState(() {
-        _currentIndex++;
-        _selectedOptionId = null;
-        _isAdvancing = false;
-        _shuffledOptions = List.from(_questions[_currentIndex].options);
-      });
-      {
-        await LocalGameService.instance.saveRoundProgress(
-          round: _roundNumber,
-          questionIndex: _currentIndex,
-          questionIds: _questions.map((q) => q.id).toList(),
-        );
-        if (!mounted) return;
-      }
-      await _slideController.forward();
+    setState(() => _showPosition(next));
+    await _slideController.forward();
+    if (mounted) setState(() => _isAdvancing = false);
+  }
+
+  Future<void> _goTo(int next, {bool editing = false}) async {
+    if (_isAdvancing || _sealed) return;
+    final oldEditing = _editingFromReview;
+    setState(() {
+      _isAdvancing = true;
+      _editingFromReview = editing;
+    });
+    try {
+      await _saveDraft(next);
+      if (mounted) setState(() => _showPosition(next));
+    } catch (_) {
+      _editingFromReview = oldEditing;
+      if (mounted) _showSaveError();
+    } finally {
+      if (mounted) setState(() => _isAdvancing = false);
     }
   }
 
-  void _skipQuestion() {
-    if (_isAdvancing) return;
-    GameSettings.instance.feedback();
+  void _showSaveError() => ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('Couldn’t save your choice. Please try again.'),
+    ),
+  );
+
+  Future<void> _submit() async {
+    if (_submitting ||
+        _isAdvancing ||
+        !_isReview ||
+        _answers.length != _totalQuestions) {
+      return;
+    }
     setState(() {
-      _selectedOptionId = null;
-      _isAdvancing = false;
+      _submitting = true;
+      _submitError = null;
     });
-    _autoAdvance();
+    final wasSealed = _sealed;
+    var sent = false;
+    try {
+      _sealed = true;
+      await _saveDraft(_totalQuestions);
+      if (!mounted) return;
+      final bonus = await SubscriptionService.instance.isPro();
+      if (!mounted) return;
+      final sessionId = _sessionId;
+      if (sessionId != null) {
+        sent = true;
+        await _source!.submitRound(
+          sessionId: sessionId,
+          sessionKey: _sessionKey!,
+          ownerId: _ownerId,
+          answers: {
+            for (final q in _questions)
+              q.id: q.options
+                  .where((o) => o.id == _savedOptionId(q))
+                  .firstOrNull
+                  ?.serverUserId,
+          },
+        );
+      }
+      if (!mounted) return;
+      await LocalGameService.instance.finishRoundDraft(
+        _roundNumber,
+        bonus: bonus,
+        awardStars: sessionId == null,
+      );
+      if (mounted) {
+        try { ProviderScope.containerOf(context).invalidate(starBalanceProvider); }
+        on StateError { /* An injected offline preview may have no provider scope. */ }
+      }
+      if (mounted) context.go(AppRoutes.starReceived);
+    } catch (error) {
+      if (!mounted) return;
+      if (_schoolVoting &&
+          error is ApiException &&
+          error.statusCode == 409 &&
+          error.message == 'Your campus changed. Start a new round.') {
+        setState(() {
+          _loadError = error.message;
+          _canDiscardDraft = true;
+        });
+        return;
+      }
+      if (sent && error is ApiException && error.statusCode == 422) {
+        // The server validated the entire batch before writing anything.
+        _sealed = false;
+        try {
+          await _saveDraft(_totalQuestions);
+        } catch (_) {
+          _sealed = true;
+        }
+      } else if (!sent) {
+        _sealed = wasSealed;
+      }
+      if (!mounted) return;
+      setState(
+        () => _submitError = error is ApiException
+            ? error.message
+            : 'Couldn’t finish the round. Your answers are saved.',
+      );
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   void _shuffleOptions() {
@@ -418,12 +690,39 @@ class _VoteScreenState extends State<VoteScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (_loadError case final error?) {
+      return Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(error, textAlign: TextAlign.center),
+                  TextButton(
+                    onPressed: _startLoading,
+                    child: const Text('Try again'),
+                  ),
+                  if (_canDiscardDraft)
+                    TextButton(
+                      onPressed: _confirmDiscard,
+                      child: const Text('Discard draft'),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     if (_loading || _questions.isEmpty) {
       return const Scaffold(
         backgroundColor: AppColors.background,
         body: Center(child: CircularProgressIndicator()),
       );
     }
+    if (_isReview) return _buildReview();
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -457,6 +756,104 @@ class _VoteScreenState extends State<VoteScreen>
     );
   }
 
+  Future<void> _confirmDiscard() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Discard this draft?'),
+        content: const Text(
+          'The answers saved on this device will be removed.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) await _startLoading(discard: true);
+  }
+
+  Widget _buildReview() {
+    final answered = _answers.values
+        .where((answer) => answer.choice != null)
+        .length;
+    final skipped = _answers.length - answered;
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Text(
+                'Review your answers',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Text('$answered answered · $skipped skipped'),
+            ),
+            Expanded(
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                itemCount: _questions.length,
+                itemBuilder: (context, index) {
+                  final q = _questions[index];
+                  final answer = _answers[q.id];
+                  return ListTile(
+                    title: Text('${index + 1}. ${q.question}'),
+                    subtitle: Text(
+                      answer == null
+                          ? 'Not answered'
+                          : answer.choice ?? 'Skipped',
+                    ),
+                    trailing: _sealed ? null : const Icon(Icons.edit_outlined),
+                    onTap: _sealed || _submitting || _isAdvancing
+                        ? null
+                        : () => _goTo(index, editing: true),
+                  );
+                },
+              ),
+            ),
+            if (_submitError case final error?)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: Semantics(liveRegion: true, child: Text(error)),
+              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: FilledButton(
+                onPressed:
+                    _submitting ||
+                        _isAdvancing ||
+                        _answers.length != _totalQuestions
+                    ? null
+                    : _submit,
+                child: Text(
+                  _submitting
+                      ? 'Submitting…'
+                      : _sealed
+                      ? 'Retry submission'
+                      : _sessionId == null
+                      ? 'Finish round'
+                      : 'Submit votes',
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildHeader() {
     final progress = (_currentIndex + 1) / _totalQuestions;
     return Container(
@@ -471,13 +868,32 @@ class _VoteScreenState extends State<VoteScreen>
             spacing: 12,
             runSpacing: 6,
             children: [
-              Text('Question ${_currentIndex + 1} of $_totalQuestions',
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary)),
-              const Text('⭐ +${LocalGameService.starsPerRound}',
-                semanticsLabel: '${LocalGameService.starsPerRound} stars per completed round',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700,
-                  color: AppColors.primaryBlue)),
+              if (_currentIndex > 0 && !_editingFromReview)
+                IconButton(
+                  tooltip: 'Previous question',
+                  onPressed: _isAdvancing
+                      ? null
+                      : () => _goTo(_currentIndex - 1),
+                  icon: const Icon(Icons.arrow_back),
+                ),
+              Text(
+                'Question ${_currentIndex + 1} of $_totalQuestions',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const Text(
+                '⭐ +${LocalGameService.starsPerRound}',
+                semanticsLabel:
+                    '${LocalGameService.starsPerRound} stars per completed round',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primaryBlue,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -520,9 +936,8 @@ class _VoteScreenState extends State<VoteScreen>
               child: _OptionCard(
                 option: opt,
                 isSelected: _selectedOptionId == opt.id,
-                isDisabled:
-                    _selectedOptionId != null && _selectedOptionId != opt.id,
-                onTap: () => _selectOption(opt.id),
+                isDisabled: _isAdvancing && _selectedOptionId != opt.id,
+                onTap: () => _choose(opt),
               ),
             );
           }).toList(),
@@ -540,8 +955,17 @@ class _VoteScreenState extends State<VoteScreen>
       spacing: 12,
       runSpacing: 8,
       children: [
+        if (_editingFromReview || _answers.containsKey(_currentQuestion.id))
+          FilledButton.tonal(
+            onPressed: _isAdvancing
+                ? null
+                : () => _goTo(
+                    _editingFromReview ? _totalQuestions : _currentIndex + 1,
+                  ),
+            child: Text(_editingFromReview ? 'Back to review' : 'Next'),
+          ),
         TextButton.icon(
-          onPressed: _shuffleOptions,
+          onPressed: _isAdvancing ? null : _shuffleOptions,
           icon: const Icon(Icons.shuffle_rounded, size: 18),
           label: const Text('Shuffle'),
           style: TextButton.styleFrom(
@@ -553,7 +977,7 @@ class _VoteScreenState extends State<VoteScreen>
           ),
         ),
         OutlinedButton(
-          onPressed: _isAdvancing ? null : _skipQuestion,
+          onPressed: _isAdvancing ? null : () => _choose(null),
           style: OutlinedButton.styleFrom(
             side: const BorderSide(color: AppColors.border),
             shape: RoundedRectangleBorder(

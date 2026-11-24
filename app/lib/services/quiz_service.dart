@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'api_service.dart';
 
 /// A single quiz question with its candidate options.
@@ -33,6 +34,7 @@ class QuizCandidate {
   final String id;
   final String firstName;
   final String lastName;
+  final String? contactHash;
   final String? avatarUrl;
   final int grade;
   final String? gradeClass;
@@ -42,6 +44,7 @@ class QuizCandidate {
     required this.id,
     required this.firstName,
     required this.lastName,
+    this.contactHash,
     this.avatarUrl,
     required this.grade,
     this.gradeClass,
@@ -55,6 +58,7 @@ class QuizCandidate {
       id: json['id'] as String,
       firstName: json['firstName'] as String? ?? '',
       lastName: json['lastName'] as String? ?? '',
+      contactHash: json['contactHash'] as String?,
       avatarUrl: json['avatarUrl'] as String?,
       grade: json['grade'] as int? ?? 8,
       gradeClass: json['gradeClass'] as String?,
@@ -66,25 +70,34 @@ class QuizCandidate {
 /// Full quiz session (up to 12 questions for the current round).
 class QuizSession {
   final String sessionId;
+  final String? ownerId;
   final List<QuizQuestion> questions;
   final int totalQuestions;
   final int answeredCount;
+  final bool supportsRoundSubmission;
+  final bool schoolVoting;
 
   const QuizSession({
     required this.sessionId,
+    this.ownerId,
     required this.questions,
     required this.totalQuestions,
     this.answeredCount = 0,
+    this.supportsRoundSubmission = false,
+    this.schoolVoting = false,
   });
 
   factory QuizSession.fromJson(Map<String, dynamic> json) {
     return QuizSession(
       sessionId: json['sessionId'] as String? ?? '',
+      ownerId: json['ownerId'] as String?,
       questions: (json['questions'] as List<dynamic>? ?? [])
           .map((e) => QuizQuestion.fromJson(e as Map<String, dynamic>))
           .toList(),
       totalQuestions: json['totalQuestions'] as int? ?? 12,
       answeredCount: json['answeredCount'] as int? ?? 0,
+      supportsRoundSubmission: json['supportsRoundSubmission'] == true,
+      schoolVoting: json['votingMode'] == 'school',
     );
   }
 }
@@ -144,12 +157,46 @@ class QuizService {
   QuizService(this._api);
 
   /// Fetches the current quiz session (12 questions for this round).
-  Future<QuizSession> getQuizzes() async {
+  Future<QuizSession> getQuizzes({String? sessionToken}) async {
     final response = await _api.get<Map<String, dynamic>>(
       '/api/quizzes/current',
-      queryParameters: {'lang': 'en'},
+      queryParameters: {'lang': 'en', 'schoolVoting': '1'},
+      options: _sessionOptions(sessionToken),
     );
     return QuizSession.fromJson(response.data!);
+  }
+
+  Options? _sessionOptions(String? token) => token == null
+      ? null
+      : Options(headers: {'Authorization': 'Bearer $token'});
+
+  Future<String?> getAccountId(String sessionToken) async {
+    final response = await _api.get<Map<String, dynamic>>(
+      '/api/users/profile',
+      options: _sessionOptions(sessionToken),
+    );
+    return response.data?['id'] as String?;
+  }
+
+  Future<void> submitRound({
+    required String sessionId,
+    required Map<String, String?> answers,
+    String? sessionToken,
+  }) async {
+    final response = await _api.post<Map<String, dynamic>>(
+      '/api/quizzes/submit',
+      options: _sessionOptions(sessionToken),
+      data: {
+        'sessionId': sessionId,
+        'answers': [
+          for (final answer in answers.entries)
+            {'quizId': answer.key, 'winnerId': answer.value},
+        ],
+      },
+    );
+    if (response.data?['success'] != true) {
+      throw const ApiException('Could not confirm the round.');
+    }
   }
 
   /// Submits a vote: the user chose [winnerId] for [quizId].

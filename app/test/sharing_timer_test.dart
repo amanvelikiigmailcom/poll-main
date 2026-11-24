@@ -121,6 +121,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       await pumpLoaded(tester);
     }
+    expect(find.text('0 answered · 12 skipped'), findsOneWidget);
+    expect(await game.secondsUntilNextRound(), 0);
+    await tester.tap(find.text('Finish round'));
+    await pumpLoaded(tester);
     expect(find.text('Round done'), findsOneWidget);
     expect(await game.getStars(), 1000);
     expect(await game.secondsUntilNextRound(), greaterThan(0));
