@@ -157,7 +157,7 @@ void main() {
     final social = ProfileSocialFake(ApiService(storage), storage);
     await mountLikes(tester, storage, social);
     await tester.pumpAndSettle();
-    expect(find.text('12 received likes'), findsOneWidget);
+    expect(find.text('Total: 12'), findsOneWidget);
     expect(find.text('Who makes everyone smile?'), findsOneWidget);
     await storage.clearToken();
     await tester.pumpAndSettle();
@@ -176,7 +176,7 @@ void main() {
     await tester.pump();
     social.pendingLikes!.complete({'votesReceived': 99, 'items': []});
     await tester.pumpAndSettle();
-    expect(find.text('99 received likes'), findsNothing);
+    expect(find.text('Total: 99'), findsNothing);
     expect(find.text('Sign in to see your Likes.'), findsOneWidget);
   });
   testWidgets('Likes network errors are not presented as an empty collection', (
@@ -188,6 +188,6 @@ void main() {
     await mountLikes(tester, storage, social);
     await tester.pumpAndSettle();
     expect(find.text('Couldn’t load Likes. Try again.'), findsOneWidget);
-    expect(find.text('Your received Likes will appear here.'), findsNothing);
+    expect(find.text('EMPTY FOR NOW'), findsNothing);
   });
 }

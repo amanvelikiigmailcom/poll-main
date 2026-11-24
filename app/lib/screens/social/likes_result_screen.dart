@@ -3,12 +3,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../router/app_router.dart';
+import '../../services/local_game_service.dart';
+import 'received_likes_screen.dart';
 
+/// Details of one received vote, opened from a Like card.
+///
+/// Shows only what the server returns for the vote: the question and the
+/// vote time. The voter stays anonymous; the API never sends names or
+/// identity hints, so this screen promises no reveal.
 class LikesResultScreen extends ConsumerWidget {
-  const LikesResultScreen({super.key});
+  const LikesResultScreen({super.key, this.like});
+
+  final Map<String, dynamic>? like;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final like = this.like;
+    final occurred = like == null
+        ? null
+        : DateTime.tryParse(
+            like['occurredAt'] is String ? like['occurredAt'] as String : '',
+          );
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -19,83 +35,103 @@ class LikesResultScreen extends ConsumerWidget {
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 12),
-                // Back button and title
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => context.pop(),
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.arrow_back_ios_new,
-                          color: Colors.white,
-                          size: 18,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    const Text(
-                      'Детали голоса',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                // Heart animation / icon
-                Center(
-                  child: Container(
-                    width: 96,
-                    height: 96,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.favorite,
-                      color: Colors.white,
-                      size: 50,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Center(
+          child: like == null
+              ? const Center(
                   child: Text(
-                    'За тебя проголосовали!',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    'Like not found.',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                )
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 12),
+                      // Back button and title
+                      Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () => context.pop(),
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.arrow_back_ios_new,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          const Text(
+                            'Vote details',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 32),
+                      // Heart animation / icon
+                      Center(
+                        child: Container(
+                          width: 96,
+                          height: 96,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.favorite,
+                            color: Colors.white,
+                            size: 50,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Center(
+                        child: Text(
+                          'Someone picked you!',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      // Info card
+                      _InfoCard(
+                        question: like['question'] as String? ?? '',
+                        timeLabel: occurred == null
+                            ? ''
+                            : likeTimeAgo(occurred.toLocal(), DateTime.now()),
+                      ),
+                      const SizedBox(height: 20),
+                      // Anonymous voter section
+                      _AnonymousCard(),
+                      const SizedBox(height: 20),
+                      // Voting circle from this device
+                      _CircleSection(
+                        question: like['question'] as String? ?? '',
+                      ),
+                      const SizedBox(height: 20),
+                      // Share section
+                      const _ShareSection(),
+                      const SizedBox(height: 20),
+                      // Reveal opens the paywall; it never reveals the voter.
+                      const _RevealButton(),
+                      const SizedBox(height: 32),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 32),
-                // Info card
-                _InfoCard(),
-                const SizedBox(height: 20),
-                // Locked name section
-                _LockedNameCard(),
-                const SizedBox(height: 20),
-                // Share section
-                const _ShareSection(),
-                const SizedBox(height: 32),
-              ],
-            ),
-          ),
         ),
       ),
     );
@@ -107,6 +143,11 @@ class LikesResultScreen extends ConsumerWidget {
 // ---------------------------------------------------------------------------
 
 class _InfoCard extends StatelessWidget {
+  const _InfoCard({required this.question, required this.timeLabel});
+
+  final String question;
+  final String timeLabel;
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -117,23 +158,17 @@ class _InfoCard extends StatelessWidget {
         border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
       ),
       child: Column(
-        children: const [
+        children: [
           _InfoRow(
-            icon: Icons.school_outlined,
-            label: 'Класс',
-            value: '10 класса',
+            icon: Icons.help_outline,
+            label: 'Question',
+            value: question,
           ),
-          SizedBox(height: 16),
-          _InfoRow(
-            icon: Icons.person_outline,
-            label: 'Пол',
-            value: 'Девочка',
-          ),
-          SizedBox(height: 16),
+          const SizedBox(height: 16),
           _InfoRow(
             icon: Icons.access_time,
-            label: 'Время',
-            value: 'Час назад',
+            label: 'Time',
+            value: timeLabel,
           ),
         ],
       ),
@@ -170,13 +205,16 @@ class _InfoRow extends StatelessWidget {
           label,
           style: const TextStyle(color: Colors.white60, fontSize: 14),
         ),
-        const Spacer(),
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            value,
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ],
@@ -185,10 +223,10 @@ class _InfoRow extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Locked name card
+// Anonymous voter card
 // ---------------------------------------------------------------------------
 
-class _LockedNameCard extends StatelessWidget {
+class _AnonymousCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -202,7 +240,7 @@ class _LockedNameCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Имя',
+            'Voter',
             style: TextStyle(color: Colors.white60, fontSize: 13),
           ),
           const SizedBox(height: 12),
@@ -223,7 +261,7 @@ class _LockedNameCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text(
-                        'Александра К.',
+                        'Anonymous voter',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 18,
@@ -253,7 +291,7 @@ class _LockedNameCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           const Text(
-            'Узнайте имя',
+            'The voter stays anonymous.',
             style: TextStyle(
               color: Colors.white70,
               fontSize: 13,
@@ -279,7 +317,7 @@ class _ShareSection extends StatelessWidget {
     } else {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Instagram не установлен')),
+          const SnackBar(content: Text('Couldn’t open Instagram')),
         );
       }
     }
@@ -292,7 +330,7 @@ class _ShareSection extends StatelessWidget {
     } else {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('TikTok не установлен')),
+          const SnackBar(content: Text('Couldn’t open TikTok')),
         );
       }
     }
@@ -304,7 +342,7 @@ class _ShareSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Поделиться',
+          'Share',
           style: TextStyle(
             color: Colors.white70,
             fontSize: 14,
@@ -490,4 +528,201 @@ class _TikTokPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ---------------------------------------------------------------------------
+// Voting circle (names saved on this device)
+// ---------------------------------------------------------------------------
+
+/// The four contacts the user votes with, loaded from local game storage.
+///
+/// The server never sends vote participants, so this section shows only
+/// on-device data and labels it as such. A storage failure shows the empty
+/// state instead of invented names.
+class _CircleSection extends StatefulWidget {
+  const _CircleSection({required this.question});
+
+  final String question;
+
+  @override
+  State<_CircleSection> createState() => _CircleSectionState();
+}
+
+class _CircleSectionState extends State<_CircleSection> {
+  List<String>? _names;
+  String? _pick;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    List<String> names = const [];
+    String? pick;
+    try {
+      final game = LocalGameService.instance;
+      names = await game.selectedOptions();
+      final answers = [
+        ...await game.getRoundAnswers(),
+        ...await game.getRoundAnswers(completed: true),
+      ];
+      for (final answer in answers) {
+        if (answer.question == widget.question && answer.choice != null) {
+          pick = answer.choice;
+          break;
+        }
+      }
+    } catch (_) {
+      names = const [];
+      pick = null;
+    }
+    if (mounted) {
+      setState(() {
+        _names = names;
+        _pick = pick;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final names = _names;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Your voting circle',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'People you vote with on this device.',
+          style: TextStyle(color: Colors.white70, fontSize: 13),
+        ),
+        const SizedBox(height: 14),
+        if (names == null)
+          const SizedBox(height: 8)
+        else if (names.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.15),
+              ),
+            ),
+            child: const Text(
+              'Play a round to see your voting circle.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+          )
+        else
+          for (final name in names)
+            _CircleCard(name: name, isPick: name == _pick),
+      ],
+    );
+  }
+}
+
+class _CircleCard extends StatelessWidget {
+  const _CircleCard({required this.name, required this.isPick});
+
+  final String name;
+  final bool isPick;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: const Color(0xFF4B6EF5).withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Text('🙂', style: TextStyle(fontSize: 24)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              name,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1A1A2E),
+              ),
+            ),
+          ),
+          if (isPick)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF4B6EF5).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                'Your pick',
+                style: TextStyle(
+                  color: Color(0xFF4B6EF5),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Reveal button (paywall entry only)
+// ---------------------------------------------------------------------------
+
+/// Opens the Premium paywall. It never reveals the voter by itself.
+class _RevealButton extends StatelessWidget {
+  const _RevealButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: () => context.push(AppRoutes.premium),
+        icon: const Icon(Icons.lock_outline),
+        label: const Text('Find out who voted for you'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: const Color(0xFF1A2E6C),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 0,
+          textStyle: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
 }
