@@ -114,24 +114,31 @@ class _ProfileSocialSectionState extends ConsumerState<ProfileSocialSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _stat(
-                'Friends',
-                count(summary, 'friendsCount'),
-                AppRoutes.friends,
+              Expanded(
+                child: _stat(
+                  'Friends',
+                  count(summary, 'friendsCount'),
+                  AppRoutes.friends,
+                ),
               ),
-              _stat(
-                'Likes',
-                count(identity, 'votesReceived'),
-                AppRoutes.likesEmpty,
+              const SizedBox(width: 8),
+              Expanded(
+                child: _stat(
+                  'Likes',
+                  count(identity, 'votesReceived'),
+                  AppRoutes.likesEmpty,
+                ),
               ),
-              _stat(
-                'Requests',
-                count(summary, 'incomingCount'),
-                AppRoutes.friendRequests,
+              const SizedBox(width: 8),
+              Expanded(
+                child: _stat(
+                  'Requests',
+                  count(summary, 'incomingCount'),
+                  AppRoutes.friendRequests,
+                ),
               ),
             ],
           ),
@@ -202,37 +209,38 @@ class _ProfileSocialSectionState extends ConsumerState<ProfileSocialSection> {
     );
   }
 
-  Widget _stat(String label, String value, String route) => SizedBox(
-    width: 96,
-    child: Material(
-      color: const Color(0xFFEFF1FE),
+  Widget _stat(String label, String value, String route) => Material(
+    color: const Color(0xFFEFF1FE),
+    borderRadius: BorderRadius.circular(20),
+    child: InkWell(
       borderRadius: BorderRadius.circular(20),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(20),
-        onTap: () async {
-          if (label == 'Likes') {
-            context.go(route);
-          } else {
-            await context.push(route);
-            if (!mounted) return;
-            ref.invalidate(socialSummaryProvider);
-          }
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
-          child: Column(
-            children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryBlue,
-                ),
+      onTap: () async {
+        if (label == 'Likes') {
+          context.go(route);
+        } else {
+          await context.push(route);
+          if (!mounted) return;
+          ref.invalidate(socialSummaryProvider);
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryBlue,
               ),
-              Text(label, style: const TextStyle(fontSize: 13)),
-            ],
-          ),
+            ),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 13),
+            ),
+          ],
         ),
       ),
     ),

@@ -33,6 +33,7 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
   String? error;
   List<Map<String, dynamic>> schools = [];
   Map<String, dynamic>? selected;
+  final _yearAnchor = GlobalKey();
   Map? get _previous => widget.profileCampus?['school'] as Map?;
   bool get _editing => widget.profileCampus != null;
   @override
@@ -72,6 +73,29 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
       const Duration(milliseconds: 300),
       () => _search(expected),
     );
+  }
+
+  void _select(Map<String, dynamic> school) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    debounce?.cancel();
+    generation++;
+    setState(() {
+      selected = school;
+      schools = [];
+      cursor = '';
+      searching = false;
+      error = null;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final anchor = _yearAnchor.currentContext;
+      if (mounted && anchor != null) {
+        Scrollable.ensureVisible(
+          anchor,
+          duration: const Duration(milliseconds: 250),
+          alignment: 0.4,
+        );
+      }
+    });
   }
 
   Future<void> _search(int expected, {bool more = false}) async {
@@ -266,6 +290,7 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
               style: TextStyle(color: Colors.white70),
             ),
           if (!searching &&
+              selected == null &&
               schools.isEmpty &&
               query.text.trim().length >= 3 &&
               error == null)
@@ -279,9 +304,7 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: OutlinedButton(
-                onPressed: saving
-                    ? null
-                    : () => setState(() => selected = school),
+                onPressed: saving ? null : () => _select(school),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: selected?['id'] == school['id']
                       ? onboardingBlue
@@ -320,15 +343,39 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
           if (selected != null)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Text(
-                'Selected: ${selected!['name']}\n${selected!['city']} · ${selected!['region']}',
-                style: const TextStyle(color: Colors.white),
+              child: ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.check_circle, color: Colors.white),
+                title: Text(
+                  selected!['name'] as String,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                subtitle: Text(
+                  [
+                    selected!['city'],
+                    selected!['region'],
+                  ].whereType<String>().where((s) => s.isNotEmpty).join(' · '),
+                  style: const TextStyle(color: Colors.white70),
+                ),
+                trailing: TextButton(
+                  onPressed: saving ? null : () => _changed(query.text),
+                  child: const Text(
+                    'Change',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
               ),
             ),
           const SizedBox(height: 16),
           Form(
             key: form,
-            child: GraduationYearPicker(controller: year, enabled: !saving),
+            child: SizedBox(
+              key: _yearAnchor,
+              child: GraduationYearPicker(controller: year, enabled: !saving),
+            ),
           ),
           const SizedBox(height: 12),
           if (error != null)
@@ -393,6 +440,15 @@ class MissingSchoolScreen extends ConsumerStatefulWidget {
   ConsumerState<MissingSchoolScreen> createState() =>
       _MissingSchoolScreenState();
 }
+
+String campusRegionLabel(String country) => switch (country) {
+  'US' || 'AU' => 'State / territory',
+  'CA' => 'Province / territory',
+  'GB' => 'County / region',
+  'SG' => 'District',
+  'HK' => 'District',
+  _ => 'Region',
+};
 
 class _MissingSchoolScreenState extends ConsumerState<MissingSchoolScreen> {
   final name = TextEditingController(),
@@ -501,7 +557,12 @@ class _MissingSchoolScreenState extends ConsumerState<MissingSchoolScreen> {
             for (final field in [
               (name, 'Campus name', 'Enter the campus name.', 256),
               (city, 'City', 'Enter the city.', 128),
-              (region, 'State / region', 'Enter the state or region.', 128),
+              (
+                region,
+                campusRegionLabel(widget.country),
+                'Enter the ${campusRegionLabel(widget.country).toLowerCase()}.',
+                128,
+              ),
               (year, 'Graduation year', '', 4),
             ])
               Padding(
@@ -571,7 +632,7 @@ class SchoolWaitingScreen extends StatelessWidget {
   );
 }
 
-/// All supported calendar years, without a preselected graduation year.
+/// Graduation cohorts offered during campus setup, in ascending order.
 class GraduationYearPicker extends StatelessWidget {
   const GraduationYearPicker({
     super.key,
@@ -581,8 +642,7 @@ class GraduationYearPicker extends StatelessWidget {
   final TextEditingController controller;
   final bool enabled;
   static List<int> choices([int? current]) {
-    final now = current ?? DateTime.now().year;
-    return List.generate(96, (index) => now + 15 - index);
+    return List.generate(16, (index) => 2026 + index);
   }
 
   @override

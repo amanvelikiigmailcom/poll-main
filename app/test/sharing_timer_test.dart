@@ -50,6 +50,9 @@ void main() {
       greaterThan(3500),
     );
     expect(find.text('Quiz ready'), findsNothing);
+    expect(find.text('Premium benefits'), findsNothing);
+    expect(find.text('Don’t want to wait 60 minutes?'), findsOneWidget);
+    expect(find.text('Invite a friend'), findsOneWidget);
     await SubscriptionService.instance.setPro(false);
     await tester.pumpWidget(const SizedBox());
   });
@@ -85,48 +88,90 @@ void main() {
     expect(find.text('Quiz ready'), findsOneWidget);
   });
 
-  testWidgets('Shuffle works repeatedly and all 12 questions can be skipped', (
-    tester,
-  ) async {
-    final game = LocalGameService.instance;
-    await game.savePlayerAndFriends(
-      playerName: 'Player',
-      friends: ['Alex', 'Sam', 'Jordan', 'Taylor'],
-    );
-    final router = makeRouter('/play');
-    addTearDown(router.dispose);
-    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
-    await pumpLoaded(tester);
-    for (var i = 0; i < 8; i++) {
-      await tester.ensureVisible(find.text('Shuffle'));
-      await tester.tap(find.text('Shuffle'));
-      await tester.pump();
-      expect(find.text('Question 1 of 12'), findsOneWidget);
-      // All four cards belong to selected contacts, never the player.
-      expect(find.text('Player'), findsNothing);
-      var shown = 0;
-      for (final name in ['Alex', 'Sam', 'Jordan', 'Taylor']) {
-        final count = find.text(name).evaluate().length;
-        expect(count, lessThanOrEqualTo(1));
-        shown += count;
-      }
-      expect(shown, 4);
-    }
-    for (var i = 1; i <= 12; i++) {
-      expect(find.text('Question $i of 12'), findsOneWidget);
-      await tester.ensureVisible(find.text('Skip'));
-      await tester.tap(find.text('Skip'));
-      await tester.pump(const Duration(milliseconds: 700));
-      await tester.pump(const Duration(milliseconds: 400));
-      await tester.pump(const Duration(milliseconds: 400));
+  testWidgets(
+    'Skip and Shuffle each allow two uses, retain limits on resume and complete the round',
+    (tester) async {
+      final game = LocalGameService.instance;
+      final names = [
+        'Alex',
+        'Sam',
+        'Jordan',
+        'Taylor',
+        'Morgan',
+        'Casey',
+        'Riley',
+        'Jamie',
+      ];
+      await game.savePlayerAndFriends(playerName: 'Player', friends: names);
+      final router = makeRouter('/play');
+      addTearDown(router.dispose);
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
       await pumpLoaded(tester);
-    }
-    expect(find.text('0 answered · 12 skipped'), findsOneWidget);
-    expect(await game.secondsUntilNextRound(), 0);
-    await tester.tap(find.text('Finish round'));
-    await pumpLoaded(tester);
-    expect(find.text('Round done'), findsOneWidget);
-    expect(await game.getStars(), 1000);
-    expect(await game.secondsUntilNextRound(), greaterThan(0));
-  });
+      Set<String> shown() =>
+          names.where((name) => find.text(name).evaluate().isNotEmpty).toSet();
+      final first = shown();
+      expect(first, hasLength(4));
+      for (var remaining = 2; remaining > 0; remaining--) {
+        await tester.ensureVisible(find.text('Shuffle ($remaining)'));
+        await tester.tap(find.text('Shuffle ($remaining)'));
+        await tester.pumpAndSettle();
+        expect(find.text('Question 1 of 12'), findsOneWidget);
+        expect(find.text('Player'), findsNothing);
+        expect(shown(), hasLength(4));
+        if (remaining == 2) expect(shown().intersection(first), isEmpty);
+      }
+      expect(
+        tester
+            .widget<TextButton>(find.widgetWithText(TextButton, 'Shuffle (0)'))
+            .onPressed,
+        isNull,
+      );
+      for (var remaining = 2; remaining > 0; remaining--) {
+        await tester.ensureVisible(find.text('Skip ($remaining)'));
+        await tester.tap(find.text('Skip ($remaining)'));
+        await tester.pumpAndSettle();
+      }
+      expect(find.text('Question 3 of 12'), findsOneWidget);
+      expect(
+        tester
+            .widget<OutlinedButton>(
+              find.widgetWithText(OutlinedButton, 'Skip (0)'),
+            )
+            .onPressed,
+        isNull,
+      );
+      router.go('/home');
+      await tester.pumpAndSettle();
+      router.go('/play');
+      await tester.pumpAndSettle();
+      expect(find.text('Question 3 of 12'), findsOneWidget);
+      expect(
+        tester
+            .widget<TextButton>(find.widgetWithText(TextButton, 'Shuffle (0)'))
+            .onPressed,
+        isNull,
+      );
+      expect(
+        tester
+            .widget<OutlinedButton>(
+              find.widgetWithText(OutlinedButton, 'Skip (0)'),
+            )
+            .onPressed,
+        isNull,
+      );
+      for (var i = 3; i <= 12; i++) {
+        expect(find.text('Question $i of 12'), findsOneWidget);
+        await tester.tap(find.text(shown().first));
+        await tester.pumpAndSettle();
+      }
+      expect(find.text('10 answered · 2 skipped'), findsOneWidget);
+      expect(await game.secondsUntilNextRound(), 0);
+      await tester.tap(find.text('Finish round'));
+      await pumpLoaded(tester);
+      expect(find.text('Round done'), findsOneWidget);
+      expect(await game.getStars(), 1000);
+      expect(await game.secondsUntilNextRound(), greaterThan(0));
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 }

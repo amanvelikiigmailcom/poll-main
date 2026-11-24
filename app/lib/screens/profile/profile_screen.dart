@@ -12,7 +12,6 @@ import '../../services/local_game_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/common/wait_pass_card.dart';
 import '../../providers/service_providers.dart';
-import '../registration/school_setup_screen.dart';
 
 final _campusProfileProvider = FutureProvider.autoDispose((ref) {
   return ref.watch(onboardingDetailsProvider).campusProfile();
@@ -55,18 +54,20 @@ class ProfileScreen extends ConsumerWidget {
                   child: Column(
                     children: [
                       _ProfileHeaderCard(user: user, local: local),
-                      const _CampusProfileRow(),
-                       const ProfileSocialSection(),
-                       const Padding(
-                         padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
-                         child: CollectionProfileCard(),
-                       ),
+                      const ProfileSocialSection(),
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+                        child: CollectionProfileCard(),
+                      ),
                       const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 16),
                         child: WaitPassCard(),
                       ),
                       const SizedBox(height: 12),
-                      const _ProfileActions(),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: _ProfileActions(),
+                      ),
                       const SizedBox(height: 32),
                     ],
                   ),
@@ -154,45 +155,35 @@ class _ProfileHeaderCard extends ConsumerWidget {
             ],
           ),
           if (username.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            TextButton.icon(
-              onPressed: () => showDialog<void>(
-                context: context,
-                builder: (_) => _UsernameEditor(initial: login),
+            const SizedBox(height: 6),
+            Text(
+              username,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 16,
               ),
-              icon: const Icon(Icons.edit_outlined, size: 16),
-              label: Text(username, textAlign: TextAlign.center),
-            ),
-          ] else ...[
-            TextButton(
-              onPressed: () => showDialog<void>(
-                context: context,
-                builder: (_) => const _UsernameEditor(initial: ''),
-              ),
-              child: const Text('Edit username'),
             ),
           ],
-          TextButton(
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
             onPressed: () async {
-              await context.push(AppRoutes.editProfile);
+              if (guest) {
+                await showDialog<void>(
+                  context: context,
+                  builder: (_) => _UsernameEditor(initial: login),
+                );
+              } else {
+                await context.push(AppRoutes.editProfile);
+              }
               if (!context.mounted) return;
               ref.invalidate(profileIdentityProvider);
               ref.invalidate(_campusProfileProvider);
             },
-            child: const Text('Edit profile'),
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            label: const Text('Edit profile'),
           ),
-          ref
-              .watch(starBalanceProvider)
-              .when(
-                skipLoadingOnRefresh: false,
-                skipLoadingOnReload: false,
-                data: (value) => TextButton(
-                  onPressed: () => context.push(AppRoutes.collection),
-                  child: Text('⭐ ${value ?? '—'} Stars'),
-                ),
-                loading: () => const Text('⭐ — Stars'),
-                error: (_, _) => const Text('⭐ — Stars'),
-              ),
+          const Divider(height: 32),
+          const _CampusProfileRow(),
         ],
       ),
     );
@@ -212,8 +203,13 @@ class CollectionProfileCard extends ConsumerWidget {
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: const Text('⭐', style: TextStyle(fontSize: 30)),
-        title: const Text('Collection', style: TextStyle(fontWeight: FontWeight.w700)),
-        subtitle: Text('${balance == null ? 'Your stars' : '$balance stars'} · Promote yourself'),
+        title: const Text(
+          'Collection',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
+        subtitle: Text(
+          '${balance == null ? 'Your stars' : '$balance stars'} · Promote yourself',
+        ),
         trailing: const Icon(Icons.chevron_right_rounded),
         onTap: () => context.push(AppRoutes.collection),
       ),
@@ -319,46 +315,6 @@ class _UsernameEditorState extends ConsumerState<_UsernameEditor> {
 class _CampusProfileRow extends ConsumerWidget {
   const _CampusProfileRow();
 
-  Future<void> _edit(
-    BuildContext context,
-    WidgetRef ref,
-    Map<String, dynamic> data,
-    String sessionKey,
-  ) async {
-    if (data['school'] != null) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Change campus'),
-          content: const Text(
-            'You can change your campus only once. Looking at other campuses won’t use your change.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Find a new campus'),
-            ),
-          ],
-        ),
-      );
-      if (confirmed != true || !context.mounted) return;
-    }
-    if (!context.mounted) return;
-    await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => SchoolSetupScreen(
-          profileCampus: data,
-          campusSessionKey: sessionKey,
-        ),
-      ),
-    );
-    if (context.mounted) ref.invalidate(_campusProfileProvider);
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final result = ref.watch(_campusProfileProvider);
@@ -371,10 +327,14 @@ class _CampusProfileRow extends ConsumerWidget {
       campus?['city'],
       campus?['region'],
     ].whereType<String>().where((part) => part.isNotEmpty).join(' · ');
-    final used = info?.data['campusChangeUsed'] == true;
     final year = info?.data['graduationYear'] as int?;
     return ListTile(
-      title: const Text('Campus'),
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.school_outlined, color: AppColors.primaryBlue),
+      title: const Text(
+        'Campus',
+        style: TextStyle(fontWeight: FontWeight.w600),
+      ),
       subtitle: Text(
         result.isLoading
             ? 'Loading…'
@@ -389,22 +349,12 @@ class _CampusProfileRow extends ConsumerWidget {
                   'Campus selected',
                 if (location.isNotEmpty) location,
                 if (year != null) 'Class of $year',
-                if (used)
-                  'Campus change used'
-                else if (info != null && info.sessionKey == null)
-                  'Sign in to edit your campus.',
               ].join('\n'),
       ),
       trailing: result.hasError
           ? TextButton(
               onPressed: () => ref.invalidate(_campusProfileProvider),
               child: const Text('Retry'),
-            )
-          : info?.sessionKey != null && !used
-          ? TextButton(
-              onPressed: () =>
-                  _edit(context, ref, info!.data, info.sessionKey!),
-              child: Text(campus == null ? 'Choose' : 'Edit'),
             )
           : null,
     );
@@ -422,6 +372,8 @@ class _ProfileActions extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: AppColors.white,
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
           ListTile(

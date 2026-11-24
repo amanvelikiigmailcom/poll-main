@@ -1,5 +1,16 @@
 # Profile and campus onboarding — deployed backend, 2026-11-24
 
+## Current client behavior
+
+The phone screen opens configured Privacy Policy and Terms of Use URLs directly.
+Selecting a campus collapses search results and brings the graduation-year control
+into view. The setup menu offers 2026–2041 in ascending order, without a default.
+Previously saved years outside this menu require a new selection during setup;
+server validation and existing profile data are unchanged. The missing-campus form
+labels its location field by country: state/territory for US, province/territory for
+CA, county/region for GB, district for SG/HK, and region for NZ.
+
+
 Flow: phone/guest → age → About you (first name, last name, Female/Male/Non-binary) → Choose your campus (catalog + graduation year) → contacts/examples → username → optional notifications → Home. Existing blue/white form styling is retained. Names were removed from the username step. Full names never prefill @username or appear in voting cards.
 
 School lookup uses the country selected with the phone number. US and CA share one directory; there is no extra country picker. School cards include city, state/region and source country. GB currently has England coverage only. NZ/SG/HK use the missing-school flow until actual catalogs are added. Guest defaults to US if no country was selected. An international phone does not prove the country of study; the requested-school form records the current directory country and location typed by the user.

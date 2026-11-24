@@ -124,7 +124,12 @@ void main() {
       await tester.ensureVisible(picker);
       await tester.tap(picker);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('${DateTime.now().year + 15}').last);
+      await tester.scrollUntilVisible(
+        find.text('2041'),
+        250,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.tap(find.text('2041').last);
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Continue'));
       await tester.tap(find.text('Continue'));
@@ -136,12 +141,60 @@ void main() {
     },
   );
 
+  testWidgets(
+    'selecting a campus collapses a long result list and exposes graduation year',
+    (tester) async {
+      await mount(
+        tester,
+        search: (request, handler) => handler.resolve(
+          Response(
+            requestOptions: request,
+            data: {
+              'schools': [
+                for (var i = 0; i < 30; i++)
+                  {...school, 'id': 'campus-$i', 'name': 'Campus $i'},
+              ],
+              'available': true,
+            },
+          ),
+        ),
+      );
+      await profile(tester);
+      await tester.enterText(find.byKey(const Key('school-search')), 'Campus');
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Campus 0'));
+      await tester.pumpAndSettle();
+      expect(find.text('Campus 1'), findsNothing);
+      expect(
+        find.byKey(const Key('graduation-year')).hitTestable(),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const Key('graduation-year')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('2026').last);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Continue'));
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+      expect(find.text('Add your contacts'), findsOneWidget);
+    },
+  );
+
+  test('missing campus field labels follow the selected country', () {
+    expect(campusRegionLabel('US'), 'State / territory');
+    expect(campusRegionLabel('CA'), 'Province / territory');
+    expect(campusRegionLabel('GB'), 'County / region');
+    expect(campusRegionLabel('NZ'), 'Region');
+    expect(campusRegionLabel('SG'), 'District');
+    expect(campusRegionLabel('HK'), 'District');
+  });
+
   test(
-    'graduation menu includes past and future years without a narrow cohort cutoff',
+    'graduation menu offers exactly 2026 through 2041 in ascending order',
     () {
       final values = GraduationYearPicker.choices(2026);
-      expect(values.length, 96);
-      expect(values, containsAll([1946, 2000, 2026, 2030, 2041]));
+      expect(values, List.generate(16, (index) => 2026 + index));
     },
   );
 
@@ -185,7 +238,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Enter the campus name.'), findsOneWidget);
     expect(find.text('Enter the city.'), findsOneWidget);
-    expect(find.text('Enter the state or region.'), findsOneWidget);
+    expect(find.text('Enter the state / territory.'), findsOneWidget);
     expect(find.text('Choose your graduation year.'), findsOneWidget);
   });
   testWidgets(
@@ -334,7 +387,7 @@ void main() {
       expect(find.text('Add your campus'), findsOneWidget);
       expect(find.widgetWithText(TextFormField, 'Campus name'), findsOneWidget);
       expect(
-        find.widgetWithText(TextFormField, 'State / region'),
+        find.widgetWithText(TextFormField, 'State / territory'),
         findsOneWidget,
       );
     },

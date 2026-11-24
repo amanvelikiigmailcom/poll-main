@@ -172,29 +172,47 @@ void main() {
     expect(saved?.draftAnswers?.single.optionId, 'friend');
   });
 
-  testWidgets('preference-aware contacts never reinsert excluded local names', (tester) async {
+  testWidgets('preference-aware contacts never reinsert excluded local names', (
+    tester,
+  ) async {
     SharedPreferences.setMockInitialValues({
       'contact_labels_by_hash_v1': '{"matched-hash":"Маша"}',
     });
     await LocalGameService.instance.savePlayerAndFriends(
-      playerName: 'Аман', friends: ['Али', 'Маша', 'Даня', 'Саша'],
+      playerName: 'Аман',
+      friends: ['Али', 'Маша', 'Даня', 'Саша'],
     );
     final quiz = MockQuizService();
-    when(() => quiz.getQuizzes()).thenAnswer((_) async => server.QuizSession(
-      sessionId: 'filtered', ownerId: 'me', totalQuestions: 12,
-      supportsRoundSubmission: true, serverCandidatesOnly: true,
-      questions: [
-        for (var i = 0; i < 12; i++) server.QuizQuestion(
-          id: 'filtered-$i', text: 'Filtered question $i', category: 'normal',
-          candidates: const [
-            server.QuizCandidate(id: 'matched', firstName: 'Registered name',
-              lastName: '', grade: 8, contactHash: 'matched-hash'),
-          ],
-        ),
-      ],
-    ));
+    when(() => quiz.getQuizzes()).thenAnswer(
+      (_) async => server.QuizSession(
+        sessionId: 'filtered',
+        ownerId: 'me',
+        totalQuestions: 12,
+        supportsRoundSubmission: true,
+        serverCandidatesOnly: true,
+        questions: [
+          for (var i = 0; i < 12; i++)
+            server.QuizQuestion(
+              id: 'filtered-$i',
+              text: 'Filtered question $i',
+              category: 'normal',
+              candidates: const [
+                server.QuizCandidate(
+                  id: 'matched',
+                  firstName: 'Registered name',
+                  lastName: '',
+                  grade: 8,
+                  contactHash: 'matched-hash',
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
     final source = ServerRoundSource(quiz, isLoggedIn: () async => true);
-    await tester.pumpWidget(MaterialApp(home: VoteScreen(serverSource: source)));
+    await tester.pumpWidget(
+      MaterialApp(home: VoteScreen(serverSource: source)),
+    );
     await tester.pumpAndSettle();
     expect(find.text('Filtered question 0'), findsOneWidget);
     expect(find.text('Маша'), findsOneWidget);
@@ -206,10 +224,84 @@ void main() {
     expect(progress?.draftAnswers?.single.optionId, 'matched');
   });
 
+  testWidgets(
+    'online Shuffle uses only candidates authorized for the current question',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      await LocalGameService.instance.savePlayerAndFriends(
+        playerName: 'Player',
+        friends: ['Excluded A', 'Excluded B', 'Excluded C', 'Excluded D'],
+      );
+      final quiz = MockQuizService();
+      when(() => quiz.getQuizzes()).thenAnswer(
+        (_) async => server.QuizSession(
+          sessionId: 'per-question',
+          ownerId: 'me',
+          totalQuestions: 12,
+          supportsRoundSubmission: true,
+          serverCandidatesOnly: true,
+          questions: [
+            for (var i = 0; i < 12; i++)
+              server.QuizQuestion(
+                id: 'p$i',
+                text: 'Question $i',
+                category: 'normal',
+                candidates: [
+                  const server.QuizCandidate(
+                    id: 'me',
+                    firstName: 'Self',
+                    lastName: '',
+                    grade: 8,
+                    isSelf: true,
+                  ),
+                  for (var j = 0; j < (i == 0 ? 6 : 4); j++)
+                    server.QuizCandidate(
+                      id: 'q$i-user$j',
+                      firstName: 'Q$i person $j',
+                      lastName: '',
+                      grade: 8,
+                    ),
+                ],
+              ),
+          ],
+        ),
+      );
+      final source = ServerRoundSource(quiz, isLoggedIn: () async => true);
+      await tester.pumpWidget(
+        MaterialApp(home: VoteScreen(serverSource: source)),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Q0 person 4'), findsNothing);
+      await choose(tester, 'Shuffle (2)');
+      expect(find.text('Q0 person 4'), findsOneWidget);
+      expect(find.text('Q0 person 5'), findsOneWidget);
+      expect(find.text('Self'), findsNothing);
+      expect(find.text('Excluded A'), findsNothing);
+      await choose(tester, 'Q0 person 4');
+      expect(find.text('Q0 person 4'), findsNothing);
+      for (var i = 0; i < 4; i++) {
+        expect(find.text('Q1 person $i'), findsOneWidget);
+      }
+      final saved = await LocalGameService.instance.loadRoundProgress();
+      expect(saved!.draftAnswers!.single.optionId, 'q0-user4');
+      expect(saved.draft!['shuffleUses'], 1);
+      final first =
+          ((saved.draft!['questions'] as List).first as Map)['options'] as List;
+      expect(first.map((o) => (o as Map)['winnerId']), isNot(contains('me')));
+      expect(
+        first.map((o) => (o as Map)['winnerId']),
+        isNot(contains('q1-user0')),
+      );
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets('online draft edits, resumes and retries the exact final batch', (
     tester,
   ) async {
-    SharedPreferences.setMockInitialValues({'contact_labels_by_hash_v1':'{"local-sasha-hash":"Саша"}'});
+    SharedPreferences.setMockInitialValues({
+      'contact_labels_by_hash_v1': '{"local-sasha-hash":"Саша"}',
+    });
     await LocalGameService.instance.savePlayerAndFriends(
       playerName: 'Аман',
       friends: ['Али', 'Маша', 'Даня', 'Саша'],
@@ -267,7 +359,7 @@ void main() {
     expect(find.byTooltip('Previous question'), findsNothing);
     await choose(tester, 'Али');
     expect(find.text('Question 2 of 12'), findsOneWidget);
-    await choose(tester, 'Skip');
+    await choose(tester, 'Skip (2)');
     await tester.tap(find.byTooltip('Previous question'));
     await tester.pumpAndSettle();
     expect(find.text('Question 2 of 12'), findsOneWidget);
@@ -285,10 +377,10 @@ void main() {
     await choose(tester, 'Маша');
     await choose(tester, 'Даня'); // replaces a previously skipped answer
     for (var i = 2; i < 12; i++) {
-      await choose(tester, 'Skip');
+      await choose(tester, i == 2 ? 'Skip (1)' : 'Али');
     }
     expect(find.text('Review your answers'), findsOneWidget);
-    expect(find.text('2 answered · 10 skipped'), findsOneWidget);
+    expect(find.text('11 answered · 1 skipped'), findsOneWidget);
     expect(submissions, isEmpty);
     verifyNever(
       () => quiz.submitVote(
@@ -308,7 +400,8 @@ void main() {
     expect(submissions.single, {
       'sq0': 'user_Саша',
       'sq1': 'user_Даня',
-      for (var i = 2; i < 12; i++) 'sq$i': null,
+      'sq2': null,
+      for (var i = 3; i < 12; i++) 'sq$i': 'user_Али',
     });
     firstReply.completeError(const ApiException('Connection lost.'));
     await tester.pumpAndSettle();
@@ -320,7 +413,11 @@ void main() {
     expect(submissions.last, submissions.first);
     expect(find.text('Result'), findsOneWidget);
     expect(await LocalGameService.instance.getCompletedRounds(), 1);
-    expect(await LocalGameService.instance.getStars(),0, reason:"Online rewards never increase the guest balance");
+    expect(
+      await LocalGameService.instance.getStars(),
+      0,
+      reason: "Online rewards never increase the guest balance",
+    );
     verify(() => quiz.getQuizzes()).called(1);
   });
 
@@ -365,9 +462,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Question 2 of 12'), findsOneWidget);
       for (var i = 1; i < 12; i++) {
-        await choose(tester, 'Skip');
+        await choose(tester, i <= 2 ? 'Skip (${3 - i})' : visible.first);
       }
-      expect(find.text('1 answered · 11 skipped'), findsOneWidget);
+      expect(find.text('10 answered · 2 skipped'), findsOneWidget);
       await choose(tester, 'Submit votes');
       expect(submitted, {for (var i = 0; i < 12; i++) 'sq$i': null});
     },

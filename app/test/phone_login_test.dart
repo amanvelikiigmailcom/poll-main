@@ -10,6 +10,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -74,6 +75,46 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     ContentService.instance.debugClear();
   });
+
+  testWidgets(
+    'phone privacy and terms open their URLs directly without an intermediate screen',
+    (tester) async {
+      const channel = MethodChannel('plugins.flutter.io/url_launcher');
+      final launched = <String>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (
+        call,
+      ) async {
+        if (call.method == 'launch') {
+          launched.add((call.arguments as Map)['url'] as String);
+          return true;
+        }
+        return null;
+      });
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          channel,
+          null,
+        ),
+      );
+      await mountNames(tester);
+      for (final link in [
+        ('Privacy Policy', 'url_privacy'),
+        ('Terms of Use', 'url_terms'),
+      ]) {
+        await tester.ensureVisible(find.text(link.$1));
+        await tester.tap(find.text(link.$1));
+        await tester.pumpAndSettle();
+        expect(launched.last, ContentService.instance.text(link.$2));
+        expect(
+          testAppRouter.routeInformationProvider.value.uri.path,
+          AppRoutes.phone,
+        );
+        expect(find.text('Send code'), findsOneWidget);
+      }
+      expect(launched, hasLength(2));
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   testWidgets('changing country revalidates and keeps the entered number', (
     tester,

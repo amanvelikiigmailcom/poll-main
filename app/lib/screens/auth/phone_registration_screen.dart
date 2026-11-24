@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/external_link_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
@@ -301,15 +302,27 @@ class _PhoneRegistrationScreenState
                           child: const Text('Continue without login'),
                         ),
                       ],
-                      TextButton(
-                        onPressed: () {
-                          FocusManager.instance.primaryFocus?.unfocus();
-                          context.push(AppRoutes.privacy);
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.white,
-                        ),
-                        child: const Text('Privacy Policy'),
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        children: [
+                          for (final link in [
+                            ('Privacy Policy', 'url_privacy'),
+                            ('Terms of Use', 'url_terms'),
+                          ])
+                            TextButton(
+                              onPressed: () {
+                                FocusManager.instance.primaryFocus?.unfocus();
+                                openExternalLink(
+                                  context,
+                                  ContentService.instance.text(link.$2),
+                                );
+                              },
+                              style: TextButton.styleFrom(
+                                foregroundColor: Colors.white,
+                              ),
+                              child: Text(link.$1),
+                            ),
+                        ],
                       ),
                     ],
                   ),

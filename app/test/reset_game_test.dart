@@ -95,10 +95,7 @@ void main() {
     await seedGame();
   });
 
-  for (final route in [
-    AppRoutes.settings,
-    AppRoutes.deleteAccount,
-  ]) {
+  for (final route in [AppRoutes.settings, AppRoutes.deleteAccount]) {
     final deleteWording = route == AppRoutes.deleteAccount;
     final buttonLabel = deleteWording ? 'Delete account' : 'Reset game';
     final dialogTitle = deleteWording ? 'Delete account?' : 'Reset game?';
@@ -106,11 +103,13 @@ void main() {
       tester,
     ) async {
       final container = await mountResetApp(tester, route);
-      await tester.ensureVisible(
-        deleteWording
-            ? find.widgetWithText(FilledButton, buttonLabel)
-            : find.text(buttonLabel),
-      );
+      if (deleteWording) {
+        await tester.ensureVisible(
+          find.widgetWithText(FilledButton, buttonLabel),
+        );
+      } else {
+        await tester.scrollUntilVisible(find.text(buttonLabel), 300);
+      }
       await tester.tap(
         deleteWording
             ? find.widgetWithText(FilledButton, buttonLabel)
@@ -135,11 +134,13 @@ void main() {
       tester,
     ) async {
       final container = await mountResetApp(tester, route);
-      await tester.ensureVisible(
-        deleteWording
-            ? find.widgetWithText(FilledButton, buttonLabel)
-            : find.text(buttonLabel),
-      );
+      if (deleteWording) {
+        await tester.ensureVisible(
+          find.widgetWithText(FilledButton, buttonLabel),
+        );
+      } else {
+        await tester.scrollUntilVisible(find.text(buttonLabel), 300);
+      }
       await tester.tap(
         deleteWording
             ? find.widgetWithText(FilledButton, buttonLabel)
@@ -183,16 +184,22 @@ void main() {
     });
   }
 
-  testWidgets('Edit profile cannot reset a guest game or silently edit local identity', (tester) async {
-    final container = await mountResetApp(tester, AppRoutes.editProfile);
-    expect(find.text('Sign in to edit your profile.'), findsOneWidget);
-    expect(find.text('Reset game'), findsNothing);
-    expect(await LocalGameService.instance.getPlayerName(), 'Old player');
-    expect(await LocalGameService.instance.getStars(), 1000);
-    expect(await LocalGameService.instance.secondsUntilNextRound(), greaterThan(0));
-    expect(container.read(localProfileProvider).playerName, 'Old player');
-    await tester.pumpWidget(const SizedBox());
-  });
+  testWidgets(
+    'Edit profile cannot reset a guest game or silently edit local identity',
+    (tester) async {
+      final container = await mountResetApp(tester, AppRoutes.editProfile);
+      expect(find.text('Sign in to edit your profile.'), findsOneWidget);
+      expect(find.text('Reset game'), findsNothing);
+      expect(await LocalGameService.instance.getPlayerName(), 'Old player');
+      expect(await LocalGameService.instance.getStars(), 1000);
+      expect(
+        await LocalGameService.instance.secondsUntilNextRound(),
+        greaterThan(0),
+      );
+      expect(container.read(localProfileProvider).playerName, 'Old player');
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
 
   test('cache clear defeats an already pending refresh', () async {
     final container = ProviderContainer();
@@ -209,6 +216,7 @@ void main() {
     'new setup after reset displays the new profile instead of cached data',
     (tester) async {
       final container = await mountResetApp(tester, AppRoutes.settings);
+      await tester.scrollUntilVisible(find.text('Reset game'), 300);
       await tester.tap(find.text('Reset game'));
       await tester.pumpAndSettle();
       await tester.tap(
@@ -258,6 +266,7 @@ void main() {
     tester,
   ) async {
     await mountResetApp(tester, AppRoutes.settings);
+    await tester.scrollUntilVisible(find.text('Reset game'), 300);
     expect(find.text('Reset game'), findsOneWidget);
     expect(find.text('Log out'), findsNothing);
     expect(find.text('Language'), findsNothing);
@@ -280,7 +289,7 @@ void main() {
         api: api,
         signedIn: true,
       );
-      await tester.ensureVisible(find.text('Reset game'));
+      await tester.scrollUntilVisible(find.text('Reset game'), 300);
       await tester.tap(find.text('Reset game'));
       await tester.pumpAndSettle();
       await tester.tap(
@@ -329,7 +338,7 @@ void main() {
         api: api,
         signedIn: true,
       );
-      await tester.ensureVisible(find.text('Reset game'));
+      await tester.scrollUntilVisible(find.text('Reset game'), 300);
       await tester.tap(find.text('Reset game'));
       await tester.pumpAndSettle();
       await tester.tap(

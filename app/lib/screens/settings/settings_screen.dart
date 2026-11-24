@@ -18,9 +18,18 @@ import 'settings_quiz_screen.dart';
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    Widget route(IconData icon, String title, String path) =>
+        _ArrowTile(icon: icon, title: title, onTap: () => context.push(path));
+    Widget card(List<Widget> rows) => _SettingsCard(
+      children: [
+        for (var i = 0; i < rows.length; i++) ...[
+          if (i > 0) const Divider(height: 1),
+          rows[i],
+        ],
+      ],
+    );
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
@@ -30,169 +39,185 @@ class SettingsScreen extends ConsumerWidget {
       ),
       body: ListView(
         children: [
-          const _SectionHeader(title: 'YOUR CIRCLE'),
-          _SettingsCard(children: [
-            const FriendsLink(),
-            const Divider(height: 1),
-            _ArrowTile(icon: Icons.auto_awesome_outlined, title: 'Activity',
-              subtitle: 'Who was chosen around your campus',
-              onTap: () => context.push(AppRoutes.activity)),
-            const Divider(height: 1),
-            _ArrowTile(icon: Icons.shield_outlined, title: 'Blocked users',
-              onTap: () => context.push(AppRoutes.blockedUsers)),
-            const Divider(height: 1),
-            _ArrowTile(icon: Icons.family_restroom_outlined, title: 'For parents',
-              subtitle: 'How Flyprox works and how to stay in control',
-              onTap: () => context.push(AppRoutes.forParents)),
-          ]),
-          const _SectionHeader(title: 'GAME'),
-          _SettingsCard(children: [
-            _ArrowTile(
-              icon: Icons.person_outline,
-              title: 'Edit profile',
-              onTap: () => context.push(AppRoutes.editProfile),
+          const _SectionHeader(title: 'ACCOUNT'),
+          card([
+            route(Icons.person_outline, 'Edit profile', AppRoutes.editProfile),
+            route(
+              Icons.notifications_none,
+              'Notifications',
+              AppRoutes.notificationsSettings,
             ),
-            const Divider(height: 1),
+            _ArrowTile(
+              icon: Icons.confirmation_number_outlined,
+              title: 'Invitation code',
+              onTap: () => context.push(AppRoutes.invitationCode, extra: true),
+            ),
+          ]),
+          const _SectionHeader(title: 'YOUR CIRCLE'),
+          card([
+            const FriendsLink(),
+            route(Icons.auto_awesome_outlined, 'Activity', AppRoutes.activity),
+            route(
+              Icons.shield_outlined,
+              'Blocked users',
+              AppRoutes.blockedUsers,
+            ),
+          ]),
+          const _SectionHeader(title: 'GAME & FEEDBACK'),
+          card([
+            _ArrowTile(
+              icon: Icons.tune,
+              title: 'Quiz preferences',
+              onTap: () => showQuizPreferences(context),
+            ),
+            ListenableBuilder(
+              listenable: GameSettings.instance,
+              builder: (context, _) {
+                final settings = GameSettings.instance;
+                return Column(
+                  children: [
+                    SwitchListTile(
+                      title: const Text('Sound'),
+                      value: settings.sound,
+                      onChanged: (v) => settings.setOption('sound', v),
+                    ),
+                    SwitchListTile(
+                      title: const Text('Haptics'),
+                      value: settings.haptics,
+                      onChanged: (v) => settings.setOption('haptics', v),
+                    ),
+                    SwitchListTile(
+                      title: const Text('Reduce motion'),
+                      value: settings.reduceMotion,
+                      onChanged: (v) => settings.setOption('reduce_motion', v),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ]),
+          const _SectionHeader(title: 'PREMIUM'),
+          card([
+            route(
+              Icons.workspace_premium_outlined,
+              'Premium',
+              AppRoutes.premium,
+            ),
+            const _SubscriptionStatusTile(),
+          ]),
+          const _SectionHeader(title: 'HELP'),
+          card([
+            route(Icons.help_outline, 'How to play', AppRoutes.howToUse),
+            route(Icons.live_help_outlined, 'FAQ', AppRoutes.faq),
+            route(
+              Icons.support_agent,
+              'Support and safety',
+              AppRoutes.safetyCenter,
+            ),
+            route(
+              Icons.family_restroom_outlined,
+              'For parents',
+              AppRoutes.forParents,
+            ),
+            route(
+              Icons.auto_awesome_outlined,
+              'Replay intro',
+              AppRoutes.onboarding,
+            ),
+          ]),
+          const _SectionHeader(title: 'PRIVACY & DATA'),
+          card([
+            for (final link in [
+              (Icons.privacy_tip_outlined, 'Privacy Policy', 'url_privacy'),
+              (Icons.article_outlined, 'Terms of Use', 'url_terms'),
+            ])
+              _ArrowTile(
+                icon: link.$1,
+                title: link.$2,
+                onTap: () => openExternalLink(
+                  context,
+                  ContentService.instance.text(link.$3),
+                ),
+              ),
+            _ArrowTile(
+              icon: Icons.data_object,
+              title: 'View my local data',
+              onTap: () async {
+                final data = await LocalGameService.instance.exportLocalData();
+                if (!context.mounted) return;
+                await showDialog<void>(
+                  context: context,
+                  builder: (dialogContext) => AlertDialog(
+                    title: const Text('Your local data'),
+                    content: SizedBox(
+                      width: 500,
+                      child: SingleChildScrollView(child: SelectableText(data)),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () async {
+                          try {
+                            await Clipboard.setData(ClipboardData(text: data));
+                            if (dialogContext.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Copied. This includes private game data.',
+                                  ),
+                                ),
+                              );
+                            }
+                          } catch (_) {
+                            if (dialogContext.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Couldn’t copy. Select the text to copy it.',
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                        },
+                        child: const Text('Copy JSON'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        child: const Text('Close'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ]),
+          const _SectionHeader(title: 'ACCOUNT ACTIONS'),
+          card([
             _ArrowTile(
               icon: Icons.restart_alt,
               title: 'Reset game',
               color: AppColors.accentRed,
               onTap: () => showResetGameDialog(context, ref),
             ),
-            const Divider(height: 1),
-            _ArrowTile(
-              icon: Icons.tune,
-              title: 'Quiz preferences',
-              subtitle: 'Who appears in your quizzes',
-              onTap: () => showQuizPreferences(context),
-            ),
-          ]),
-          const _SectionHeader(title: 'EFFECTS'),
-          ListenableBuilder(
-            listenable: GameSettings.instance,
-            builder: (context, _) {
-              final settings = GameSettings.instance;
-              return _SettingsCard(children: [
-                SwitchListTile(title: const Text('Sound'), value: settings.sound,
-                  onChanged: (v) => settings.setOption('sound', v)),
-                SwitchListTile(title: const Text('Haptics'), value: settings.haptics,
-                  onChanged: (v) => settings.setOption('haptics', v)),
-                SwitchListTile(title: const Text('Reduce motion'),
-                  subtitle: const Text('Also respects your device setting'),
-                  value: settings.reduceMotion,
-                  onChanged: (v) => settings.setOption('reduce_motion', v)),
-              ]);
-            },
-          ),
-          const _SectionHeader(title: 'PRIVACY'),
-          _SettingsCard(children: [
             _ArrowTile(
               icon: Icons.delete_outline,
               title: 'Delete account',
               color: AppColors.accentRed,
               onTap: () => context.push(AppRoutes.deleteAccount),
             ),
-            const Divider(height: 1),
-            _ArrowTile(icon: Icons.data_object, title: 'View my local data',
-              onTap: () async {
-                final data = await LocalGameService.instance.exportLocalData();
-                if (!context.mounted) return;
-                await showDialog<void>(context: context, builder: (dialogContext) => AlertDialog(
-                  title: const Text('Your local data'),
-                  content: SizedBox(width: 500, child: SingleChildScrollView(
-                    child: SelectableText(data))),
-                  actions: [
-                    TextButton(onPressed: () async {
-                      try {
-                        await Clipboard.setData(ClipboardData(text: data));
-                        if (dialogContext.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Copied. This includes private game data.')));
-                        }
-                      } catch (_) {
-                        if (dialogContext.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Couldn’t copy. Select the text to copy it.')));
-                        }
-                      }
-                    }, child: const Text('Copy JSON')),
-                    TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Close')),
-                  ],
-                ));
-              }),
           ]),
-          const Padding(padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            child: Text('Guest progress stays on this device. Signing in enables '
-              'contact matching, online votes and notifications. '
-              'See Privacy Policy for details.')),
-          const _SectionHeader(title: 'APP'),
-          _SettingsCard(children: [
-            _ArrowTile(icon: Icons.notifications_none, title: 'Notifications',
-              onTap: () => context.push(AppRoutes.notificationsSettings)),
-            const Divider(height: 1),
-            _ArrowTile(
-              icon: Icons.confirmation_number_outlined,
-              title: 'Invitation code',
-              subtitle: 'Apply within 7 days of creating your account',
-              onTap: () => context.push(AppRoutes.invitationCode, extra: true),
+          FutureBuilder<String>(
+            future: AppInfoService.versionLabel(),
+            builder: (context, snapshot) => Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                snapshot.data ?? '',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.textHint, fontSize: 12),
+              ),
             ),
-            const Divider(height: 1),
-            _ArrowTile(
-              icon: Icons.workspace_premium_outlined,
-              title: 'Premium',
-              onTap: () => context.push(AppRoutes.premium),
-            ),
-            const Divider(height: 1),
-            const _SubscriptionStatusTile(),
-            const Divider(height: 1),
-            _ArrowTile(
-              icon: Icons.auto_awesome_outlined,
-              title: 'Replay intro',
-              onTap: () => context.push(AppRoutes.onboarding),
-            ),
-            const Divider(height: 1),
-            FutureBuilder<String>(future: AppInfoService.versionLabel(),
-              builder: (context, snapshot) => ListTile(
-                leading: const Icon(Icons.info_outline),
-                title: const Text('App version'),
-                trailing: Text(snapshot.data ?? 'Checking…'),
-              )),
-            const Divider(height: 1),
-            _ArrowTile(
-              icon: Icons.help_outline,
-              title: 'How to play',
-              subtitle: 'Rules, stars and 20 pro tips',
-              onTap: () => context.push(AppRoutes.howToUse),
-            ),
-            const Divider(height: 1),
-            _ArrowTile(
-              icon: Icons.live_help_outlined,
-              title: 'FAQ',
-              subtitle: '37 answers about rounds, stars and privacy',
-              onTap: () => context.push(AppRoutes.faq),
-            ),
-            const Divider(height: 1),
-            _ArrowTile(
-              icon: Icons.support_agent,
-              title: 'Support and safety',
-              onTap: () => context.push(AppRoutes.safetyCenter),
-            ),
-            const Divider(height: 1),
-            _ArrowTile(
-              icon: Icons.article_outlined,
-              title: 'Terms of Use',
-              onTap: () => openExternalLink(
-                  context, ContentService.instance.text('url_terms')),
-            ),
-            const Divider(height: 1),
-            _ArrowTile(
-              icon: Icons.privacy_tip_outlined,
-              title: 'Privacy Policy',
-              onTap: () => openExternalLink(
-                  context, ContentService.instance.text('url_privacy')),
-            ),
-          ]),
-          const SizedBox(height: 40),
+          ),
+          const SizedBox(height: 16),
         ],
       ),
     );
@@ -205,14 +230,17 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-        child: Text(title,
-            style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textHint,
-                letterSpacing: 1.4)),
-      );
+    padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+    child: Text(
+      title,
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textHint,
+        letterSpacing: 1.4,
+      ),
+    ),
+  );
 }
 
 class _SettingsCard extends StatelessWidget {
@@ -221,14 +249,14 @@ class _SettingsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Material(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(14),
-          clipBehavior: Clip.antiAlias,
-          child: Column(mainAxisSize: MainAxisSize.min, children: children),
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    child: Material(
+      color: AppColors.white,
+      borderRadius: BorderRadius.circular(14),
+      clipBehavior: Clip.antiAlias,
+      child: Column(mainAxisSize: MainAxisSize.min, children: children),
+    ),
+  );
 }
 
 class _ArrowTile extends StatelessWidget {
@@ -247,16 +275,17 @@ class _ArrowTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListTile(
-        leading: Icon(icon, color: color),
-        title: Text(title, style: TextStyle(color: color)),
-        subtitle: subtitle == null
-            ? null
-            : Text(subtitle!,
-                style: const TextStyle(
-                    color: AppColors.textHint, fontSize: 12)),
-        trailing: const Icon(Icons.chevron_right_rounded),
-        onTap: onTap,
-      );
+    leading: Icon(icon, color: color),
+    title: Text(title, style: TextStyle(color: color)),
+    subtitle: subtitle == null
+        ? null
+        : Text(
+            subtitle!,
+            style: const TextStyle(color: AppColors.textHint, fontSize: 12),
+          ),
+    trailing: const Icon(Icons.chevron_right_rounded),
+    onTap: onTap,
+  );
 }
 
 /// Live subscription state for support and self-diagnostics.

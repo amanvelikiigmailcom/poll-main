@@ -61,7 +61,7 @@ class _HowToUseScreenState extends State<HowToUseScreen> {
       Icons.how_to_vote_rounded,
       'Answer 12 questions',
       'Pick one of 4 cards per question. You can’t vote for yourself. '
-          'Shuffle reorders cards, Skip moves on.',
+          'Shuffle changes available cards; Skip moves on. Each can be used twice per round.',
     ),
     _GuideStep(
       Icons.star_rounded,
@@ -72,7 +72,7 @@ class _HowToUseScreenState extends State<HowToUseScreen> {
     _GuideStep(
       Icons.ios_share_rounded,
       'Play again your way',
-      'Wait out the break or invite a new friend: one registered recipient '
+      'Wait out the break or invite a new friend: one confirmed invitation '
           '= one extra round.',
     ),
   ];
@@ -86,7 +86,7 @@ class _HowToUseScreenState extends State<HowToUseScreen> {
       bullets: [
         'Each round has 12 questions. For every question you pick one of 4 name cards.',
         'You cannot vote for yourself — your card is never a candidate.',
-        'Shuffle reorders the same 4 cards. Skip moves to the next question.',
+        'Shuffle replaces cards when other eligible people are available; otherwise it reorders them. Skip moves to the next question. Each has 2 uses per round.',
         'Skipped questions carry no penalty — report ones that feel wrong.',
         'To start you need a display name and at least 4 participants (or example names).',
       ],
@@ -207,8 +207,8 @@ class _HowToUseScreenState extends State<HowToUseScreen> {
       bullets: [
         'Learn the flow in one minute — start with example names.',
         'Use nicknames. Never type phone numbers or addresses.',
-        'Cards feel stuck? Shuffle reorders them before you answer.',
-        'Skip awkward questions freely — there is no penalty.',
+        'Want different cards? Shuffle brings in other eligible people when available.',
+        'You can skip up to 2 questions per round without a penalty.',
         'Report bad questions with their text; leave names out.',
         'Only full 12-question rounds earn the 1,000 stars.',
         'The center tab always shows your live break countdown.',

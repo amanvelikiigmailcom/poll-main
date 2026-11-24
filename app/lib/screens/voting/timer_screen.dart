@@ -6,7 +6,6 @@ import '../../providers/service_providers.dart';
 import 'package:go_router/go_router.dart';
 import '../../services/local_game_service.dart';
 import '../../services/game_settings.dart';
-import '../../router/app_router.dart';
 
 const Color _primaryBlue = Color(0xFF4B6EF5);
 const Color _accentRed = Color(0xFFFF3B5C);
@@ -415,7 +414,7 @@ class _TimerScreenState extends State<TimerScreen>
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Text(
-          'Earn a wait pass',
+          'Don’t want to wait 60 minutes?',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
@@ -425,7 +424,7 @@ class _TimerScreenState extends State<TimerScreen>
         ),
         const SizedBox(height: 6),
         const Text(
-          'Each eligible invitation unlocks one round of 12 questions. Unused rounds are saved. Maximum 50 completed rounds per UTC day.',
+          'Invite one friend to unlock another round of 12 questions as soon as your invitation is confirmed. Unused rounds are saved.',
           style: TextStyle(fontSize: 13, color: Colors.grey),
           textAlign: TextAlign.center,
         ),
@@ -433,7 +432,7 @@ class _TimerScreenState extends State<TimerScreen>
         ElevatedButton.icon(
           onPressed: _openInvite,
           icon: const Icon(Icons.person_add_alt_1_rounded),
-          label: const Text('Invite friends and check passes'),
+          label: const Text('Invite a friend'),
           style: ElevatedButton.styleFrom(
             backgroundColor: _accentRed,
             foregroundColor: Colors.white,
@@ -446,24 +445,6 @@ class _TimerScreenState extends State<TimerScreen>
               fontWeight: FontWeight.w700,
             ),
             elevation: 0,
-          ),
-        ),
-        const SizedBox(height: 10),
-        OutlinedButton.icon(
-          onPressed: () => context.push(AppRoutes.premium),
-          icon: const Icon(Icons.workspace_premium_outlined),
-          label: const Text('Premium benefits'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: _primaryBlue,
-            side: const BorderSide(color: Color(0xFFDDE4FF), width: 1.5),
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
-            textStyle: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-            ),
           ),
         ),
         const SizedBox(height: 10),

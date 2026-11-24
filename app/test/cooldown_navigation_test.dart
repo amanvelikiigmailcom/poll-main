@@ -276,8 +276,8 @@ void main() {
     'search keeps its query and a running round survives switching tabs',
     (tester) async {
       await mount(tester, AppRoutes.vote);
-      await tester.ensureVisible(find.text('Skip'));
-      await tester.tap(find.text('Skip'));
+      await tester.ensureVisible(find.text('Skip (2)'));
+      await tester.tap(find.text('Skip (2)'));
       await tester.pumpAndSettle();
       expect(find.text('Question 2 of 12'), findsOneWidget);
       final progress = await LocalGameService.instance.loadRoundProgress();
