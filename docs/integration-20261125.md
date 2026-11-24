@@ -61,7 +61,7 @@ and migration application evidence belongs exclusively to backend
    complete metadata and isolated real-storage behavior, cleaning all fixtures.
 5. Deploy only the explicitly approved flags. Premium activation also requires the
    published Terms/Privacy to match the identity disclosure and billing acceptance.
-6. Archive version 1.0.2 build 14 from the checked client commit using Flutter 3.44.4,
+6. Archive version 1.0.3 build 14 from the checked client commit using Flutter 3.44.4,
    existing Pods and Xcode Runner.xcworkspace. Preserve the local billing key.
 7. Verify archive/IPA identifier, version, signature, APNs and encryption settings;
    upload to App Store Connect and read back processing and TestFlight availability.
@@ -77,3 +77,7 @@ received-Likes empty/list/guest/modal behavior.
 
 SMS/APNs delivery, native Contacts and real Sandbox purchase/restore require
 device acceptance. Automated fake suites and a VALID upload cannot prove them.
+
+Apple rejected the initial 1.0.2 (14) upload because 1.0.2 is already approved and
+its pre-release train is closed. ASC already has 1.0.3 prepared for submission;
+the same checked source is therefore packaged as 1.0.3 (14).
