@@ -15,10 +15,7 @@ void main() {
   Future<GoRouter> mount(WidgetTester tester) async {
     final router = GoRouter(
       routes: [
-        GoRoute(
-          path: '/',
-          builder: (_, _) => const HowToUseScreen(),
-        ),
+        GoRoute(path: '/', builder: (_, _) => const HowToUseScreen()),
         GoRoute(
           path: AppRoutes.home,
           builder: (_, _) => const Scaffold(body: Text('Home destination')),
@@ -46,8 +43,10 @@ void main() {
     await mount(tester);
 
     expect(find.text('How to use Flyprox'), findsOneWidget);
-    expect(find.text('Rules, stars and 20 pro tips — everything in one guide.'),
-        findsOneWidget);
+    expect(
+      find.text('Rules, stars and 20 pro tips — everything in one guide.'),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('howto-search')), findsOneWidget);
     // Quick-start timeline keeps its five steps.
     for (final title in [
@@ -94,10 +93,14 @@ void main() {
     await tester.tap(find.text('Expand all'));
     await tester.pumpAndSettle();
     expect(find.text('Guide complete — nice!'), findsOneWidget);
-    expect(find.textContaining('Who voted for you is never revealed'),
-        findsOneWidget);
-    expect(find.textContaining('Replay the intro from Settings anytime'),
-        findsOneWidget);
+    expect(
+      find.textContaining('Premium can reveal the first initial or full name'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Replay the intro from Settings anytime'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('search filters the guide and empty state clears', (
@@ -105,10 +108,7 @@ void main() {
   ) async {
     await mount(tester);
 
-    await tester.enterText(
-      find.byKey(const ValueKey('howto-search')),
-      'crush',
-    );
+    await tester.enterText(find.byKey(const ValueKey('howto-search')), 'crush');
     await tester.pumpAndSettle();
     // Matching section opens with its bullets visible…
     expect(find.textContaining('at most 1 crush question'), findsOneWidget);
@@ -152,6 +152,9 @@ void main() {
     await scrollTo(tester, find.widgetWithText(ActionChip, 'Premium'));
     await tester.tap(find.widgetWithText(ActionChip, 'Premium'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('never skips the 60-minute wait'), findsOneWidget);
+    expect(
+      find.textContaining('never skips the 60-minute wait'),
+      findsOneWidget,
+    );
   });
 }

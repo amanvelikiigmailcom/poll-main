@@ -1,5 +1,13 @@
 # Тесты Flyprox
 
+Premium: `premium_service_test.dart` checks pinned credentials/stale 401 and
+server-only counters; `premium_reveal_test.dart` checks paywall, two independent
+quotas, first initial/full name with backend graduation year, account clearing and
+badge expiry. `premium_screen_test.dart` checks the single weekly offer.
+`round_completion_test.dart` replaces retired round_reveal tests and proves Full
+Reveal is absent and acknowledged server rewards can display 2000.
+These fakes do not prove real purchase/restore, webhooks or production DB uniqueness.
+
 Эти файлы — постоянная часть Git-репозитория. Они доступны любому агенту/разработчику с доступом к этой версии проекта. Логи `/tmp/flyprox-*.log` временные и не заменяют исходники тестов.
 
 ## Без iPhone, кабеля и Xcode Cloud

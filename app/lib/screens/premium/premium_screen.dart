@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+import '../../providers/service_providers.dart';
+import '../../services/api_service.dart';
+import '../../services/storage_service.dart';
+import '../profile/profile_social_section.dart';
 
 import '../../services/content_service.dart';
 import '../../services/external_link_service.dart';
@@ -8,18 +14,18 @@ import '../../utils/constants.dart';
 /// Weekly Premium paywall ($6.99/week, product `premium_pro_weekly`).
 ///
 /// Our own paywall UI; billing runs through Superwall (see
-/// [SubscriptionService]). Unlocks honest local benefits only: the full
-/// round Reveal, double stars and a profile badge. Waiting periods apply to all players.
+/// [SubscriptionService]). Benefits are authorized by the backend:
+/// limited real-voter reveals, double online stars and a membership badge.
 /// Title, subtitle, product card and CTA come from [ContentService]; the legal
 /// block stays in code so review-required wording cannot drift.
-class PremiumScreen extends StatefulWidget {
+class PremiumScreen extends ConsumerStatefulWidget {
   const PremiumScreen({super.key});
 
   @override
-  State<PremiumScreen> createState() => _PremiumScreenState();
+  ConsumerState<PremiumScreen> createState() => _PremiumScreenState();
 }
 
-class _PremiumScreenState extends State<PremiumScreen> {
+class _PremiumScreenState extends ConsumerState<PremiumScreen> {
   static const Color primaryBlue = Color(0xFF4B6EF5);
   static const Color accentRed = Color(0xFFFF3B5C);
   static const Color gradientStart = Color(0xFF0D0D2B);
@@ -31,12 +37,19 @@ class _PremiumScreenState extends State<PremiumScreen> {
 
   bool _loading = true;
   String _priceLabel = fallbackPrice;
+  Map<String, dynamic>? _benefits;
+  String? _benefitsError;
+  late final StorageService _storage;
+  int _generation = 0;
 
   @override
   void initState() {
     super.initState();
     _subs.notice.addListener(_showNotice);
+    _storage = ref.read(storageServiceProvider);
+    _storage.addListener(_accountChanged);
     _loadPrice();
+    _loadBenefits();
   }
 
   Future<void> _loadPrice() async {
@@ -48,16 +61,93 @@ class _PremiumScreenState extends State<PremiumScreen> {
     });
   }
 
-  void _showNotice() {
+  Future<void> _showNotice() async {
     final msg = _subs.notice.value;
     if (msg == null) return;
     _subs.notice.value = null;
-    _showMessage(msg);
+    if (msg.startsWith('Premium activated') ||
+        msg.startsWith('Premium restored')) {
+      await _loadBenefits();
+      if (!mounted) return;
+      ref.invalidate(profileIdentityProvider);
+      _showMessage(
+        _benefits?['active'] == true
+            ? 'Premium confirmed! Your weekly benefits are ready.'
+            : 'Purchase received. Waiting for server confirmation. Tap Refresh benefits shortly.',
+      );
+    } else {
+      _showMessage(msg);
+    }
   }
 
-  Future<void> _buy() => _subs.buyPro(AppConstants.premiumProProductId);
+  void _accountChanged() {
+    _generation++;
+    if (mounted) {
+      setState(() {
+        _benefits = null;
+        _benefitsError = null;
+      });
+    }
+    _loadBenefits();
+  }
 
-  Future<void> _restorePurchases() => _subs.restore();
+  Future<void> _loadBenefits() async {
+    final generation = ++_generation;
+    try {
+      final result = await ref.read(premiumServiceProvider).status();
+      if (mounted && generation == _generation) {
+        setState(() {
+          _benefits = result;
+          _benefitsError = null;
+        });
+      }
+    } catch (error) {
+      if (mounted && generation == _generation) {
+        setState(() {
+          _benefits = null;
+          _benefitsError = error is ApiException
+              ? error.message
+              : 'Couldn’t load Premium benefits.';
+        });
+      }
+    }
+  }
+
+  Future<void> _billing({bool restore = false}) async {
+    try {
+      final token = await _storage.getToken();
+      if (!restore) {
+        final status = await ref.read(premiumServiceProvider).status();
+        if (status['active'] == true) {
+          _showMessage('Premium is already active on your account.');
+          return;
+        }
+      }
+      final billingId = await ref
+          .read(premiumServiceProvider)
+          .preparePurchase();
+      if (!mounted || token == null || token != await _storage.getToken()) {
+        return;
+      }
+      if (restore) {
+        await _subs.restore(expectedBillingId: billingId);
+      } else {
+        await _subs.buyPro(
+          AppConstants.premiumProProductId,
+          expectedBillingId: billingId,
+        );
+      }
+    } catch (error) {
+      _showMessage(
+        error is ApiException
+            ? error.message
+            : 'Couldn’t start billing. Please try again.',
+      );
+    }
+  }
+
+  Future<void> _buy() => _billing();
+  Future<void> _restorePurchases() => _billing(restore: true);
 
   void _showMessage(String msg) {
     if (!mounted) return;
@@ -69,6 +159,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
   @override
   void dispose() {
     _subs.notice.removeListener(_showNotice);
+    _storage.removeListener(_accountChanged);
+    _generation++;
     super.dispose();
   }
 
@@ -118,7 +210,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              ContentService.instance.text('paywall_subtitle'),
+                              'Get closer to the people who pick you',
                               style: const TextStyle(
                                 color: Colors.white60,
                                 fontSize: 14,
@@ -127,6 +219,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                             ),
                             const SizedBox(height: 24),
                             _buildProCard(priceLabel),
+                            _buildBenefits(),
                             const SizedBox(height: 24),
                             _buildLegalBlock(priceLabel),
                             const SizedBox(height: 12),
@@ -159,7 +252,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
   }
 
   Widget _buildProCard(String priceLabel) {
-    final features = ContentService.instance.stringList('paywall_features_v2');
+    final features = ContentService.instance.stringList('paywall_features_v3');
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.08),
@@ -234,7 +327,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
             child: ValueListenableBuilder<bool>(
               valueListenable: _subs.purchasePending,
               builder: (context, pending, _) => ElevatedButton(
-                onPressed: pending ? null : _buy,
+                onPressed: pending || _benefits == null ? null : _buy,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: accentRed,
                   foregroundColor: Colors.white,
@@ -274,6 +367,44 @@ class _PremiumScreenState extends State<PremiumScreen> {
               text,
               style: const TextStyle(color: Colors.white, fontSize: 13),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBenefits() {
+    final benefits = _benefits;
+    final remaining = benefits?['remaining'] as Map?;
+    final reset = DateTime.tryParse(benefits?['resetsAt'] as String? ?? '');
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Column(
+        children: [
+          if (benefits?['active'] == true) ...[
+            Text(
+              'Full names: ${remaining?['full'] ?? '—'} left · First initials: ${remaining?['initial'] ?? '—'} left',
+              style: const TextStyle(color: Colors.white),
+            ),
+            if (reset != null)
+              Text(
+                'Resets ${DateFormat.yMMMd().add_jm().format(reset.toLocal())}',
+                style: const TextStyle(color: Colors.white70),
+              ),
+          ],
+          if (_benefitsError != null)
+            Text(
+              _benefitsError!,
+              style: const TextStyle(color: Colors.white70),
+            ),
+          TextButton(
+            onPressed: _loadBenefits,
+            child: const Text('Refresh benefits'),
+          ),
+          const Text(
+            'Reveals apply only to eligible new votes. Unused reveals do not roll over.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.white70, fontSize: 12),
           ),
         ],
       ),

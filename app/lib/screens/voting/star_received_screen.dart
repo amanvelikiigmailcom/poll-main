@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../services/game_settings.dart';
-import '../../widgets/common/round_reveal.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../router/app_router.dart';
 
 class StarReceivedScreen extends StatefulWidget {
-  const StarReceivedScreen({super.key});
+  const StarReceivedScreen({super.key, this.starsAwarded});
+  final int? starsAwarded;
 
   @override
   State<StarReceivedScreen> createState() => _StarReceivedScreenState();
@@ -15,8 +15,8 @@ class StarReceivedScreen extends StatefulWidget {
 
 class _StarReceivedScreenState extends State<StarReceivedScreen>
     with TickerProviderStateMixin {
-  // Flat reward for finishing a local 12-question round
-  static const int _starsEarned = 1000;
+  // Online amount is a backend acknowledgement, never a local Premium flag.
+  int get _starsEarned => widget.starsAwarded ?? 0;
 
   late AnimationController _starBounceController;
   late AnimationController _contentFadeController;
@@ -51,18 +51,24 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
 
     _starScale = TweenSequence<double>([
       TweenSequenceItem(
-        tween: Tween<double>(begin: 0.0, end: 1.3)
-            .chain(CurveTween(curve: Curves.easeOut)),
+        tween: Tween<double>(
+          begin: 0.0,
+          end: 1.3,
+        ).chain(CurveTween(curve: Curves.easeOut)),
         weight: 55,
       ),
       TweenSequenceItem(
-        tween: Tween<double>(begin: 1.3, end: 0.95)
-            .chain(CurveTween(curve: Curves.easeIn)),
+        tween: Tween<double>(
+          begin: 1.3,
+          end: 0.95,
+        ).chain(CurveTween(curve: Curves.easeIn)),
         weight: 25,
       ),
       TweenSequenceItem(
-        tween: Tween<double>(begin: 0.95, end: 1.0)
-            .chain(CurveTween(curve: Curves.easeOut)),
+        tween: Tween<double>(
+          begin: 0.95,
+          end: 1.0,
+        ).chain(CurveTween(curve: Curves.easeOut)),
         weight: 20,
       ),
     ]).animate(_starBounceController);
@@ -104,8 +110,10 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
     int step = 0;
     _countTimer = Timer.periodic(stepDuration, (t) {
       step++;
-      final value =
-          (_starsEarned * step / steps).round().clamp(0, _starsEarned);
+      final value = (_starsEarned * step / steps).round().clamp(
+        0,
+        _starsEarned,
+      );
       if (mounted) setState(() => _displayedCount = value);
       if (step >= steps) t.cancel();
     });
@@ -176,7 +184,9 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '+$_displayedCount',
+                          widget.starsAwarded == null
+                              ? '✓'
+                              : '+$_displayedCount',
                           style: const TextStyle(
                             fontSize: 64,
                             fontWeight: FontWeight.bold,
@@ -251,14 +261,16 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                                     _SummaryItem(
                                       emoji: '⭐',
                                       label: 'Stars',
-                                      value: '+$_starsEarned',
+                                      value: widget.starsAwarded == null
+                                          ? 'Synced'
+                                          : '+$_starsEarned',
                                     ),
                                   ],
                                 ),
                               ),
                               const SizedBox(height: 12),
                               const Text(
-                                'Your choices are saved only on this device.\nTap Reveal to see your round.',
+                                'Round complete. Your stars are ready.',
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: Colors.white60,
@@ -273,19 +285,6 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                     ),
                   ),
                 ),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: () => showRoundReveal(context),
-                    icon: const Icon(Icons.visibility_outlined),
-                    label: const Text('Reveal'),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: Colors.amber,
-                      foregroundColor: const Color(0xFF1A237E)),
-                  ),
-                ),
-                const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(

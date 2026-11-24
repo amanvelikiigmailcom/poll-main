@@ -149,12 +149,12 @@ class _HowToUseScreenState extends State<HowToUseScreen> {
       id: 'likes',
       icon: Icons.favorite_outline_rounded,
       title: 'Likes & Activity',
-      intro: 'See the picks, never the voters.',
+      intro: 'See your picks and eligible voter reveals.',
       bullets: [
         'Profile tabs: Friends, Likes, Requests. Collection lives on its own card.',
         'Activity shows who was picked, the question, graduation year and time.',
         'Newest 20 first, 20 more on scroll, 200 per query at most.',
-        'Who voted for you is never revealed — Full Reveal shows your own answers.',
+        'Premium can reveal the first initial or full name behind eligible new votes, with weekly limits. Older votes stay hidden.',
       ],
     ),
     _GuideSection(
@@ -191,6 +191,8 @@ class _HowToUseScreenState extends State<HowToUseScreen> {
       intro: 'Verified on the server, or it didn’t happen.',
       bullets: [
         'Purchases run through Superwall and are verified on the server.',
+        'Premium includes 2 full-name reveals and 5 first-initial reveals per subscription week.',
+        'Earn 2000 stars per completed online round instead of 1000, plus a blue membership badge while active.',
         'Premium never skips the 60-minute wait.',
         'A local or debug Premium flag grants no server rights.',
         'Check Settings → Subscription status if access looks wrong.',
@@ -261,11 +263,11 @@ class _HowToUseScreenState extends State<HowToUseScreen> {
     return text.toLowerCase().contains(_query);
   }
 
-  bool _stepMatches(_GuideStep step) =>
-      _matches('${step.title} ${step.body}');
+  bool _stepMatches(_GuideStep step) => _matches('${step.title} ${step.body}');
 
-  bool _sectionMatches(_GuideSection section) =>
-      _matches('${section.title} ${section.intro} ${section.bullets.join(' ')}');
+  bool _sectionMatches(_GuideSection section) => _matches(
+    '${section.title} ${section.intro} ${section.bullets.join(' ')}',
+  );
 
   List<int> get _visibleSteps => [
     for (var i = 0; i < _steps.length; i++)
@@ -336,8 +338,7 @@ class _HowToUseScreenState extends State<HowToUseScreen> {
       body: ListenableBuilder(
         listenable: GameSettings.instance,
         builder: (context, _) {
-          final animate =
-              !GameSettings.instance.effectiveReduceMotion;
+          final animate = !GameSettings.instance.effectiveReduceMotion;
           final steps = _visibleSteps;
           final sections = _visibleSections;
           final progress = _explored.length / _sections.length;
@@ -373,10 +374,7 @@ class _HowToUseScreenState extends State<HowToUseScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  _SectionChips(
-                    sections: _sections,
-                    onTap: _jumpToSection,
-                  ),
+                  _SectionChips(sections: _sections, onTap: _jumpToSection),
                 ],
                 if (steps.isNotEmpty) ...[
                   const SizedBox(height: 20),
@@ -405,7 +403,9 @@ class _HowToUseScreenState extends State<HowToUseScreen> {
                   for (final i in sections)
                     _SectionCard(
                       key: _tileKeys[_sections[i].id],
-                      storageKey: PageStorageKey('howto-section-${_sections[i].id}'),
+                      storageKey: PageStorageKey(
+                        'howto-section-${_sections[i].id}',
+                      ),
                       controller: _tileControllers[i],
                       section: _sections[i],
                       onChanged: (open) {
@@ -721,10 +721,7 @@ class _ListHeading extends StatelessWidget {
         ),
         Text(
           subtitle,
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 13,
-          ),
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
         ),
       ],
     ),
@@ -838,86 +835,88 @@ class _SectionCard extends StatelessWidget {
           side: const BorderSide(color: AppColors.border),
         ),
         child: ExpansionTile(
-        key: storageKey,
-        controller: controller,
-        onExpansionChanged: onChanged,
-        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        iconColor: AppColors.primaryBlue,
-        collapsedIconColor: AppColors.textHint,
-        leading: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: AppColors.primaryBlue.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
+          key: storageKey,
+          controller: controller,
+          onExpansionChanged: onChanged,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          iconColor: AppColors.primaryBlue,
+          collapsedIconColor: AppColors.textHint,
+          leading: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.primaryBlue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(section.icon, color: AppColors.primaryBlue, size: 22),
           ),
-          child: Icon(section.icon, color: AppColors.primaryBlue, size: 22),
-        ),
-        title: Text(
-          section.title,
-          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5),
-        ),
-        subtitle: Text(
-          section.intro,
-          style: const TextStyle(
-            color: AppColors.textSecondary,
-            fontSize: 12.5,
+          title: Text(
+            section.title,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15.5),
           ),
-        ),
-        children: [
-          const Divider(height: 16, color: AppColors.divider),
-          for (var i = 0; i < section.bullets.length; i++)
-            Padding(
-              padding: EdgeInsets.only(
-                bottom: i == section.bullets.length - 1 ? 0 : 10,
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  section.numbered
-                      ? Container(
-                          width: 24,
-                          height: 24,
-                          margin: const EdgeInsets.only(top: 1),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryBlue.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: Text(
-                              '${i + 1}',
-                              style: const TextStyle(
-                                color: AppColors.primaryBlue,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
+          subtitle: Text(
+            section.intro,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12.5,
+            ),
+          ),
+          children: [
+            const Divider(height: 16, color: AppColors.divider),
+            for (var i = 0; i < section.bullets.length; i++)
+              Padding(
+                padding: EdgeInsets.only(
+                  bottom: i == section.bullets.length - 1 ? 0 : 10,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    section.numbered
+                        ? Container(
+                            width: 24,
+                            height: 24,
+                            margin: const EdgeInsets.only(top: 1),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryBlue.withValues(
+                                alpha: 0.1,
+                              ),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
+                              child: Text(
+                                '${i + 1}',
+                                style: const TextStyle(
+                                  color: AppColors.primaryBlue,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
                             ),
+                          )
+                        : const Padding(
+                            padding: EdgeInsets.only(top: 7),
+                            child: Icon(
+                              Icons.check_circle_rounded,
+                              size: 16,
+                              color: AppColors.success,
+                            ),
                           ),
-                        )
-                      : const Padding(
-                          padding: EdgeInsets.only(top: 7),
-                          child: Icon(
-                            Icons.check_circle_rounded,
-                            size: 16,
-                            color: AppColors.success,
-                          ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        section.bullets[i],
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          height: 1.5,
+                          fontSize: 14,
                         ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      section.bullets[i],
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        height: 1.5,
-                        fontSize: 14,
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-        ],
+          ],
         ),
       ),
     );
@@ -978,9 +977,7 @@ class _ReadyCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.primaryBlue.withValues(alpha: 0.07),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.primaryBlue.withValues(alpha: 0.2),
-        ),
+        border: Border.all(color: AppColors.primaryBlue.withValues(alpha: 0.2)),
       ),
       child: Column(
         children: [

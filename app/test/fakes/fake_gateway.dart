@@ -14,6 +14,8 @@ class FakeGateway implements BillingGateway {
   bool identifyCalled = false;
   bool resetCalled = false;
   bool restoreCalled = false;
+  Object? identifyError;
+  int buyCalls = 0;
   final events = StreamController<Set<String>>.broadcast();
 
   @override
@@ -22,6 +24,7 @@ class FakeGateway implements BillingGateway {
   @override
   Future<void> identify(String installId) async {
     identifyCalled = true;
+    if (identifyError != null) throw identifyError!;
   }
 
   @override
@@ -35,7 +38,10 @@ class FakeGateway implements BillingGateway {
   Future<String?> priceFor(String productId) async => price;
 
   @override
-  Future<BuyResult> buy(String productId) async => buyResult;
+  Future<BuyResult> buy(String productId) async {
+    buyCalls++;
+    return buyResult;
+  }
 
   @override
   Future<void> restore() async {

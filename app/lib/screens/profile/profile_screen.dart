@@ -1,5 +1,6 @@
 import 'profile_social_section.dart';
 import 'package:flutter/material.dart';
+import '../../widgets/common/premium_badge.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,7 +9,6 @@ import '../../providers/user_provider.dart';
 import '../../router/app_router.dart';
 import '../../services/api_service.dart';
 import '../../services/local_game_service.dart';
-import '../../services/subscription_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/common/wait_pass_card.dart';
 import '../../providers/service_providers.dart';
@@ -143,18 +143,9 @@ class _ProfileHeaderCard extends ConsumerWidget {
                   ),
                 ),
               ),
-              FutureBuilder<bool>(
-                future: SubscriptionService.instance.isPro(),
-                builder: (context, snapshot) => snapshot.data != true
-                    ? const SizedBox.shrink()
-                    : const Padding(
-                        padding: EdgeInsets.only(left: 6),
-                        child: Icon(
-                          Icons.verified,
-                          color: Color(0xFF4B6EF5),
-                          size: 22,
-                        ),
-                      ),
+              PremiumBadge(
+                active: identity?['premiumBadge'] == true,
+                until: identity?['premiumBadgeUntil'] as String?,
               ),
             ],
           ),
