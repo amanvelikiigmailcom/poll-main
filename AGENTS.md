@@ -7,7 +7,7 @@
 
 ## Database hardening — current24.11.2026
 
-Backend runtime d2c3574, local/public health200;15indexes migrated after approval/duplicate preflight/private backup. Real Appwrite atomic rollback/replay and real-storage authenticated campus boundaries verified; QA rows removed. Additional backend source (contacts/token ownership/verified Premium/outbox/retention) prepared separately; actorId/index migration pending approval. Historical rollout paragraphs below are older snapshots; read actual ExecStart and backend docs/database-hardening-plan.md for current state.
+Backend runtime ee4f8bc, local/public health200;15indexes migrated after approval/duplicate preflight/private backup. Real Appwrite atomic rollback/replay and real-storage authenticated campus boundaries verified; QA rows removed. Additional contacts/token ownership/verified Premium/outbox/retention deployed; actorId/index migration pending approval and gated0. Real outbox and50-contact replacement acceptance passed;170backend tests on server. Historical rollout paragraphs below are older snapshots; read actual ExecStart and backend docs/database-hardening-plan.md for current state.
 
 Client now uses server star balance for signed-in Home/Profile/Collection, session-isolated confirmed cache, local guest balance; online completion does not add guest stars. Contact hashes only in new client uploads; local hash-label map resolves candidates. Reviewed existing round draft reused, not reverted. Contract: docs/database-hardening-client.md. Full267Flutter/analyze0errors0warnings22existing infos. Source changes do not mean a new installed build. No cloud/TestFlight started. Server label cutover and school voting activation remain off until compatible client release.
 

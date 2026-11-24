@@ -24,7 +24,7 @@ Client source is prepared and tested, not an installed TestFlight build.
 - Actual purchase/restore/expiry on an App Store Sandbox device is separate from
   fake-provider backend tests. No cloud build/TestFlight upload was started.
 
-Server d2c3574 and15-index migration are active; additional server outbox/retention/
-contact/subscription source is prepared separately, pending actor schema approval
-and real acceptance. CONTACT_LABELS_LOCAL_ENABLED remains0 until the compatible
+Server ee4f8bc and15-index migration are active; outbox/retention/contacts/verified
+subscription logic passed backend real acceptance. Optional actor schema remains
+unapplied and independently gated0. CONTACT_LABELS_LOCAL_ENABLED remains0 until the compatible
 client is available, preserving installed-client matching.
