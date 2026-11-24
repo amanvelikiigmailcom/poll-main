@@ -1,13 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:phone_numbers_parser/phone_numbers_parser.dart';
 import '../../providers/service_providers.dart';
 import '../../router/app_router.dart';
 import '../../services/api_service.dart';
 import '../../services/contact_sync_service.dart';
 import '../../services/invitation_service.dart';
-import '../../services/local_game_service.dart';
 import '../../widgets/common/wait_pass_card.dart';
 
 class InviteFriendScreen extends ConsumerStatefulWidget {
@@ -18,14 +19,26 @@ class InviteFriendScreen extends ConsumerStatefulWidget {
 
 class _InviteFriendScreenState extends ConsumerState<InviteFriendScreen> {
   final List<Map<String, dynamic>> _invites = [];
-  String? _cursor, _phone, _name, _error;
-  Map<String, dynamic>? _current;
+  String? _cursor, _error;
   bool _busy = false, _checking = false;
+  Timer? _poll;
 
   @override
   void initState() {
     super.initState();
     _check();
+    _poll = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!_busy &&
+          WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
+        _check();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _poll?.cancel();
+    super.dispose();
   }
 
   void _notice(String message) {
@@ -43,9 +56,11 @@ class _InviteFriendScreenState extends ConsumerState<InviteFriendScreen> {
       _error = null;
     });
     try {
+      final storage = ref.read(storageServiceProvider);
+      final token = await storage.getToken();
       final service = ref.read(invitationServiceProvider);
       await service.refresh();
-      if (!service.signedIn) return;
+      if (!service.signedIn || token != await storage.getToken()) return;
       final data =
           (await ref
                   .read(apiServiceProvider)
@@ -56,7 +71,7 @@ class _InviteFriendScreenState extends ConsumerState<InviteFriendScreen> {
                     },
                   ))
               .data!;
-      if (!mounted) return;
+      if (!mounted || token != await storage.getToken()) return;
       setState(() {
         if (!more) _invites.clear();
         _invites.addAll(
@@ -68,7 +83,7 @@ class _InviteFriendScreenState extends ConsumerState<InviteFriendScreen> {
       if (mounted) {
         setState(
           () => _error =
-              'Couldn’t load invitations. Your passes are safe; try again.',
+              'Couldn’t check invitations. Your unlocked rounds are saved.',
         );
       }
     } finally {
@@ -76,65 +91,46 @@ class _InviteFriendScreenState extends ConsumerState<InviteFriendScreen> {
     }
   }
 
-  Future<void> _pick() async {
-    try {
-      final result = await InvitationService.messages
-          .invokeMapMethod<String, dynamic>('pickRecipient');
-      if (!mounted || result == null) return;
-      final phone = ContactSyncService.normalizePhone(
-        result['phone'] as String? ?? '',
-      );
-      if (phone == null) {
-        _notice('Choose a contact with a valid international phone number.');
-        return;
-      }
-      setState(() {
-        _phone = phone;
-        _name = result['name'] as String?;
-        _current = null;
-      });
-    } catch (_) {
-      _notice(
-        'Couldn’t open contacts. You can choose a recipient inside Messages instead.',
-      );
-    }
-  }
-
-  Future<void> _send({Map<String, dynamic>? reminder}) async {
+  Future<void> _invite() async {
     if (_busy) return;
     setState(() => _busy = true);
     try {
-      final names = await LocalGameService.instance.getFullName();
-      if (names.$1.isEmpty || names.$2.isEmpty) {
-        await LocalGameService.instance.setUsernameSetupPending(true);
-        if (mounted) context.push(AppRoutes.username);
+      final storage = ref.read(storageServiceProvider);
+      final token = await storage.getToken();
+      final selected = await InvitationService.messages
+          .invokeMapMethod<String, dynamic>('pickRecipient');
+      if (!mounted || selected == null || token != await storage.getToken()) {
+        return;
+      }
+      final region = await ref.read(onboardingDetailsProvider).country();
+      final iso =
+          IsoCode.values.where((value) => value.name == region).firstOrNull ??
+          IsoCode.US;
+      final phone = ContactSyncService.normalizePhone(
+        selected['phone'] as String? ?? '',
+        defaultRegion: iso,
+      );
+      if (phone == null) {
+        _notice('Choose a valid phone number.');
         return;
       }
       final service = ref.read(invitationServiceProvider);
-      final invite =
-          reminder ?? _current ?? await service.create(phone: _phone);
-      if (!mounted) return;
-      setState(() => _current = invite);
-      final result = await service.compose(
-        invite,
-        phone: reminder == null ? _phone : null,
-        reminder: reminder != null,
-      );
+      final invite = await service.create(phone: phone);
+      if (!mounted || token != await storage.getToken()) return;
+      final result = await service.sendV2(invite, phone);
       _notice(switch (result) {
-        'sent' =>
-          'Invitation sent. Your pass arrives after your friend registers.',
-        'cancelled' => 'Message cancelled. No pass was used or awarded.',
-        'unavailable' =>
-          'Messages isn’t available on this device. Copy the invitation below.',
-        _ => 'Couldn’t send the message. Try again or copy the invitation.',
+        'sent' => 'Message queued or sent. Checking your unlocked round…',
+        'opened' => 'Checking your WhatsApp invitation when you return.',
+        'shared' =>
+          'Your round unlocks after the recipient confirms the invitation link.',
+        'cancelled' => 'Invitation cancelled. No round was activated.',
+        _ => 'Couldn’t send the invitation. Please try again.',
       });
       await _check();
     } on ApiException catch (e) {
       _notice(e.message);
     } catch (_) {
-      _notice(
-        'Couldn’t open Messages. You can copy your invitation if a code was created.',
-      );
+      _notice('Couldn’t open the invitation. Please try again.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -143,6 +139,7 @@ class _InviteFriendScreenState extends ConsumerState<InviteFriendScreen> {
   @override
   Widget build(BuildContext context) {
     final service = ref.watch(invitationServiceProvider);
+    final whatsapp = service.preferredChannel == 'whatsapp';
     return Scaffold(
       appBar: AppBar(title: const Text('Invite friends')),
       body: SafeArea(
@@ -150,19 +147,19 @@ class _InviteFriendScreenState extends ConsumerState<InviteFriendScreen> {
           padding: const EdgeInsets.all(20),
           children: [
             const Text(
-              'One new friend. One wait pass each.',
+              'One friend. One more round.',
               style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             const Text(
-              'Send your friend a link and code in Messages. After they register with your invitation, you both earn one pass. An available pass removes your current 60-minute wait automatically; otherwise it stays for your next wait.',
+              'Each eligible recipient unlocks one round of 12 questions. Unlock 10 rounds with 10 different recipients. You can complete up to 50 rounds per UTC day; unused unlocks stay in your account.',
             ),
             const SizedBox(height: 16),
             WaitPassCard(onCheck: _check),
             const SizedBox(height: 16),
             if (!service.signedIn && !_checking) ...[
               const Text(
-                'Sign in with your phone number to invite friends and earn passes. Guest play stays available.',
+                'Sign in to unlock rounds with invitations. Guest practice earns no invitation rewards.',
               ),
               FilledButton(
                 onPressed: () => context.push(AppRoutes.phone),
@@ -170,77 +167,34 @@ class _InviteFriendScreenState extends ConsumerState<InviteFriendScreen> {
               ),
             ] else if (service.signedIn) ...[
               const Text(
-                'Optional: choose one contact for automatic invitation matching. Only that number is sent securely to Flyprox to create a keyed hash; the number is not stored. Your address book is never uploaded.',
+                'Choose one friend and one phone number. Raw contact numbers and contact names are not uploaded.',
               ),
-              OutlinedButton.icon(
-                onPressed: _busy ? null : _pick,
-                icon: const Icon(Icons.person_outline),
-                label: Text(
-                  _name == null
-                      ? 'Choose one friend (optional)'
-                      : 'Selected: $_name',
-                ),
-              ),
-              if (_phone != null)
-                TextButton(
-                  onPressed: _busy
-                      ? null
-                      : () => setState(() {
-                          _phone = null;
-                          _name = null;
-                          _current = null;
-                        }),
-                  child: const Text('Remove selected contact'),
-                ),
+              const SizedBox(height: 12),
               FilledButton.icon(
-                onPressed: _busy ? null : () => _send(),
-                icon: const Icon(Icons.message_outlined),
-                label: Text(_busy ? 'Opening…' : 'Invite through Messages'),
+                onPressed: _busy ? null : _invite,
+                icon: const Icon(Icons.person_add_alt_1),
+                label: Text(
+                  _busy
+                      ? 'Opening…'
+                      : whatsapp
+                      ? 'Invite through WhatsApp'
+                      : 'Invite through Messages',
+                ),
+              ),
+              Text(
+                whatsapp
+                    ? 'The first 5 qualifying WhatsApp returns per UTC day unlock a round immediately. Later invitations unlock after the recipient confirms the link. Returning does not verify delivery.'
+                    : 'A Messages sent result unlocks one round per recipient. Cancelled or failed messages do not. Sent does not confirm delivery.',
               ),
               const Text(
-                'You choose whether to send. Sending, cancelling or opening a link does not award a pass. Up to 100 new invitations a day, 20 an hour.',
-                style: TextStyle(fontSize: 13),
+                'If messaging is unavailable, sharing the link requires recipient confirmation.',
               ),
-              if (_current != null) ...[
-                const SizedBox(height: 16),
-                SelectableText(
-                  'Invitation code: ${_current!['code']}',
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    await Clipboard.setData(
-                      ClipboardData(text: InvitationService.message(_current!)),
-                    );
-                    _notice('Invitation copied');
-                  },
-                  icon: const Icon(Icons.copy),
-                  label: const Text('Copy invitation'),
-                ),
-                TextButton(
-                  onPressed: _busy
-                      ? null
-                      : () => setState(() {
-                          _current = null;
-                          _phone = null;
-                          _name = null;
-                        }),
-                  child: const Text('Create an invitation for another friend'),
-                ),
-              ],
             ],
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             OutlinedButton.icon(
               onPressed: _checking ? null : _check,
               icon: const Icon(Icons.refresh),
               label: Text(_checking ? 'Checking…' : 'Check invitations'),
-            ),
-            const Text(
-          'Passes arrive after your friend registers with your code or matching phone number.',
-              style: TextStyle(fontSize: 13),
             ),
             if (_error != null)
               Text(_error!, style: const TextStyle(color: Colors.red)),
@@ -250,33 +204,30 @@ class _InviteFriendScreenState extends ConsumerState<InviteFriendScreen> {
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             if (_invites.isEmpty && !_checking)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Text('Your invitations will appear here.'),
-              ),
+              const Text('Your invitations will appear here.'),
             for (final invite in _invites)
               Card(
                 child: ListTile(
-                  isThreeLine: true,
-                  title: Text(
-                    invite['friendName'] as String? ?? 'Code ${invite['code']}',
-                  ),
-                  subtitle: Text(
-                    '${switch (invite['status']) {
-                      'registered' => 'Registered · pass earned',
-                      'link_opened' => 'Link opened · registration pending',
-                      'compose_sent' => 'Sent · registration pending',
-                      _ => 'Created · ready to send',
-                    }}\nCode: ${invite['code']}',
-                  ),
-                  trailing: invite['status'] == 'registered'
+                  title: Text('Code ${invite['code']}'),
+                  subtitle: Text(switch (invite['status']) {
+                    'activated' => '1 round activated · 12 questions',
+                    'waiting_confirmation' =>
+                      'Waiting for recipient confirmation',
+                    _ => 'Not activated',
+                  }),
+                  trailing: invite['activated'] == true
                       ? const Icon(Icons.check_circle_outline)
                       : IconButton(
-                          tooltip: 'Remind through Messages',
-                          onPressed: _busy
-                              ? null
-                              : () => _send(reminder: invite),
-                          icon: const Icon(Icons.message_outlined),
+                          tooltip: 'Copy invitation',
+                          icon: const Icon(Icons.copy),
+                          onPressed: () async {
+                            await Clipboard.setData(
+                              ClipboardData(
+                                text: InvitationService.message(invite),
+                              ),
+                            );
+                            _notice('Invitation copied');
+                          },
                         ),
                 ),
               ),

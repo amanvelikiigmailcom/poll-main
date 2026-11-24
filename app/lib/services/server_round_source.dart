@@ -55,6 +55,10 @@ class ServerRoundSource {
       if (await _token() != token) return null;
       _loadedToken = token;
       return session;
+    } on ApiException catch (error) {
+      // A server daily limit must never become permission for local fallback.
+      if (error.statusCode == 429) rethrow;
+      return null;
     } catch (_) {
       return null;
     }

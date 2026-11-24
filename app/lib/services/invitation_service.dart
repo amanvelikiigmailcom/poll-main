@@ -1,22 +1,37 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
+import 'package:dio/dio.dart';
 import 'package:crypto/crypto.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_service.dart';
 import 'invite_code_store.dart';
 import 'local_game_service.dart';
 import 'storage_service.dart';
+import 'contact_sync_service.dart';
 
-class InvitationService extends ChangeNotifier {
-  InvitationService(this.api, this.storage);
+class InvitationService extends ChangeNotifier with WidgetsBindingObserver {
+  InvitationService(this.api, this.storage, {DateTime Function()? now})
+    : _now = now ?? DateTime.now {
+    WidgetsBinding.instance.addObserver(this);
+    Future.microtask(_finishWhatsApp);
+  }
   final ApiService api;
   final StorageService storage;
+  final DateTime Function() _now;
   int? balance;
   int earned = 0;
   int used = 0;
+  int policyVersion = 1,
+      messagesSent = 0,
+      whatsappAttempts = 0,
+      whatsappAdvancesToday = 0;
+  int whatsappAdvanceLimit = 5;
+  String preferredChannel = 'messages';
+  int? dailyRemaining;
+  DateTime? dailyResetsAt;
   bool signedIn = false;
   String? error;
   String? _owner;
@@ -54,6 +69,7 @@ class InvitationService extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
@@ -70,6 +86,10 @@ class InvitationService extends ChangeNotifier {
       used = 0;
       _owner = null;
       error = null;
+      policyVersion = 1;
+      messagesSent = whatsappAttempts = whatsappAdvancesToday = 0;
+      dailyRemaining = null;
+      dailyResetsAt = null;
     }
     signedIn = token != null && token.isNotEmpty;
     if (!signedIn) {
@@ -87,9 +107,24 @@ class InvitationService extends ChangeNotifier {
       )).data!;
       if (await storage.getToken() != token) return;
       _owner = data['userId'] as String;
+      policyVersion = (data['version'] as num?)?.toInt() ?? 1;
+      if (policyVersion == 2) {
+        await _flushDelivery();
+        if (await storage.getToken() != token) return;
+        data = (await api.get<Map<String, dynamic>>(
+          '/api/invites/rewards',
+          options: Options(headers: {'Authorization': 'Bearer $token'}),
+        )).data!;
+        if (await storage.getToken() != token) return;
+      }
       final game = LocalGameService.instance;
+      final daily = data['daily'] as Map?;
+      dailyRemaining = (daily?['remaining'] as num?)?.toInt();
+      dailyResetsAt = DateTime.tryParse(daily?['resetsAt'] as String? ?? '');
       final key = await game.cooldownKey();
-      if (key != null && await game.secondsUntilNextRound() > 0) {
+      if (dailyRemaining != 0 &&
+          key != null &&
+          await game.secondsUntilNextRound() > 0) {
         final confirmed = (data['redemptions'] as List? ?? []).any(
           (r) => r['cooldownKey'] == key,
         );
@@ -114,6 +149,13 @@ class InvitationService extends ChangeNotifier {
       balance = (data['balance'] as num).toInt();
       earned = (data['earned'] as num).toInt();
       used = (data['used'] as num).toInt();
+      messagesSent = (data['messagesSent'] as num?)?.toInt() ?? 0;
+      whatsappAttempts = (data['whatsappAttempts'] as num?)?.toInt() ?? 0;
+      whatsappAdvancesToday =
+          (data['whatsappAdvancesToday'] as num?)?.toInt() ?? 0;
+      whatsappAdvanceLimit =
+          (data['whatsappAdvanceLimit'] as num?)?.toInt() ?? 5;
+      preferredChannel = data['preferredChannel'] as String? ?? 'messages';
       error = null;
       await _flushCompose();
     } catch (_) {
@@ -200,10 +242,16 @@ class InvitationService extends ChangeNotifier {
       await refresh();
       return true;
     }
+    if (data['retired'] == true && await sameAccount()) {
+      if (await InviteCodeStore.code() == code) await InviteCodeStore.clear();
+      // The old attribution step is acknowledged, without granting a round.
+      return true;
+    }
     return false;
   }
 
   Future<Map<String, dynamic>> create({String? phone}) async {
+    if (phone == null) throw const ApiException('Choose one friend first.');
     await syncProfile();
     final prefs = await SharedPreferences.getInstance();
     final token = await storage.getToken();
@@ -214,7 +262,7 @@ class InvitationService extends ChangeNotifier {
     // second invitation. Never persist the selected raw contact number.
     const pendingKey = 'invite_creation_request_v1';
     final tag = sha256
-        .convert(utf8.encode('${storage.getPhone()}|${phone ?? ''}'))
+        .convert(utf8.encode('${storage.getPhone()}|$phone'))
         .toString();
     if (prefs.getString('invite_creation_tag_v1') != tag) {
       await prefs.remove(pendingKey);
@@ -228,16 +276,241 @@ class InvitationService extends ChangeNotifier {
     await prefs.setString(pendingKey, id);
     final result = (await api.post<Map<String, dynamic>>(
       '/api/invites',
-      data: {'requestId': id, if (phone != null) 'phone': phone},
+      data: {
+        'requestId': id,
+        'recipientHash': ContactSyncService.hashPhone(phone),
+        'policyVersion': 2,
+      },
+      options: Options(headers: {'Authorization': 'Bearer $token'}),
     )).data!;
+    if (await storage.getToken() != token) {
+      throw const ApiException('Sign-in changed. Try again.');
+    }
+    if (result['version'] != 2) {
+      throw const ApiException('Invitation upgrade is not available yet.');
+    }
     await prefs.remove(pendingKey);
     _owner = result['ownerUserId'] as String? ?? _owner;
     return result;
   }
 
   static String message(Map<String, dynamic> invite) =>
-      'I just voted in Flyprox. Join me: ${invite['url']}\nYour invitation code: ${invite['code']}. '
-      'Register with the code and we both get one pass to skip a 60-minute wait.';
+      'I just played Flyprox. Join me: ${invite['url']}\nInvitation code: ${invite['code']}';
+
+  Map<String, dynamic>? _whatsapp;
+  bool _finishingWhatsApp = false;
+  static const _deliveryKey = 'invite_delivery_queue_v2';
+  static const _whatsappKey = 'invite_whatsapp_pending_v2';
+  String _newId() => List.generate(
+    24,
+    (_) => Random.secure().nextInt(16).toRadixString(16),
+  ).join();
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused && _whatsapp != null) {
+      _whatsapp!['backgroundAt'] ??= _now().millisecondsSinceEpoch;
+      _saveWhatsApp();
+    } else if (state == AppLifecycleState.resumed) {
+      _finishWhatsApp();
+    }
+  }
+
+  Future<void> _saveWhatsApp() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_whatsapp == null) {
+      await prefs.remove(_whatsappKey);
+    } else {
+      await prefs.setString(_whatsappKey, jsonEncode(_whatsapp));
+    }
+  }
+
+  Future<void> processWhatsAppReturn() => _finishWhatsApp();
+
+  Future<void> _finishWhatsApp() async {
+    if (_finishingWhatsApp || _disposed) return;
+    _finishingWhatsApp = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(_whatsappKey);
+      _whatsapp ??= saved == null
+          ? null
+          : Map<String, dynamic>.from(jsonDecode(saved) as Map);
+      final pending = _whatsapp;
+      if (pending == null ||
+          pending['opened'] != true ||
+          pending['backgroundAt'] == null) {
+        return;
+      }
+      final token = await storage.getToken();
+      if (token == null ||
+          sha256.convert(utf8.encode(token)).toString() !=
+              pending['sessionKey']) {
+        return;
+      }
+      final elapsed =
+          _now().millisecondsSinceEpoch -
+          (pending['backgroundAt'] as num).toInt();
+      final result = elapsed > 4000 ? 'returned' : 'cancelled';
+      await _enqueueDelivery({
+        'owner': pending['owner'],
+        'code': pending['code'],
+        'launchId': pending['launchId'],
+        'result': result,
+        if (result == 'returned') 'backgroundMs': elapsed,
+      });
+      // Persist the callback first. Restart/retry cannot lose or double it.
+      _whatsapp = null;
+      await _saveWhatsApp();
+      await refresh();
+    } catch (_) {
+      // A durable pending result is retried on refresh/resume.
+    } finally {
+      _finishingWhatsApp = false;
+    }
+  }
+
+  Future<void> _enqueueDelivery(Map<String, dynamic> result) =>
+      _serializeCompose(() async {
+        final prefs = await SharedPreferences.getInstance();
+        final pending = prefs.getStringList(_deliveryKey) ?? [];
+        final exists = pending.any((item) {
+          final value = jsonDecode(item) as Map;
+          return value['owner'] == result['owner'] &&
+              value['launchId'] == result['launchId'];
+        });
+        if (!exists) pending.add(jsonEncode(result));
+        await prefs.setStringList(_deliveryKey, pending);
+      });
+
+  Future<void> _flushDelivery() => _serializeCompose(() async {
+    final owner = _owner;
+    final token = await storage.getToken();
+    if (owner == null || token == null) return;
+    final prefs = await SharedPreferences.getInstance();
+    final pending = prefs.getStringList(_deliveryKey) ?? [];
+    final remaining = <String>[];
+    for (final item in pending) {
+      final data = Map<String, dynamic>.from(jsonDecode(item) as Map);
+      if (data['owner'] != owner ||
+          await storage.getToken() != token ||
+          _owner != owner) {
+        remaining.add(item);
+        continue;
+      }
+      try {
+        await api.post(
+          '/api/invites/${data['code']}/delivery-result',
+          data: {
+            'launchId': data['launchId'],
+            'result': data['result'],
+            if (data['backgroundMs'] != null)
+              'backgroundMs': data['backgroundMs'],
+          },
+          options: Options(headers: {'Authorization': 'Bearer $token'}),
+        );
+      } on ApiException catch (e) {
+        // Terminal rejection cannot award anything; transport errors stay queued.
+        if (![400, 403, 404, 409, 410].contains(e.statusCode)) {
+          remaining.add(item);
+        }
+      } catch (_) {
+        remaining.add(item);
+      }
+    }
+    await prefs.setStringList(_deliveryKey, remaining);
+  });
+
+  /// The server selects the country channel and owns all grants and counters.
+  Future<String> sendV2(Map<String, dynamic> invite, String phone) async {
+    final token = await storage.getToken();
+    final owner = invite['ownerUserId'] as String?;
+    if (token == null || owner == null || invite['version'] != 2) {
+      throw const ApiException('Refresh invitations and try again.');
+    }
+    if (invite['activated'] == true) {
+      throw const ApiException('This friend already activated a round.');
+    }
+    final launchId = _newId();
+    final options = Options(headers: {'Authorization': 'Bearer $token'});
+    await api.post(
+      '/api/invites/${invite['code']}/launch',
+      data: {'launchId': launchId},
+      options: options,
+    );
+    if (await storage.getToken() != token) {
+      throw const ApiException('Sign-in changed. Try again.');
+    }
+    if (invite['channel'] == 'whatsapp') {
+      _whatsapp = {
+        'owner': owner,
+        'code': invite['code'],
+        'launchId': launchId,
+        'sessionKey': sha256.convert(utf8.encode(token)).toString(),
+        'opened': false,
+      };
+      await _saveWhatsApp();
+      final result = await messages.invokeMethod<String>('openWhatsApp', {
+        'recipient': phone,
+        'body': message(invite),
+      });
+      if (result == 'opened') {
+        if (_whatsapp?['launchId'] == launchId) {
+          _whatsapp!['opened'] = true;
+          await _saveWhatsApp();
+          if (WidgetsBinding.instance.lifecycleState ==
+              AppLifecycleState.resumed) {
+            await _finishWhatsApp();
+          }
+        }
+        return 'opened';
+      }
+      _whatsapp = null;
+      await _saveWhatsApp();
+      if (await storage.getToken() != token) {
+        throw const ApiException('Sign-in changed. Try again.');
+      }
+      return _shareFallback(invite, token);
+    }
+    final result =
+        await messages.invokeMethod<String>('compose', {
+          'recipient': phone,
+          'body': message(invite),
+        }) ??
+        'failed';
+    if (result == 'unavailable') {
+      if (await storage.getToken() != token) {
+        throw const ApiException('Sign-in changed. Try again.');
+      }
+      return _shareFallback(invite, token);
+    }
+    if (['sent', 'cancelled', 'failed'].contains(result)) {
+      await _enqueueDelivery({
+        'owner': owner,
+        'code': invite['code'],
+        'launchId': launchId,
+        'result': result,
+      });
+      if (await storage.getToken() == token) await refresh();
+    }
+    return result;
+  }
+
+  Future<String> _shareFallback(
+    Map<String, dynamic> invite,
+    String token,
+  ) async {
+    await api.post(
+      '/api/invites/${invite['code']}/launch',
+      data: {'launchId': _newId(), 'fallback': true},
+      options: Options(headers: {'Authorization': 'Bearer $token'}),
+    );
+    if (await storage.getToken() != token) {
+      throw const ApiException('Sign-in changed. Try again.');
+    }
+    await messages.invokeMethod<String>('share', {'body': message(invite)});
+    return 'shared';
+  }
 
   Future<String> compose(
     Map<String, dynamic> invite, {

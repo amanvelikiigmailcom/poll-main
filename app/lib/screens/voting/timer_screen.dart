@@ -93,6 +93,7 @@ class _TimerScreenState extends State<TimerScreen>
   Timer? _quoteTimer;
   bool _inviteOpen = false;
   int _rewardTicks = 0;
+  DateTime? _dailyReset;
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
@@ -155,7 +156,13 @@ class _TimerScreenState extends State<TimerScreen>
   }
 
   Future<void> _syncTimer() async {
-    final remaining = await LocalGameService.instance.secondsUntilNextRound();
+    var remaining = await LocalGameService.instance.secondsUntilNextRound();
+    if (_dailyReset != null) {
+      remaining = math.max(
+        remaining,
+        _dailyReset!.difference(DateTime.now()).inSeconds,
+      );
+    }
     if (!mounted) return;
     setState(() => _secondsLeft = remaining);
     if (remaining == 0 && !_inviteOpen) context.go('/vote');
@@ -163,14 +170,23 @@ class _TimerScreenState extends State<TimerScreen>
 
   Future<void> _refreshPasses() async {
     try {
-      await ProviderScope.containerOf(context).read(invitationServiceProvider).refresh();
+      final service = ProviderScope.containerOf(
+        context,
+      ).read(invitationServiceProvider);
+      await service.refresh();
+      _dailyReset = service.dailyRemaining == 0 ? service.dailyResetsAt : null;
       if (mounted) await _syncTimer();
-    } catch (_) { /* The saved timer remains authoritative while offline. */ }
+    } catch (_) {
+      /* The saved timer remains authoritative while offline. */
+    }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) { _syncTimer(); _refreshPasses(); }
+    if (state == AppLifecycleState.resumed) {
+      _syncTimer();
+      _refreshPasses();
+    }
   }
 
   Future<void> _openInvite() async {
@@ -199,7 +215,7 @@ class _TimerScreenState extends State<TimerScreen>
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
-  double get _progress => _secondsLeft / _totalSeconds;
+  double get _progress => (_secondsLeft / _totalSeconds).clamp(0.0, 1.0);
 
   @override
   Widget build(BuildContext context) {
@@ -209,10 +225,7 @@ class _TimerScreenState extends State<TimerScreen>
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFFF0F4FF),
-              Color(0xFFFFFFFF),
-            ],
+            colors: [Color(0xFFF0F4FF), Color(0xFFFFFFFF)],
           ),
         ),
         child: SafeArea(
@@ -296,8 +309,9 @@ class _TimerScreenState extends State<TimerScreen>
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color:
-                      _primaryBlue.withValues(alpha: 0.25 * _pulseAnim.value),
+                  color: _primaryBlue.withValues(
+                    alpha: 0.25 * _pulseAnim.value,
+                  ),
                   blurRadius: 40,
                   spreadRadius: 8,
                 ),
@@ -411,11 +425,8 @@ class _TimerScreenState extends State<TimerScreen>
         ),
         const SizedBox(height: 6),
         const Text(
-          'Invite a new friend through Messages. After they register with your invitation, you both earn one wait pass.',
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey,
-          ),
+          'Each eligible invitation unlocks one round of 12 questions. Unused rounds are saved. Maximum 50 completed rounds per UTC day.',
+          style: TextStyle(fontSize: 13, color: Colors.grey),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 16),

@@ -1,4 +1,6 @@
-# Flyprox: invitation release — implementation and activation
+# Flyprox: invitation v1 — historical implementation
+
+> Superseded for new rewards by [invitation v2](../../../projects/flyprox_backend/docs/invitations-v2.md). This file describes legacy registration-based behavior, not the new source contract.
 
 Status: source implementation prepared on 2026-11-23; production/TestFlight unchanged. Owner explicitly prohibited cloud builds; do not start Xcode Cloud. Local unsigned iOS release compilation was verified. This document and the active PLAN.md section supersede historical 40-minute / social-button / Premium-no-wait rules for the new source only.
 

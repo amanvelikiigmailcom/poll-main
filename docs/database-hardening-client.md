@@ -28,3 +28,5 @@ Client source is prepared and tested, not an installed TestFlight build.
 Current running commit, effective gates, applied migrations and acceptance evidence
 are maintained only in the backend [runtime status](backend-reference.md).
 This client contract does not assert that the source is installed on a device.
+
+Invitation v2 and daily50-round limit: [backend contract](../../../projects/flyprox_backend/docs/invitations-v2.md). One eligible recipient unlocks one12-question round; source readiness does not assert production activation or a new installed build.
