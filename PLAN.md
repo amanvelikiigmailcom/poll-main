@@ -1,6 +1,6 @@
 ##24-table hardening — implementation status24.11.2026
 
-Backend ee4f8bc deployed: atomic rounds/outbox, old OTP gate, campus boundaries, atomic contacts, token ownership, verified Premium and retention;15indexes applied.170backend tests plus real Appwrite acceptance. Actor schema remains separately gated0 pending approval. Client server balance/local labels/whole-round retries tested267Flutter, no new build. Details: docs/database-hardening-client.md; canonical schema/plan remain in flyprox_backend/docs.
+Backend ee4f8bc deployed: atomic rounds/outbox, old OTP gate, campus boundaries, atomic contacts, token ownership, verified Premium and retention;15indexes applied.170backend tests plus real Appwrite acceptance. Actor migration02 approved/applied and enabled1; full24-table metadata comparison has0differences. Client server balance/local labels/whole-round retries tested267Flutter, no new build. Details: docs/database-hardening-client.md; canonical schema/plan remain in flyprox_backend/docs.
 
 # Flyprox — план работ (обновлено 2026-11-23)
 
