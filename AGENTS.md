@@ -74,7 +74,7 @@
 - Приглашения v2: один засчитанный получатель — один раунд из12 вопросов; только сервер подтверждает grant/redemption.
 - Messages .sent или первые5 WhatsApp-возвратов в UTC-день после >4сек дают раунд; с6-го требуется POST подтверждения получателя. GET/share сами по себе не награждают.
 - Максимум50 завершённых online раундов в UTC-день; приглашения не обходят лимит, неиспользованные раунды сохраняются.
-- Invitation rollout остаётся на паузе; server-confirmed redemption нельзя заменять UI-фактом.
+- Состояние invitation rollout читать в backend runtime-status; server-confirmed redemption нельзя заменять UI-фактом.
 - Online draft хранит точные IDs, owner/session identity и sealed answers для replay.
 - До/после submit проверять аккаунт; ошибка отправки не завершает подтверждённый online round.
 - Повтор batch не начисляет награду снова; абсолютный баланс брать с сервера.
