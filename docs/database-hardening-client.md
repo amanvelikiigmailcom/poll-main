@@ -24,7 +24,6 @@ Client source is prepared and tested, not an installed TestFlight build.
 - Actual purchase/restore/expiry on an App Store Sandbox device is separate from
   fake-provider backend tests. No cloud build/TestFlight upload was started.
 
-Server ee4f8bc and15-index migration are active; outbox/retention/contacts/verified
-subscription logic passed backend real acceptance. Actor migration was approved/applied, its flag is1 and real indexed erasure QA
-passed; the24-table live schema now matches with0differences. CONTACT_LABELS_LOCAL_ENABLED remains0 until the compatible
-client is available, preserving installed-client matching.
+Current running commit, effective gates, applied migrations and acceptance evidence
+are maintained only in the backend [runtime status](backend-reference.md).
+This client contract does not assert that the source is installed on a device.

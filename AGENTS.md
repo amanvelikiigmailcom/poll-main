@@ -1,301 +1,137 @@
-# Flyprox — инструкции агенту
-
-## Схема БД: один источник в backend
-
-Контракт24таблиц находится в `/Users/amanyessen/projects/flyprox_backend/src/database-schema.js`; справочник полей/связей/индексов генерируется в backend `docs/database-schema.md`. Поля в AGENTS.md и отдельную схему в приложении не копировать. При изменении backend/API/таблиц обновлять в том же commit затронутые contracts, миграцию при изменении БД, справочник/API docs и необходимые backend/client tests. Проверять совместимость старого клиента; пустые миграции не создавать. Подробный согласованный план: backend `docs/database-hardening-plan.md`.
-
-
-## Database hardening — current24.11.2026
-
-Backend runtime ee4f8bc, local/public health200;15indexes migrated after approval/duplicate preflight/private backup. Real Appwrite atomic rollback/replay and real-storage authenticated campus boundaries verified; QA rows removed. Additional contacts/token ownership/verified Premium/outbox/retention deployed; actorId/index migration approved/applied, NOTIFICATION_ACTOR_SCHEMA_READY=1; full24-table metadata matches,0differences; real foreign-job erasure QA/cleanup passed. Real outbox and50-contact replacement acceptance passed;170backend tests on server. Historical rollout paragraphs below are older snapshots; read actual ExecStart and backend docs/database-hardening-plan.md for current state.
-
-Client now uses server star balance for signed-in Home/Profile/Collection, session-isolated confirmed cache, local guest balance; online completion does not add guest stars. Contact hashes only in new client uploads; local hash-label map resolves candidates. Reviewed existing round draft reused, not reverted. Contract: docs/database-hardening-client.md. Full267Flutter/analyze0errors0warnings22existing infos. Source changes do not mean a new installed build. No cloud/TestFlight started. Server label cutover and school voting activation remain off until compatible client release.
-
-## Search, друзья и Activity: только свой кампус
-
-- Владелец одобрил две реальные секции **Friends of friends** и **From your campus** во вкладке Search под строкой `@username`, без глобального каталога. Пять карточек сначала, затем See more. Карточки: `@username`, нейтральный аватар, Hide, Add / Request sent / Accept · Decline; не показывать имена общих друзей, телефон, возраст, класс и год выпуска. В маленьком кампусе выдавать всех подходящих участников с ником; при росте — максимум 50 карточек кампуса. Порог 5 учеников относится к школьному голосованию, а не к рекомендациям.
-- Искать и добавлять друзей только внутри своего канонического `schoolId`, из серверной записи со статусом selected. Друзья друзей учитывают только принятые связи того же кампуса. Исключать себя, уже добавленных друзей и блоки в обе стороны; заявки сохранять с актуальным статусом. При смене кампуса не выдавать старые межкампусные связи. Activity всегда читает только кампус, выбранный на сервере, и сбрасывает видимый список при смене кампуса.
-- Школьные раунды — только выбранный кампус; временный контактный режим до пяти, как согласовано ранее, отдельный. Не смешивать школьные раунды/ленту разных кампусов и не выводить прежние непроверенные контакты как голосования своего кампуса.
-- Кэш рекомендаций — **существующий Redis Appwrite**, опциональный приватный `FLYPROX_REDIS_URL` с отдельным ACL и ключами `flyprox_backend:social:suggestions:*`. Кэшировать граф кандидатов, не разрешения: блоки, выбранный кампус, существование аккаунта и статус заявок повторно проверяет сервер. При отсутствии Redis — короткий ограниченный кэш в памяти; без ночного задания и без обещаний 5 мс. Production Redis/config/deploy отдельным согласованием. Meilisearch не подключать этой задачей.
-- Клиент `1162de3` (Search и сброс Activity при смене кампуса) и сервер `a037376` (поиск, друзья и рекомендации кампуса) запушены в `main` своих GitHub-репозиториев с `[ci skip]`. Проверки этих снимков: 260 Flutter / 132 Node, анализатор без ошибок и предупреждений. Черновики школьных раундов и другие параллельные правки не входили; новый TestFlight не запускался. Push не означает деплой или доступность экрана в установленном приложении.
-- Деплой `a037376` подтверждён владельцем, но не выполнен: SSH перестал отвечать, локальный `/health` на последнем доступном SSH завис, публичный `/health` вернул 502 до переключения. Последний подтверждённый runtime `913b4fb`; service unit и Redis не менялись. После восстановления сначала проверить текущий сервис, затем проверить заново изолированный релиз и переключить с возможностью отката. Частично загруженные каталоги релиза не считать готовыми.
-- Аудит: в рабочей базе 24 таблицы, публичных прав нет; читали схему и код, не личные записи. Не связывать все таблицы со всеми и не делить базу по кампусам. Связи — по постоянному ID аккаунта, кампуса, раунда и вопроса. Отдельно проверить отключение старого OTP, сделать начисление серверных звёзд атомарным с завершением раунда, оставить подписи контактов на телефоне, проверить дубли перед добавлением индексов и сквозной сценарий подписки. Аудит не менял схему и эти исправления не выполнял.
-- Источники данных: текущий кампус — `onboarding_details`, ник — `social_handles`; не брать их из устаревших полей `profiles`. Для вошедшего игрока целевой источник баланса — `profiles.stars`, для гостя — телефон; переход интерфейса на серверный баланс ещё не сделан. Для платных серверных функций использовать подтверждённые состояния `notify_subscriptions`, не `profiles.isPremium`. Проверка `401` без сессии не заменяет проверку доступа двух аккаунтов из разных кампусов.
-
-## Пуши, Activity и доступность кампусов — production, 24.11.2026
-
-Владелец явно подтвердил миграцию, QA и deploy; затем предоставил Superwall OAuth. Выполнено:6private notify_users/jobs/devices/aliases/receipts/subscriptions + private activity_events, school_location(country,region,city) index и optional integer onboarding_details.campusChanges (для предшествующего committed campus-edit release). Новых profiles колонок нет. Реальная Appwrite схема/индексы проверены; isolated QA prefs/dedup/review/billing snapshot/Activity20+2/keyset прошёл с fake provider и fake identities; все QA rows удалены и отсутствие проверено. Auth/profiles/SMS/APNs в QA не менялись.
-
-Runtime source **913b4fb**, service active, ровно один writer. ExecStart=/usr/bin/node /home/myuser/projects/flyprox_backend/releases/notifications-913b4fb/src/server.js, WorkingDirectory=/home/myuser/projects/flyprox_backend. Drop-in ~/.config/systemd/user/flyprox-backend.service.d/zz-notifications-activity.conf; original .env не менялся. NOTIFICATIONS_ENABLED/SCHEMA_READY/SINGLE_WRITER=1, ACTIVITY_ENABLED/SCHEMA_READY/SINGLE_WRITER=1, existing SCHOOL/SOCIAL flags1 сохранены. Private ~/.config/flyprox-notifications.env mode600 содержит scope/signing secret; секрет не печатать. НЕ считать runtime source по git HEAD старой корневой папки: проверять ExecStart. Предыдущий release сохранён для rollback.
-
-Superwall Flyprox project44902/app60567/com.flyprox.flyproxApp, V2 endpoint ep_3MWIfHVPnq8WIkkBchgM4QvcBgu → https://api.flyprox.com/api/webhooks/superwall. CLI OAuth authenticated; App Store notification routing/revenue provider не менялись. Подпись Svix/raw body/scope проверены через публичный URL: forged401, signed unresolved-owner200 ignored без пользовательских событий. Реальных покупок/ручных тестовых push не делали; это не device-delivery QA. Existing anonymous subscriptions не привязывать по догадкам: новый клиент получает backend UUID для SDK/StoreKit alias. Клиент source0bd2572 запушен [ci skip], новый build/TestFlight НЕ запускался — новые экраны требуют отдельной сборки.
-
-Перед первым включением writer был остановлен: создано3source checkpoints от cutover, старые vote/friend notices не переотправляются;1реальный ещё действующий таймер сохранён. Повторный deploy сохранил3checkpoints без сброса, source/Activity checkpoints обновляются. prepare-notification-cutover.js read-only без --apply --writer-stopped. Worker учитывает prefs/blocks/актуальную relation/таймер/pass/campus/subscription. Stable Messaging IDs, retry/backoff/lease/timeout; accepted НЕ device-delivered. Флаги SCHEMA_READY сохранять1 при временно выключенной доставке, чтобы deletion чистил данные. Только один Node writer; не добавлять второй процесс/Redis.
-
-Отправка по-прежнему Node → Appwrite Messaging → APNs, без FCM. Таймер60мин и sign-in обязательны внутри приложения, OS permission соблюдается. Другие defaults=true; честные retention24h/3d/7d, quiet10–22 по timezone, expiry<=24h только без auto-renew. Review — один server-claimed native attempt после первого полученного голоса, не push. НЕ делать suspicious activity, Terms/Privacy notices, broadcast/repeat admin UI, удаление Firebase Messaging SDK и миграцию Meilisearch. Invitation hooks не снимают ранее установленную паузу rollout приглашений.
-
-Activity — Settings → Activity, English/наш дизайн, кто выбран/вопрос/год выпуска голосовавшего/время; без его имени/ID в ответе.20сначала, следующие20только при скролле, максимум200; HMAC cursor binds account/campus/count, restart→refresh409. Источник completed rounds: school-mode campus snapshot либо contacts vote с доказательством того же campus у обоих участников ($updatedAt enrollment<=vote timestamp). Историю без доказательства не выдумывать. Deletion удаляет voter/winner projections и notify rows >100. Новые Search/recommendation/school-round drafts других задач не включены в этот deploy и не откатывались.
-
-Региональный CLI scripts/campus-access.js --show/--locations/preview, --apply меняет validated content_items.campus_access_policy. US region=название штата. Поиск и новое enrollment фильтруются сервером, existing campus сохраняется. На реальном Appwrite обнаружено ограничение AND/OR минимум2операнда: fixed913b4fb, добавлен regression provider validation.4real country/state/city/fulltext query shapes прошли. Все регионы остаются открытыми: ни один allowlist/close-all не применялся. content_items.value varchar8192 подтверждён.
-
-Изолированный release:131 backend tests/syntax passed,258 Flutter tests, analyzer0 errors/0 warnings/22 прежних info. Public/local health/content/questions/school search200, защищённые Activity/preferences без auth401. Полный Flutter повторять после функциональных client changes; расширять проверки по новой проблеме, не гонять те же тесты без причины. Детали: poll-main/docs/notifications-and-activity.md. Shuffle2/skip2 и weekly incoming-voter disclosures — отдельный игровой этап; текущий Premium Full Reveal показывает свои ответы. Не обещать полную анонимность или несуществующее раскрытие имён. Не менять чужие незавершённые файлы.
-
-## Поиск: стандарт Meilisearch для всех экранов — 24.11.2026
-
-Прямая команда владельца: все серверные поиски проекта переводить на Meilisearch. Единый debounce300мс; минимум после trim: пользователи2символа, города2 (либо фильтрация уже загруженного локального списка), кампусы/школы3. На клиенте отменять/игнорировать устаревшие ответы, на сервере повторять валидацию длины и фильтры доступа. Пустой/слишком короткий ввод не запускает запрос.
-
-Typo tolerance: oneTypo=5 (одна опечатка начиная с5букв); обычное значение twoTypos=9 не менять без решения владельца. Это НЕ «одна опечатка на каждые5букв». Пример Иван→Ифан не соответствует порогу5 (4буквы): для такого поведения требуется отдельный выбор снизить порог до4. Проверять кириллицу, латиницу, prefix matching, точные совпадения, опечатки и порядок релевантности на реальном индексе; идентификаторы/годы не искать с опечатками.
-
-Meilisearch — поисковый индекс, Appwrite/PostgreSQL остаётся источником истины. Запросы через Node backend; master/admin keys не передавать в приложение и не публиковать Meili напрямую. Индексы с постоянными account/school IDs, синхронизация изменений/удаления, фильтры страны/региона и серверная повторная проверка приватности/блоков. Поиск пользователей пока только username: не индексировать телефоны, полные имена или приватные profile fields. Владелец отдельно разрешил prefix username от2символов/debounce300мс в текущей задаче; до отложенной миграции используется индексированный Appwrite startsWith. Fuzzy-поиск пока не включён.
-
-Статус: Meilisearch в этой задаче пока НЕ подключён. Подтверждённый rollout кампусов использует Appwrite full-text как временную реализацию; переход на Meili отложен владельцем; текущий username prefix разрешён отдельно. Запись стандарта сама по себе не означает разрешение разворачивать новый сервис или менять production-поиск.
-
-
-## Новые формы профиля и кампуса — 24.11.2026, backend production
-
-Прямая команда владельца: сохранить существующий сине-белый дизайн, добавить после возраста две формы: имя/фамилия/пол (Female/Male/Non-binary), затем школа/кампус + календарный год выпуска. Контакты → ник → optional push остаются после них; имя/фамилия больше не повторяются на шаге ника. Имя и @username независимы, не подставлять full name в ник.
-
-US/CA — одна выдача без дополнительного выбора страны; GB — отдельная по выбранной телефонной стране. Карточки содержат город/регион. Реальные исходники:124688 US +27195 England=151883; английский GIAS не покрывает весь UK, канадский источник пока отсутствует. Не выдумывать канадские/другие школы. Missing-school форма сохраняет signed-in заявку по account ID и открывает подготовленное письмо в support_email с названием, страной, городом/регионом/годом; отправляет пользователь. Без выбранной реальной школы голосование закрыто, включая direct route/API. school_skip_enabled=false скрывает Skip for now и запрещает skip на сервере; пропуск завершает setup, сохраняя ожидание школы. Existing legacy accounts без новой записи не блокируются автоматически.
-
-Все авторитетные данные связаны постоянными ID: существующие profiles(firstName,lastName,gender,schoolId/schoolName), новая private onboarding_details(accountId,status,country,schoolId,graduationYear,requestedSchool/City/Region), новая private school_directory(country-source-externalId,name,country,city,region,searchText). Cohort/status/fulltext indexes; никаких новых колонок profiles. Guest данные локальные. Session drafts изолированы; account deletion чистит новую запись и заявки. Reset game не должен снимать school gate.
-
-Владелец отдельно подтвердил две таблицы, импорт и backend deploy. Выполнено: две private tables/индексы,151883 записи подтверждены полной cursor pagination (total Appwrite ограничен5000), real DB search/pagination/enrollment/request/cohort/skip guard и cleanup изолированной QA-записи. Runtime code7661485, SCHOOL_ONBOARDING_ENABLED=1 через отдельный systemd drop-in campus-onboarding.conf, service active; school_skip_enabled=true записан без изменения других флагов. Новые signup markers требуют schoolOnboardingVersion=1, поэтому установленный старый TestFlight не блокируется. Источник клиентаf2365de запушен [ci skip], UI Choose your campus,96 годов1946–2041 без preselect. Новый build НЕ запускался. Изолированный релиз236 Flutter/92 backend, analyze0 errors/0 warnings/22 прежних info. Параллельные черновики голосования/контактов/social в рабочей копии не включены в релиз и не откатывались. Подробности:docs/onboarding-schools.md.
-
-## Друзья и навигация — 23.11.2026, backend на production
-
-Этот раздел заменяет историческую навигацию Home·Quiz·Profile·Settings ниже. Реализуется Home·Search·Likes·Profile·Settings, единые Phosphor regular/fill. Вопросы/результат/таймер относятся к Home; отдельного Quiz нет. StatefulShellRoute сохраняет поиск и текущий раунд между вкладками. Friends находится в Settings, профиль ссылается на тот же список. For parents и Blocked users доступны в Settings. Likes пока честный coming-soon, не подключать старые mock voter screens. Friends of friends / From school пока пустые, без запросов и выдуманных данных.
-
-Backend social_* **развёрнут на production по отдельному явному подтверждению владельца**; runtime source68b3b32 (исправление проверки varchar послеd408f41), сервисactive. Клиентский source d01b81c запушен, новая сборка/TestFlight НЕ запускалась. Пять отдельных приватных таблиц; миграция scripts/setup-social.js по умолчанию read-only, --apply требует подтверждения. Ники 3–32 ASCII, canonical lowercase и unique DB index; старые локальные ники не импортируются молча. Поиск exact @username, без ФИО/телефонов. Server endpoints /api/social, авторизация существующей сессией, минимальные карточки. Дружба/блокировки по account ID. Блоки учитываются также в contacts/candidates/votes. При удалении аккаунта чистятся все связанные social records. Фоновый invitation sync больше не меняет ник.
-
-Конкуренция рассчитана на существующий один Node writer: упорядоченные account/pair locks, DB uniqueness для ников/пар/quota. SOCIAL_ENABLED=1 и SOCIAL_SINGLE_WRITER=1 допустимы только после готовности схемы/подтверждения одного writer. Не включать несколько процессов без отдельной реализации distributed CAS/транзакций. Redis не добавлялся. Реальная Appwrite проверка выполнена:7 групп, concurrent canonical uniqueness, unique pair, indexed queries/counts, rename, block/unblock, cooldown. Использовались изолированные QA IDs в новых social tables и fake identity lookup без создания Auth/profile/session;24 attempted rows очищены, итог всех5tables=0. Это не device/authenticated real-account end-to-end QA.
-
-Постоянные новые тесты: app/test/social_service_test.dart, social_screen_test.dart, fakes/social_storage.dart; backend tests/social_api.test.js. Проверяются stale success/401 после смены аккаунта, фактическая Dio error chain, поиск, ownership, двойные заявки, block/accept, deletion/request, >100 rows, pagination/counts, schema readiness, layout 320px/x2 и сохранение вопроса/поиска между вкладками. Полные проверки по-прежнему обязательны.
-
-Точный rollout, схема/индексы/лимиты/retention и ограничения: docs/social-release.md. Оба push, пять приватных таблиц/индексы, конфигурация и restart backend выполнены с подтверждением. Флаги загружаются из systemd user drop-in ~/.config/systemd/user/flyprox-backend.service.d/social-friends.conf; исходный .env не менялся. /health,/api/content,/api/questions=200; /api/social/me и search без auth=401. INVITE_HMAC_KEY отсутствует,6invite tables не создавались. Новые Auth accounts/SMS/APNs не использовались. Daily quota-cleanup scheduler пока не установлен: отдельное согласование; скрипт готов. Запрет облачного билда остаётся. Страница родителей описывает отсутствие чата, подготовленные вопросы/skip/report и реальные средства контроля, не обещает тотальную позитивность всего банка или гарантии закона. Публичные privacy/metadata не опубликованы.
-
-## Компактные проверки: меньше чтения, прежняя защита
-
-- По умолчанию из корня запускать `python3 scripts/checks.py`: полный `flutter test --no-pub --reporter json`, затем `flutter analyze --no-pub --no-fatal-infos lib test`, строго последовательно. Python 3 — единственная дополнительная предпосылка; зависимости Flutter должны быть установлены. Это локальные проверки без сборки/Xcode Cloud.
-- Перед изменением читать только относящиеся к задаче тесты, а не весь каталог. Новые/изменённые тесты обязательно просматривать: зелёный прогон сам по себе не доказывает качество проверок. Обязательный полный набор не заменять выборочным ради экономии токенов.
-- При успехе достаточно сводки (passed/failed/skipped, время, exit, путь к логу). Полный лог хранится в отдельном временном каталоге `flyprox-checks-*`, не в Git. Не читать его целиком без причины. При ошибке скрипт показывает до 60 строк диагностики; дальше искать по имени упавшего теста/ошибке и читать нужный участок файла. Расширять чтение при неясной причине, связанных сбоях или изменении общего контракта.
-- Ненулевой exit, отсутствующий/незавершённый отчёт и ноль исполненных тестов — не успех. Не использовать `|| true` или вывод последней команды pipeline вместо статуса тестов. Скрипт сохраняет первый ненулевой exit, включая сбои запуска; signal exit преобразуется в 128+signal.
-- Анализатор показывает ВСЕ info; они явно не fatal (`--no-fatal-infos`), errors/warnings остаются fatal. Прежняя база — 22 info; рост/новые замечания изучать по логу, не объявлять их автоматически прежними. Исходные команды доступны для диагностики в `app/test/README.md`.
-- При изменении `scripts/checks.py`/`scripts/test_checks.py` прочитать их и выполнить `python3 scripts/test_checks.py` (проверяет ошибки/пустой отчёт/пропуски/полноту логов), затем настоящий полный прогон. При общем API-контракте также запустить `npm run check:summary` в backend; краткая сводка не отменяет проверки второго репозитория.
-
-Корень: `/Users/amanyessen/NEW/poll-main`. Flutter-приложение — `app/`, пакет `flyprox_app`. Локальный гостевой режим + серверная ветка с Firebase SMS-входом, Appwrite-бэкендом и APNs; подписка через Superwall. `AGENTS.md` — единственный источник инструкций; `CLAUDE.md` ссылается на него. Поведение сверять с кодом, устаревшие инструкции исправлять вместе с изменениями.
-
-## Архитектура сервера и базы (проверено 23.11.2026)
-
-**Flutter → HTTPS api.flyprox.com → отдельный Node.js/Express → Appwrite TablesDB → PostgreSQL.**
-
-Это подтверждено не только наличием контейнеров: read-only проверка конфигурации Appwrite вернула `_APP_DB_ADAPTER=postgresql`, `_APP_DB_HOST=postgresql`, `_APP_REDIS_HOST=redis`. Секреты подключения не выводились.
-
-- Backend — `/Users/amanyessen/projects/flyprox_backend`, production `/home/myuser/projects/flyprox_backend`; отдельный systemd user-сервис `flyprox-backend`. Игровые правила, авторизация собственной сессии, приглашения/пропуски и HTTP handlers исполняются в Node.js, НЕ в Appwrite Functions.
-- Appwrite — самостоятельный Docker-стек, основной контейнер `appwrite` (`appwrite/appwrite:2.7.4`). Это API/сервисы данных и Messaging, а не замена нашему Node.js-процессу. База действительно PostgreSQL: контейнер `appwrite-postgresql` (`appwrite/postgres:0.1.0`; это тег образа Appwrite, не номер версии PostgreSQL).
-- Код работает с данными через `node-appwrite`/TablesDB, а не прямыми SQL-запросами. Не обходить API Appwrite, его схему и права прямыми изменениями внутренних таблиц PostgreSQL. Firebase используется для SMS-входа, Appwrite Messaging/APNs — для push.
-- **Redis проекта — существующий Appwrite Redis: контейнер `appwrite-redis` (`redis:7.4.7-alpine`). По прямому указанию владельца использовать именно этот экземпляр; отдельный Redis для Flyprox не поднимать и случайный Redis другого проекта не подключать.** Сейчас прямого Redis-клиента в Node.js нет: новый раздел документирует выбор инфраструктуры, а не уже выполненное подключение.
-- Если понадобится кэш/лимитер Node.js через Redis, использовать собственное пространство ключей `flyprox_backend:*` с TTL и отдельно настроенным доступом. Внутренние ключи Appwrite не читать/не менять; `FLUSHDB`/`FLUSHALL` запрещены. Не публиковать Redis в интернет. Redis — кэш/временное состояние; авторитетные аккаунты, зачёты приглашений и использованные пропуски остаются в TablesDB/PostgreSQL.
-- В стеке также есть `appwrite-clickhouse-1`; игровой backend напрямую к ClickHouse не подключён. Не путать его с основной базой игровых таблиц.
-
-Эта схема описывает текущий проект. Не мигрировать на прямой PostgreSQL, Appwrite Functions или отдельный Redis без задачи от владельца.
-
-## Тесты: постоянная защита проекта
-
-- Исходники тестов хранятся в Git: `app/test/*_test.dart`, тестовые адаптеры — `app/test/fakes/`. Backend: `/Users/amanyessen/projects/flyprox_backend/tests/*.test.js`. Это часть проекта, не временные файлы. `/tmp/flyprox-*.log` — только необязательные логи прогонов, они не заменяют тесты и не коммитятся.
-- Перед изменениями изучать относящиеся к задаче тесты. После изменений приложения выполнять `cd app && flutter test` и `flutter analyze lib test`. Анализировать именно исходники/тесты, не примеры зависимостей внутри `build/ios/SourcePackages`.
-- Если меняются общие контракты (приглашения/пропуски, таймер, номера/хеши, вход, API), проверять и backend: `npm test`, `node --check src/server.js`. Использовать fake providers/localhost, не production-аккаунты и не реальные SMS/APNs.
-- Сохранять проверки повторов/конкуренции, смены аккаунта во время запроса, сетевых ошибок и восстановления, авторизации/владения ресурсом, возраста, покупок/restore, удаления аккаунта и офлайн-прогресса. Похожие проверки Flutter и Node.js защищают разные реализации; проверки экрана ожидания и входа в игру защищают разные маршруты.
-- Не удалять тест и не ослаблять ожидаемое поведение ради зелёного прогона. Изменение требования должно быть явно разрешено владельцем. Пустая заглушка `expect(true, isTrue)` удалена; новые такие тесты не добавлять. Проверять результат/инварианты, а не точное число настроек или внутренних вызовов без продуктовой причины.
-- Эти тесты НЕ доказывают реальную доставку APNs/SMS или работу подписанного Universal Link на устройстве. Такие сценарии проверяются отдельно. Облачный билд/Xcode Cloud запрещён текущей командой владельца; локальные тесты его не запускают.
-- Команды и разделение запусков: `app/test/README.md`. Отдельный ручной iPhone-чек-лист: `app/test/device/README.md` (обычный `flutter test` его не запускает; это не автоматизированный integration_test suite). До вечера/подключения телефона выполнять только важные проверки без устройства. Не запускать облачный билд, не очищать установленный Flyprox и не создавать новую production/test БД без отдельного согласованного действия.
-
-Владелец уже разрешил push обоих репозиториев, шесть таблиц и деплой backend, но затем переключил работу на аудит/улучшение тестов («пока ничего не делай» для оценки). В текущей задаче выполняются только согласованные изменения тестов/найденных регрессий. При явном возобновлении деплоя прежнее разрешение действительно; повторно не спрашивать. Перед любым будущим разрешённым push предусмотреть `[ci skip]` в последнем коммите, чтобы не запустить Xcode Cloud от push.
-
-## В работе: приглашения и 60 минут (23.11.2026, ещё НЕ на production)
-
-Последняя команда владельца: **облачный билд НЕ запускать**. Xcode Cloud/новые TestFlight uploads не запускались; последняя доступная опубликованная beta по-прежнему13. Новая реализация локальная; production/schema/Apple capabilities/публичные политики не менялись.
-
-Новые правила исходников заменяют исторические записи ниже:60мин после раунда для ВСЕХ, включая Premium; никаких WhatsApp/Instagram shortcut; системное SMS/iMessage с отдельным кодом и ссылкой. Один новый подтверждённый аккаунт применяет одно приглашение→по одному wait pass обоим. Автоматическое применение одного pass к текущему ожиданию либо сохранение до следующего. Баланс/earned/used в Profile и Invite friends, Check invitations и напоминание тем же кодом. First/last name вводятся вместе с прежним username, синхронизируются при входе; Firebase имена не сообщает. Full name не добавлять в карточки голосования. APNs пригласившему содержит согласованное first name зарегистрировавшегося друга, не имя голосовавшего.
-
-Авторитет наград — backend invite_claims/invite_redemptions с уникальными индексами; compose/click/install не дают награду. app_links7.2.2, domain api.flyprox.com, AASA appID5QG4KFTZNJ.com.flyprox.flyproxApp; Associated Domains в двух entitlements. Нужна внешняя проверка capability/подписанного профиля перед настоящим device build. Код и telemetry не содержат auth tokens, clipboard читается по нажатию. Не включать старые no-wait paywall overrides:используется paywall_features_v2.
-
-Проверки после no-cable hardening:213/213 Flutter tests;64/64 node tests;flutter analyze lib test —22 прежних info без errors/warnings. Локальная iOS release-сборка без подписи успешна (46.3MB), Swift-мост скомпилирован. Настоящая отправка/переходы по подписанным Universal Links требуют устройства после внешнего включения; не считать unit tests доказательством доставки.
-
-Точный план/rollout/ограничения/QA:PLAN.md и docs/invitations-release.md. Политика — отдельный непубличный draft docs/invitations-privacy-draft.md. Разрешение на push/production migration/deploy уже получено, но rollout удерживается на этапе тестов по последующему уточнению владельца. Реальные device проверки двух разных аккаунтов ещё предстоят. Публичный App Store submit не разрешён. Номер приложения/билда не повышался.
-
-## Последний доступный TestFlight — 1.0.2(13), 23.11.2026
-
-**Build8c073399-9d38-43db-ab4e-f036331f0234: VALID / IN_BETA_TESTING**. Source4885745. Внутренняя группа060e4223-2034-457e-aa16-859c63c582f4 проверена; en-US What to Test записан и перечитан. Upload завершился01:26:42 Asia/Bangkok, altool exit0/UPLOAD SUCCEEDED. Во время загрузки были сетевые retransmits/прерванные соединения, автоматические повторы завершились успешно; отдельного повторного upload не было. Archive202.3с; штатный Flutter export No Accounts/No Distribution, xcodebuild export с ASC API auth успешен. IPA: codesign deep/strict, production APNs, debug=false, encryption=false, настоящий billing key/Firebase callback/username screen подтверждены; photo permission отсутствует.
-
-Владелец уточнил **только TestFlight**, без публичного App Store review. После успешной доступности13 требуется итоговый коммит с точным заголовком «ОСНОВНОЙ КОТОРЫЙ УШЕЛ НА ПРОВЕРКУ»; это название владельца, не свидетельство публичного submit. Черновик App Store1.0.2 остаётся с build11. Код13 функционально совпадает с12 (196 tests/analyze22info), повышен только номер. Native QA нового ника на iPhone пока требуется.
-
-## Казахстан в App Store — 23.11.2026
-
-По прямой команде владельца KAZ включён в App Store. Повторный GET всех175 territoryAvailabilities подтвердил ровно7 available=true: CAN,GBR,HKG,KAZ,NZL,SGP,USA (168 disabled). Перед этим чтение API подтверждало ровно6, не172. Подписка premium_pro_weekly отдельно доступна в174 территориях (availableInNewTerritories=false), её не меняли. У приложения availableInNewTerritories всё ещё true: это будущие территории, не текущий список.
-
-Владелец отдельно уточнил: **казахстанский код/SMS не добавлять, входить будет тестовым номером**. PhoneRegions/Firebase остаются US,GB,CA,NZ,SG,HK. Само изменение стран магазина не требует бинарника; по дополнительной явной команде собран и доступен TestFlight1.0.2(13), код тот же, что12, только номер выше. Тестовый номер/code сохранены.
-
-## TestFlight 1.0.2(12) — доступен 23.11.2026
-
-Последняя команда владельца «делай билд» выполнена. Build **39956a67-21fd-445f-981d-ad44659db223**: **VALID / IN_BETA_TESTING**, внутренняя группа060e4223-2034-457e-aa16-859c63c582f4 проверена, en-US What to Test записан и перечитан. Source **b988c32** (исправления54214ff + version bump). Upload завершился23.11 в00:24:11 Asia/Bangkok, VALID подтверждён~00:26:50.
-
-- Archive221.2с; штатный Flutter export снова No Accounts/No Distribution, экспорт через xcodebuild с ASC API auth успешен. IPA проверен: Bundle/version12, codesign deep/strict, production APNs, get-task-allow=false, encryption=false, настоящий billing key и Firebase callback присутствуют; photo permission отсутствует; Choose your username подтверждён в AOT.
-- Build12 включает только выбранные контакты в голосовании, random userNNNNNN вместо автоматического Michael, новый редактируемый ник после контактов и перед optional push, сохранение pending-шага через restart;196 Flutter tests passed, analyze22 info без errors/warnings. Пол не добавлялся.
-- Публичный App Store submit не выполнен. Черновик1.0.2 пока остаётся с build11; в рамках команды обновлялись только TestFlight build12/What to Test/group. Native QA нового экрана на iPhone ещё требуется. GET /builds/{id}/betaGroups не поддерживается (403 GET_RELATED); membership читать через GET /betaGroups/{groupId}/builds.
-
-## Изменения 23.11.2026, включены в build12
-
-Этот раздел имеет приоритет над историческими правилами ниже. Владелец отменил self + 3 friends и автоматическое имя Michael. Изменения включены в доступный TestFlight1.0.2(12).
-
-- Голосование показывает четыре выбранных контакта, без автоматически добавленного игрока: LocalGameService.selectedOptions/generateRound/restoreRound и серверная ветка VoteScreen. Серверный self candidate не используется как получатель голоса; совпадение имени игрока с контактом не превращает контакт в self. Настоящий выбранный контакт Michael не фильтруется.
-- Новый onboarding: телефон/guest → возраст → контакты/примеры → **Choose your username** → optional push prompt для signed-in → Home. Поле ника предзаполнено userNNNNNN; можно изменить. Латинские буквы/цифры/underscore, минимум3. Сохраняются local_username и local_player_name; ник не входит в карточки. Это локальный профильный ник, не новый способ авторизации и не обещание глобальной уникальности. Старый неиспользуемый UsernameScreen с фиктивной проверкой availability заменён рабочим экраном.
-- local_username_setup_pending_v1 сохраняет незавершённый шаг после контактов: cold launch возвращает к нику, успех снимает marker, Reset game удаляет. Legacy default Michael/You меняется на userNNNNNN; явно выбранный username Michael/You сохраняется. Остальные пользовательские имена не заменять.
-- Пуш 6b032046000d3fd67306: sent, deliveredTotal1, errors0 на новейшую iOS-регистрацию единственного аккаунта; **владелец подтвердил получение на iPhone** 23.11.2026. Не выводить из этого доказательство всех сценариев foreground/background или доставки между двумя аккаунтами.
-- Тестовые ловушки: createAppRouter() создаёт независимое дерево; все тесты прежнего global appRouter переведены на test/fakes/test_app.dart (setup native-storage fake + fresh router + dispose). Общий MockStorageService в fakes настраивает saveToken/savePhone. Pinput вводится через controller, Verify проверяется; новый тест покрывает same-route input preservation и OTP back/reopen без старого кода. Состояние того же маршрута сохраняется по контракту, это не ошибка приложения.
-- Проверки: **196/196** Flutter tests; analyze **22 прежних info**, без errors/warnings. Новый ник: формат/профиль/resume с новым router/username→push/320px+keyboard+x2; карточки без self в intro/main/cache/resume/server. Native UI нового шага на iPhone ещё не проверен. Активный выполненный план — в начале PLAN.md.
-
-## Текущий статус — 22.11.2026, подготовка 1.0.2(11)
-
-Этот раздел и активный раздел PLAN.md имеют приоритет над историческими записями ниже. Старые номера тестов, лимит10, local-photo и best-effort deletion описывают предыдущие сборки, не требования к текущему коду.
-
-- **Текущий доступный TestFlight:** **1.0.2(11)**, source `6ff59d3`, ID `d8bbdc46-b2a1-45d2-8b41-083f192839ac`, **VALID / IN_BETA_TESTING**. Archive/export/upload успешны, codesign deep/strict, production APNs, get-task-allow=false, billing key/Firebase callback проверены; photo permission/image_picker отсутствуют. Внутренняя группа/What to Test/beta review notes проверены. Build11 прикреплён к черновику1.0.2. Пользователь разрешил загрузку; публичный App Store submit НЕ выполнен.
-- **Черновик App Store:** 1.0.2, ef496d1b-1536-4520-abb8-7b39285df6a5, PREPARE_FOR_SUBMISSION, MANUAL. Тексты en-US и App Information уже записаны через API и перечитаны: description/promotionalText/keywords/whatsNew/support/marketing/name/subtitle/privacyURL/copyright/review notes/demo credentials/review contacts. Полная публичная копия (без личных review contacts) — docs/app-store-metadata-1.0.2.json. Build11 прикреплён и read-back проверен; build10 не подставлять к описанию этих исправлений. Унаследованы 9 screenshots/3 sets: проверить их перед публичным сабмитом. App Privacy questionnaire не доступен в проверенной публичной API; не утверждать, что UI-анкета проверена/изменена. Age-rating flags прочитаны без записи, snapshot в JSON.
-- **Гейт возраста:** новый key onboarding_age_gate_status_v1 и checked_at_v1. Старый age_gate_status относился к Premium и НИКОГДА не должен засчитывать новую общую проверку. Порядок phone→code/explicit guest→age→contacts. Exact age не хранить/не отправлять; только outcome/time. При under13 блок текущего run, cold launch повторяет intro. Перезапуск сбрасывает OnboardingFlow.phoneComplete. Не называть это независимой проверкой возраста или гарантией COPPA.
-- **Пуши:** Appwrite отправляет plain APNs, НЕ FCM. В установленном firebase_messaging15.2.10 onMessage принимает только payload с gcm.message_id, так что старый Flutter snackbar не отображал Appwrite foreground push. main.dart теперь вызывает setForegroundNotificationPresentationOptions(alert/badge/sound=true) после Firebase init; native SDK применяет это и к APNs без FCM id. Системное разрешение само от этого не запрашивается. Сервер: provider enabled, production sandbox=false, bundle/team/key верны, APNs64hex target связан. Тесты 6b0294510013bd9ecf10,6b0295470038dba12bdc,6b02cd3a00060dc6869d=sent,total1,errors[]; пользователь подтвердил, что при первых двух приложение было ОТКРЫТО. Реальное появление на телефоне пока не подтверждено. Не приравнивать sent к видимому баннеру.
-- **Контакты:** full access показывает все доступные ИМЕНА сразу (background fetch names-only), поиск локальный; limited показывает разрешённый набор, расширение через Choose more. Убран search-only пустой full список и cap10. Минимум4 для игры, всего50; remaining capacity передаётся в native limit, single=1. Телефоны читаются только для подтверждённых IDs. Новые поля/вся книга на backend не отправляются. Советы Apple/DTS прочитаны: https://developer.apple.com/forums/thread/764975 и https://developer.apple.com/documentation/contacts/accessing-the-contact-store . Нет iOS Simulator runtimes: native UI на физическом iPhone отдельно проверить, не выдавать widget tests за это.
-- **Удалены фото профиля:** fixed 🙂, без смены/удаления/полноэкранного фото. Legacy local_avatar Base64 очищается при startup, gallery originals не трогать. Удалены image_picker и неиспользуемая NSPhotoLibraryUsageDescription; pubget/pod install выполнены, lock manifests сверены. Не возвращать старые avatar UI/зависимости без новой команды.
-- **Удаление аккаунта:** backend новый pagination purge + Firebase lookup по авторитетному Appwrite phone, APNs targets/avatar/сессии/owned+incoming votes. Current session сохраняется до конца для retry; только404 idempotent, прочие ошибки не скрывать. Клиент ждёт deleted:true, при ошибке сохраняет local progress/credential; после успеха очищает Firebase session/local phone/token/matches/profile. Реальные аккаунты ради теста НЕ удалялись. Отдельное удаление Superwall analytics/покупочных записей не обещать; покупки управляются Apple, запросы provider data — поддержка.
-- **Remote controls:** example_names_enabled=false скрывает кнопку+пояснение; example_names_button/description меняют текст. guest_enabled=false скрывает Continue without login на номере И коде; оба экрана реагируют на обновлённый ContentService. Удаление ключа возвращает дефолт, поэтому выключать false. Live keys22; оба флага сейчас true. Клиентские флаги — UI, не серверная авторизация.
-- **Только Home redesign:** main_tab.dart — прежняя палитра AppColors blue/white, primaryBlueDark для контраста5.65:1, одна CTA, stats ниже, timer state preserved. VoteScreen менялся только для исправления overflow заголовка320px/large text. Остальной UI не редизайнить без команды.
-- **Проверки:** финальный run 188/188 Flutter tests passed; analyze22 прежних info, без errors/warnings. Backend33/33; production c102de6 deployed, service active, /health200. Swift typecheck passed, Pods/Manifest.lock==Podfile.lock. Специальные legacy-age/remaining-limit17tests и Home320px/x1/x2 tests passed. Web debug после hot restart не загрузил Flutter UI; release web build успешен (103s), Playwright release-flow дошёл intro→guest→13→contacts examples→Home→quiz,320/430px. На web остаётся JS channel-error: stack main.dart.js:124699 приводит к dev.flutter.pigeon.superwallkit_flutter.PSuperwallHostApi.configure; у native SDK нет web host. Не объявлять безошибочным browser run и не переносить этот вывод на native iOS. Не путать canvas text с DOM. Layout PNG из actual Flutter widgets: /tmp/flyprox_home_widget_430.png и320.png (тестовые шрифты не являются App Store screenshots).
-- **Публичные документы:** Notion Privacy/Terms/Support/marketing обновлены после доступности11: all-authorized names/search, без фото, подтверждённое server deletion с retry, отдельная provider retention. Локальная политика синхронизирована. App Privacy UI,9 inherited screenshots и физический iPhone QA остаются перед публичным submit.
-- **Делегирование:** пользователь явно разрешил агентов. Они внесли owned changes/ASC text и затем упёрлись в usage limit; root завершает работу. Backend account-deletion changes были частично написаны агентом и проверены/доделаны root. Изменения общие — не откатывать.
-
-## Основные пути
-
-| Что | Путь от корня |
-|---|---|
-| Запуск и маршруты | `app/lib/main.dart`, `app/lib/app.dart`, `app/lib/router/app_router.dart` |
-| Игра и профиль | `app/lib/services/local_game_service.dart`, `app/lib/providers/user_provider.dart` |
-| Экраны / тесты | `app/lib/screens/`, `app/test/` |
-| iOS workspace / scheme | `app/ios/Runner.xcworkspace` / `Runner` |
-| Xcode Cloud: установка Flutter и Pods | `app/ios/ci_scripts/ci_post_clone.sh` |
-| Логотип / заставка с музыкой | `app/assets/images/flyprox-logo.png`, `app/assets/animations/flyprox-intro.mp4` |
-| Дизайн вне сборки | `design-reference/ppm/` — не включать в assets |
-| Ссылки поддержки и политик | `app/lib/utils/constants.dart`; страницы в Notion, публичный доступ проверять без входа |
-
-## Запуск и проверки
-
-Команды из `app/`:
-
-```bash
-flutter pub get
-flutter run -d chrome --web-hostname 127.0.0.1 --web-port 8080
-flutter analyze lib test --no-pub
-flutter test --no-pub
-```
-
-Локальный интерфейс проверять в Chrome. Xcode, iOS Simulator и macOS-сборку запускать только по прямому запросу. Проверки выполнять по задаче; результат подтверждать выводом команд. После изменения assets полностью перезапускать Flutter; веб-путь ресурса начинается с `/assets/assets/`.
-
-## iOS и TestFlight
-
-- Проверенная среда: Flutter **3.44.4** локально и в CI, Dart **3.12+**, Xcode/iOS SDK **27.2**. Минимальная iOS **15.0** означает поддержку 15 и новее.
-- Bundle ID: `com.flyprox.flyproxApp`. Версия: `app/pubspec.yaml`; номера облачных сборок проверять отдельно.
-- Трейн 1.0.0 закрыт (версия была одобрена раньше): новые сборки только с повышением версии, сейчас доступна 1.0.2+11 в TestFlight (6–10 также сохранены). Подписка `premium_pro_weekly` ($6.99/нед) создана в Connect.
-- Оплата: Superwall SDK (`superwallkit_flutter`), свой пейвол + прямые покупки; entitlement `pro`, dashboard app 60567. Ключ: в репо плейсхолдер (чистые сборки компилируются, биллинг выключен); реальный только локально + skip-worktree, в чат и git не тащить. Для TestFlight нужен локальный Archive либо Xcode Cloud Archive с подготовкой для TestFlight; обычный Build не загружает приложение.
-- Ревью: по API на 2026-11-22 версия 1.0.1 уже `READY_FOR_SALE` (предыдущая запись «ждём решения» устарела). Подписка premium_pro_weekly проверена по API: APPROVED. Первая подписка подаётся только вместе с версией; в черновике должны лежать версия + группа + подписка (иначе ошибка «New subscription groups must be submitted with...»).
-- Best practices подписки: пейвол показывает название/срок/цену/автопродление/Restore/Terms/Privacy; название товара в Connect = названию на пейволе; скрин пейвола + пошаговые примечания + Sandbox-аккаунт в Review Information; App Privacy отражает сбор SDK (Purchases, Identifiers, Usage Data); договор Paid Apps активен.
-- Пути Superwall: приложение → Settings → General (Bundle ID, Team ID); Settings → Keys (публичный iOS-ключ); Settings → Revenue Tracking (ключи Apple, уведомления); Products (товар + привязка к `pro`, дефолтный entitlement создавать не надо). TestFlight = песочница: работает со статусом Ready to Submit; недельная подписка продлевается ~3 минуты.
-- Перед локальным Archive: из `app/` выполнить `flutter pub get`, затем `cd ios` и `pod install`. Открывать **Runner.xcworkspace**. `Pods/Manifest.lock` должен совпадать с `Podfile.lock`; не удалять lock-файлы для устранения ошибки.
-- Проверка компиляции из `app/`: `flutter build ios --release --no-codesign`. Результат: `app/build/ios/iphoneos/Runner.app`; эта сборка не подписана для установки.
-- Подписанная отправка: Xcode → **Product → Archive → Distribute App → App Store Connect → Upload**. **Validate App** только проверяет. Стандартный путь архива Flutter: `app/build/ios/archive/Runner.xcarchive`; архивы Xcode — Organizer, обычно `~/Library/Developer/Xcode/Archives/`.
-- Xcode Cloud: первичное подключение через Xcode, затем управление через App Store Connect. Для TestFlight нужен **Archive**, подготовка **TestFlight and App Store** и post-action для раздачи группе. Успешный **Build** сам по себе загрузку не подтверждает.
-
-### App Store Connect API и облачные сборки (проверено 2026-11-22)
-
-- Доступ агента к App Store Connect API работает: приложение Flyprox `6828862522`, Bundle ID `com.flyprox.flyproxApp`; Xcode Cloud product Runner `ae6ab76d-8f65-439e-bb30-e9388b883339`.
-- Локальные параметры лежат в корневом `.env` (исключён из Git, права 600): `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_PATH`. Файл `.p8` хранится отдельно в `/Users/amanyessen/Modules/App_Development/`; актуальный путь брать из `ASC_KEY_PATH`. Не перемещать и не удалять его без обновления переменной. Ключ APNs не подходит для App Store Connect.
-- Разрешено загружать эти три параметра и читать `.p8` **только внутри процесса аутентификации**, не печатая содержимое `.env`, приватный ключ, JWT или заголовок Authorization. JWT: ES256, header `kid=ASC_KEY_ID`, claims `iss=ASC_ISSUER_ID`, `aud=appstoreconnect-v1`, короткий срок (например, 10 минут). Python `cryptography` доступен; ECDSA-подпись для JWT кодировать как raw `r || s`, не DER.
-- API base: `https://api.appstoreconnect.apple.com/v1`. Читать workflows: `GET /ciProducts/{productId}/workflows`. Перед запуском сверять actions, workspace, scheme и ветку. Проверенный workspace: `app/ios/Runner.xcworkspace`, scheme `Runner`.
-- Существующий workflow `Testflight ` (пробел в конце), ID `BB0B4182-5F71-4A7F-A246-81881F262F03`, на момент проверки содержит **BUILD**, не ARCHIVE; `isLockedForEditing=true`. Успешные предыдущие cloud builds не доказывают загрузку в TestFlight. Отдельный Archive workflow пока не создан.
-- Ветка `main`: SCM reference ID `3052e540-6c9e-43ec-9fe1-3ee2d8334150`; repository ID `2d9683d1-7c88-409e-befc-92e20c1e4e97`. Сверять актуальность перед запуском. Ветку существующего build run читать через `GET /ciBuildRuns/{id}?include=sourceBranchOrTag`: прямой `/sourceBranchOrTag` возвращает 403 `relationship has no allowed operations`, это не доказательство недостаточных прав ключа.
-- Запуск: `POST /ciBuildRuns`, JSON `{"data":{"type":"ciBuildRuns","relationships":{"workflow":{"data":{"type":"ciWorkflows","id":"<workflowId>"}},"sourceBranchOrTag":{"data":{"type":"scmGitReferences","id":"<mainRefId>"}}}}}`. Команда пользователя запустить билд разрешает этот запуск; изменение/создание workflow и публикацию согласовывать отдельно, если ещё не разрешены. После неопределённого ответа POST сначала проверить список запусков, чтобы не создать дубликат.
-- Статус: `GET /ciBuildRuns/{id}` (`executionProgress`, `completionStatus`, `sourceCommit.commitSha`); действия: `/ciBuildRuns/{id}/actions`; ошибки: `/ciBuildActions/{actionId}/issues`; артефакты и логи: `/ciBuildActions/{actionId}/artifacts`. Не выводить подписанные download URL. Успех запуска подтверждать ID и номером, успех сборки — `COMPLETE/SUCCEEDED`; для TestFlight отдельно проверять `/ciBuildRuns/{id}/builds` и состояние обработки сборки.
-- Xcode Cloud собирает код из GitHub. Локальные незакоммиченные/незапушенные изменения и `.env` в сборку не попадут. Перед запуском сообщать, какой commit собирается. Для облачного TestFlight отдельно решить передачу локального Superwall-ключа: в репозитории плейсхолдер, нельзя обещать работающий биллинг без этой проверки.
-- Xcode MCP отвечает через `xcrun mcpbridge`, доступны `BuildProject`, `GetBuildLog`, тесты и диагностика; отдельного инструмента TestFlight upload в полученном списке нет. Доступ к проекту ещё требует системного одобрения: `XcodeOpenWorkspace` вызывает разрешение пользователя. Не считать один успешный `tools/list` полным доступом к проекту.
-- Проверено чтение cloud build №30 (`f6ac3784-f9e9-46a5-a086-2a8e6e1663a0`, commit `42efa5e`, `SUCCEEDED`): скачан LOG_BUNDLE, прочитаны `ci_post_clone.log`, `resolve_package_dependencies.log`, `xcodebuild-build.log`. Issues содержат WARNING. Это старый успешный запуск, не новый запуск агента.
-- Проверено чтение `/apps/{appId}/betaAppReviewDetail`, `/apps/{appId}/appStoreVersions`, `/appStoreVersions/{versionId}/appStoreReviewDetail` и `/appStoreVersions/{versionId}/appStoreVersionLocalizations`. API поддерживает запись notes/demo/contact через `PATCH /appStoreReviewDetails/{id}`, beta review через `PATCH /betaAppReviewDetails/{id}`, локализованных текстов через App Store Version Localizations. Запись проверена на черновике1.0.2: тексты/notes/demo/contact сохранены и перечитаны; учитывать редактируемость версии, не менять live1.0.1 ради теста. Не обещать полное управление всеми формами Connect или перепиской Resolution Center без проверки отдельного API. Секреты demoAccountPassword не выводить.
-
-### Выпуск 1.0.2: рабочий путь и бэкенд (2026-11-22)
-
-- Пользователь разрешил самостоятельно исправлять ошибки этого выпуска, собирать Archive, читать логи, повторять сборки, обновлять бэкенд и загружать в TestFlight до результата. Сабмит в публичный App Store не делать в рамках этой команды. План и фактические этапы — в начале PLAN.md.
-- Бэкенд доступен через **`ssh s-prod`**: в `~/.ssh/config` уже задан правильный `id_ed25519_github`. Голый `ssh -p 2222 myuser@2.135.146.185` пробует другой ключ и получает Permission denied; это не отсутствие доступа к серверу. Рабочая директория: `/home/myuser/projects/flyprox_backend`, сервис `systemctl --user restart flyprox-backend`.
-- Бэкенд f9547f3 задеплоен: profile age 13–19, тесты 15/15, setup идемпотентно выполнен, seed сохранил 19 existing content keys, `APNS_PROVIDER_ID=6b01db0200007977bfd1` установлен в production `.env`, сервис перезапущен. Публичные `/health` и `/api/content` отвечают 200 (19 ключей). После рестарта дать сервису несколько секунд: кратковременный 502 не означает неудачный деплой.
-- Исправлена синхронизация пушей: shell отправляет текущий APNs token при монтировании и resume; драйвер кратко ждёт токен после разрешения. Тесты приложения 143/143, анализ — 22 info без errors/warnings. Реальную доставку подтверждать на iPhone, не создавать фиктивные device targets ради теста.
-- Для полноценного IPA использовать локальный Mac: реальный `app/lib/config/superwall_keys.dart` имеет skip-worktree и отличается от Git-заглушки; файл не добавлять в коммит. Подготовка: `flutter pub get`, `cd ios && pod install`. Затем из `app/`: `flutter build ipa --release --no-pub --build-name=1.0.2 --build-number=6` (для следующей загрузки выбирать новый уникальный номер по ASC).
-- Archive появляется в `app/build/ios/archive/Runner.xcarchive`, экспортированный IPA — `app/build/ios/ipa/Flyprox.ipa`. Проверять **экспортированный IPA**: signing archive может иметь development entitlement, export должен заменить его на production. Сверять Bundle ID, версию, номер, `aps-environment=production`, `get-task-allow=false`, `ITSAppUsesNonExemptEncryption=false`; наличие реального billing key проверять только boolean-сравнением внутри процесса, без вывода значения.
-- Загрузка через `xcrun altool --upload-app -f <ipa> --api-key <ASC_KEY_ID> --api-issuer <ASC_ISSUER_ID>`; переменная процесса `API_PRIVATE_KEYS_DIR` указывает на parent `ASC_KEY_PATH`. Не копировать `.p8` в репозиторий. Сохранять вывод в локальный лог и не выводить JWT. После upload дождаться `/builds?filter[app]=6828862522` со статусом VALID и проверить внутреннюю группу `060e4223-2034-457e-aa16-859c63c582f4` («Внутренние тостеры»).
-
-- Выпуск 1.0.2(5) успешно загружен и обработан Apple (VALID), но затем expired агентом: обнаружен отсутствовавший Firebase phone-auth callback URL scheme, который установленный SDK проверяет через fatalError ещё до отправки SMS. Исправление dd13852 добавляет encoded App ID из GoogleService-Info.plist в CFBundleURLSchemes, background fetch и regression test. Билд 6 загружен, затем исправления продолжены в 7 и финальном 8; актуальный статус см. PLAN.md. Не предлагать пользователю билд 5.
-
-### Обновление после тестирования на iPhone (22.11.2026)
-
-- Билд 6 VALID/IN_BETA_TESTING. Билд 7 (90a02b1, ID ec5f9730-e806-4596-9a13-2d2499c8d66f) также VALID/IN_BETA_TESTING: клавиатура закрывается по Done/вне поля/перед переходом, friends scroll целиком, телефонный запрос имеет timeout и доступный гостевой выход. 146 tests.
-- Если Flutter export пишет No Accounts / No iOS Distribution certificate: архив уже может быть готов. Не создавать/отзывать сертификаты вслепую. Экспортировать его `xcodebuild -exportArchive` с ExportOptions method=app-store-connect, teamID=5QG4KFTZNJ, signingStyle=automatic, manageAppVersionAndBuildNumber=false и `-allowProvisioningUpdates -authenticationKeyPath <ASC_KEY_PATH> -authenticationKeyID <ASC_KEY_ID> -authenticationKeyIssuerID <ASC_ISSUER_ID>`, загружая параметры только внутри процесса. Этот путь проверен для 7. После export снова проверить IPA и только потом upload.
-- Финальный build **8** (source e748467), ID **c9636727-9c80-4eb0-a762-e24292fc799c**, проверен по API: VALID и IN_BETA_TESTING. Archive 200.5с, export выполнен с ASC API auth после стандартного No Accounts. IPA проверен codesign deep/strict, production APNs, get-task-allow=false, encryption=false, настоящий billing key и Firebase callback присутствуют. Flutter 152/152, analyze 22 info без errors/warnings. Backend 22/22, production 3d8603a. Банк 536 вопросов полностью прочитан тремя страницами, есть JSON bulk import (default dry-run) для 10000+ записей. Beta What to Test обновлено, публичный submit не делался.
-- Firebase test phone +16505551234 / 123456 реально настроен через Identity Toolkit. Актуальный SMS allowlist по последней команде: US,GB,CA,NZ,SG,HK (прежний US-only заменён). Нельзя включать worldwide без новой команды.
-- Билд 8: серверный банк QuestionBankService обновляется анонимно через /api/questions cursor pages и атомарно сохраняет полный cache; гости тоже получают его. LocalGameService генерирует/восстанавливает раунды из cache, встроенный банк остаётся первым offline fallback. Проверять 10000 без записывания filler-вопросов на прод.
-- VoteScreen всегда строит карточки из локально выбранных участников; serverUserId хранится отдельно. Только однозначный matched contact получает серверный голос. Нельзя снова подставлять произвольные профили с backend. Несовпавший локальный выбор/Skip отправляется как skip, без push/голоса за человека.
-- Find one contact открывает single system picker как запасной вариант к multi-pick; управление его поисковой строкой у iOS, на устройстве ещё требуется проверка. Не читать всю адресную книгу ради поиска. POST contacts с append=true сохраняет ранее выбранные хэши; суммарный cap 50.
-- Язык остаётся English: пользователь отменил переключение по русской клавиатуре.
-- Notion Privacy/Terms/Support/marketing обновлены; локальная политика и release/privacy/server-control памятки находятся в docs. Не утверждать, что App Privacy анкета в Connect уже заполнена: публичный API не позволяет её проверить. Не отправлять публичный App Store submit без отдельной задачи.
-- Дополнительный аудит Firebase API key остаётся отдельной проверкой: для reCAPTCHA Firebase требует unrestricted key либо allowlist своего firebaseapp.com handler. Не применять bundle-only restriction без проверки fallback. SMS region allowlist и API-key restrictions — разные настройки; первое уже проверено, второе не объявлять выполненным.
-- Надёжное удаление аккаунта остаётся gap для public review: локальный best-effort wipe не подтверждает полного серверного/provider erasure. См. review notes; политика не обещает невозможного.
-
-### Контакты iOS 18+ — build 9 (22.11.2026)
-
-- Пользователь явно запросил переход на новый механизм с поиском. `app/ios/Runner/ContactAccessBridge.swift` зарегистрирован через `FlutterImplicitEngineBridge.pluginRegistry`; канал `flyprox/contact_access`, метод `pickContacts`, limit 1/10. Файл включён в Runner Sources. Не править pub-cache плагина.
-- На iOS 18+ first-use `CNContactStore.requestAccess`, затем limited `contactAccessPicker`/`ContactAccessButton` и SwiftUI searchable selection. Новая модель требует `NSContactsUsageDescription` (добавлен). Полный доступ человек может выбрать в системном запросе; приложение не должно автоматически перечислять всю книгу: только name predicate с максимумом 50 результатов. Телефоны читаются лишь по явно подтверждённым IDs. Limited mode читает имена только разрешённого подмножества. Не отправлять локальные идентификаторы/полную книгу на backend.
-- Отказ/отмена завершают выбор, не показывая другой picker. Только `unsupported_ios` включает legacy iOS 15–17. Settings/resume перепроверяет доступ; stale search results отбрасываются generation counter. Отозванные IDs не передаются в Dart. Системное разрешение не стирает старые игровые labels/hash автоматически.
-- Реальный вид поиска/системного запроса и lifecycle проверить на iPhone после TestFlight. Компилятор проверил native bridge вместе с AppDelegate, Flutter tests 156/156, analyzer 22 прежних info. Archive/доставка build 9 выполняется; финальный статус в PLAN.md.
-
-### Текущая команда владельца: закончить поток и собрать build 10
-
-**Завершено:** source eceda21, build **1.0.2(10)**, ID **f45c9353-4fa3-4c1b-867c-b0ec22addc8d**, Apple VALID/IN_BETA_TESTING; membership внутренней группы проверен, What to Test и beta review notes записаны. 174/174 Flutter tests; analyze 22 прежних info без errors/warnings; backend 22/22. IPA: codesign deep/strict, production APNs, no debug entitlement, Firebase callback и настоящий billing key подтверждены; новые content keys/Michael/contacts screen присутствуют в AOT. Стандартный Flutter export снова No Accounts/No Distribution; ручной xcodebuild export с ASC API auth успешно завершился, как документировано выше. Notion Privacy/Terms/Support/marketing обновлены уже после доступности 10. Backend a78031d в production checkout; seed:content сохранил 22 keys без перезаписи, рестарт API для новых content rows не требовался. Физический QA (native Contacts, real SMS, StoreKit, видимость push) не подтверждён автоматическими проверками.
-
-**Новая команда владельца отменяет паузу сборок:** закончить новый поток и в конце собрать/загрузить TestFlight. Целевой build 10, 1.0.2. Номер → SMS-код → возраст → контакты реализованы. Firebase и backend login работают до возраста; Superwall/question refresh после 13+. Точный возраст не хранится/не отправляется. `OnboardingFlow` содержит только временный факт прохождения phone step (верификация или явный гостевой выход); без него unknown age не должен напрямую открывать /age или игру. При cold launch он сбрасывается. Удалены ручные ник/имена/Choose your friends. Минимум 4 выбранных контакта, 10 максимум за один multi-pick, 50 всего. Continue и optional push prompt после них. Примеры: Michael + прежние имена; `example_names_enabled`, `example_names_button`, `example_names_description` доступны в content_items и ContentService. false скрывает кнопку+пояснение, удаление ключа возвращает дефолт.
-- Прежняя пауза сборок отменена новой явной командой «потом билд собери в конце». Разрешены commit/push и Archive/upload после проверок. Публичный App Store submit по-прежнему отдельно не выполнять.
-- Текущий пакет: global declared-age gate после телефона/SMS-кода, age options 12-or-younger/13…18+, unknown/blocked не проходят в auth/game. **Последняя команда меняет прежнее правило:** blocked действует только текущий run; cold launch читает marker, сбрасывает outcome к unknown и повторяет intro, чтобы человек мог выбрать возраст снова. Не выдавать это за надёжную age verification/гарантию COPPA. Exact age не хранится.
-- Firebase инициализируется для телефонного входа до возраста; Superwall и question refresh стартуют через AgeGatedStartup только после eligible answer. Публичный контент intro может обновляться до возраста через отдельный Dio без auth/идентификаторов; cache доступен сразу. API/sdk не удалять. Privacy/parents routes вне AppShell/PushListener и доступны без tabbar. Информация для родителей обновлена на 13+ и optional online.
-- Settings: actual Bundle version через flyprox/app_info; Subscription status делает свежую проверку, временный сбой не означает отмену/отсутствие Premium. SDK errors не превращать в empty entitlements.
-- Последняя команда владельца заменяет список 21 страны: Firebase SMS и PhoneRegions **только US,GB,CA,NZ,SG,HK**, default US/+1. UK +44, CA +1, NZ +64, SG +65, HK +852. Live allowlist проверен, test phone/code сохранены. Национальный trunk zero не обрезать до нормализации.
-- App Store availability изменена по явной команде: повторный GET подтвердил ровно USA,GBR,CAN,NZL,SGP,HKG. Остальные отключены. **availableInNewTerritories всё ещё true**: отдельный переключатель будущих территорий требует веб-интерфейса, публичный PATCH в проверенной схеме отсутствует. Подробности — docs/phone-regions-and-storefront-plan.md.
-
-## Правила работы
-
-- Сначала `git status`; сохранять чужие правки. Читать файлы точечно: без общего сканирования проекта, PDF, скриншотов, `app/build/`, `.dart_tool/` и сгенерированных локализаций, если задача этого не требует. `app/lib/data/quiz_questions.dart` — только для задач с вопросами.
-- Зависимости обновлять **по одной**, изучая официальную миграцию; после каждого шага — анализ, тесты и запуск. Небольшие отставания не обновлять без необходимости. Версии брать из `pubspec.lock`, ограничения — из `pubspec.yaml`.
-- GoRouter 18 / Pinput 7 требуют миграции Material; текущие провайдеры используют `flutter_riverpod/legacy.dart`. Secure Storage 11 требует предварительной миграции данных через 10; одного локального запуска 10 недостаточно. Permission Handler 13 требует Android API 37 и нового AGP; Android SDK на этом Mac отсутствует.
-- Делать узкие изменения без лишних зависимостей и документов. Секреты, `.env`, токены и `.p8` не просматривать, не выводить и не коммитить; ключи не просить присылать в чат.
-- Значимые изменения коммитить отдельно в `main`, репозиторий `amanvelikiigmailcom/poll-main`. Push и внешние публикации — с явным разрешением пользователя; уже полученное разрешение не спрашивать повторно. Force-push запрещён.
-
-## Поведение, которое нужно сохранить
-
-- Текущий onboarding: телефон/guest→возраст→минимум4 выбранных контакта либо примеры. Ручной ник/ввод имён удалены, фото отсутствуют. Онбординг показывается один раз, повтор — Settings → Replay intro. Навигация: Home · Quiz · Profile · Settings. Иконки таб-бара — единый набор Phosphor (4 пары regular/fill, `app/lib/theme/navigation_icons.dart`), локальные поднаборы шрифтов и MIT-лицензия — `app/assets/fonts/phosphor/`; выбранная вкладка синяя, без отдельного круга у Quiz.
-- Раунд — 12 вопросов. Reveal доступен в конце и показывает только собственные локальные ответы; входящих голосов других людей нет. После раунда — сохранённый таймер на 40 минут; переходы в игру не обходят его. Нажатие WhatsApp/Instagram снимает таймер независимо от отправки сообщения; отправка добровольная. Instagram открывает `instagram://sharesheet?text=Hi%21` с выбором получателей и текстом `Hi!`, без сайта и копирования в буфер; маршрут недокументированный, проверен пользователем на iPhone.
-- Фото удалены в pending11; текущий и последний завершённый раунд хранятся локально; Reset game удаляет их и остальные игровые данные, очищает кэши профиля, сохраняя настройки эффектов и завершение онбординга. Оригинал фото в галерее не изменять. Report a question готовит письмо с вопросом и ID без имён и ответов; отправляет его сам пользователь.
-- Не обещать анонимную соцсеть, шифрование SharedPreferences или подтверждённое соответствие GDPR/COPPA. Актуальная политика опубликована в Notion, локальная копия `docs/privacy-policy-update.md`; параметры видео — `docs/intro-video.md`.
-
-## Сессия 2026-11-21: сервер, вход, пуши (статус работ)
-
-Очередь оставшихся задач — в [PLAN.md](PLAN.md), смотреть его первым делом.
-
-**Бэкенд `flyprox_backend` (запушен в `main`, работает на проде):** `POST /api/auth/firebase` (проверка ID-токена через Firebase Admin, своя сессия), `POST/DELETE /api/contacts` (хэши `sha256("flyprox-contacts-v1:<E.164>")`, кап 50/запрос, матчинг отдаёт только displayName), `DELETE /api/users/me`, `POST/DELETE /api/devices`, пуш при первом голосе voter→winner в раунде (анонимный текст). Таблицы: `contact_hashes`, `phone_index`, `device_tokens`. Тесты `node --test` 8/8. `scripts/setup.js` идемпотентен и сначала сверяет существующие колонки (Appwrite на повторное создание отвечает 400 `column_limit_exceeded`, а не 409). Таблица `profiles` упёрлась в лимит колонок — новые персонифицированные поля класть только в отдельные таблицы. Сырые номера выбранных контактов сервер не хранит; собственный номер аккаунта хранится для авторизации.
-
-**Приложение (запушено, тесты 119/119, сборки web + iOS зелёные):** вход по SMS через Firebase + гостевой режим (`phone_auth_*`, экраны `auth/`, `pushReplacement` на промпт); синк контактов (`contact_sync_service`, E.164 через `phone_numbers_parser`, регион из локали); гейт 13+ перед `/premium` (`age_gate_service` в keychain, крутилка 10–18+ без дефолта-прохода, blocked-экран без пути назад); пуши (`push_service` + `FirebasePushDriver` только для APNs-токена, `push_prompt_screen`, `push_listener` в shell); удаление стирает и сервер (best-effort, таймаут 5с). Зависимости ставились по одной: `flutter_native_contact_picker` 0.0.13 (пин без `^`), `firebase_core`, `firebase_auth`, `phone_numbers_parser`, `firebase_messaging` (резолвнулся 15.2.10), `flutter_secure_storage_platform_interface` (dev, для тестов). Capabilities: `Runner.entitlements` (production) + `Runner-Debug.entitlements` (development), `CODE_SIGN_ENTITLEMENTS` в трёх конфигах таргета Runner, `UIBackgroundModes` remote-notification. `GoogleService-Info.plist` закоммичен (исключение с одобрения владельца: ключ публичный по докам Firebase, иначе Xcode Cloud файл не получит); ограничения API-ключа менять по документации Firebase Phone Auth с проверкой silent APNs и reCAPTCHA fallback; bundle-only restriction без проверки может сломать веб-проверку.
-
-**Инфра:** прод `myuser@2.135.146.185:2222` (команды SSH — в профилях iTerm2). Бэкенд — systemd user-сервис `flyprox-backend` (`Linger=yes`), публичный URL `https://api.flyprox.com` через Cloudflare Tunnel (`flyprox-tunnel.service`, DNS CNAME в зоне `flyprox.com`). Appwrite 2.7.4 self-hosted, проект `flyprox`, консоль `http://2.135.146.185/`. Firebase-проект `flyprox-2d01b`, тестовый номер `+1 650-555-1234` / код `123456`. Несекретные ID: APNs Key ID `4UK954WJMA`, Team ID `5QG4KFTZNJ`. Секреты живут только так: прод-`.env` и ключи (`flyprox-service-account.json`, `AuthKey_*.p8`) в `~/.config/` с правами 600, в git/чат/вывод команд не попадают никогда; использовать только внутри команд.
-
-**Решения (не менять без пользователя):** пуши — отправка через Appwrite Messaging + APNs (таргетинг/условия позже), никаких кастомных APN-библиотек (`apn` через npm не ставится — git-зависимость заблокирована); Firebase — только SMS-вход (FCM бесплатен, но лишний след не нужен); тексты/контент — свой бэкенд, не Firebase Remote Config (платный сверх 100K запросов/день); гостевой офлайн-режим сохраняется всегда; на сервер — только хэши выбранных контактов, никогда вся книга и никогда сырые номера; возрастной порог ≤12 — COPPA, колесо гранулярное; push утверждён для `poll-main` и `flyprox_backend`, спрашивать повторно не надо.
-
-**Тестовые особенности (обновлено 23.11):** прежний общий router устранён в тестах: использовать createAppRouter/test_app.dart, корректно dispose. Secure Storage — только fake в widget tests; auth persistence — общий MockStorageService. Для Pinput использовать controller и проверять Verify. На push проверять видимый экран; same-location go сохраняет state по контракту. OTP back/reopen покрыт новым тестом. Перед завершением изменений выполнять полный flutter test; отдельный прогон полезен для диагностики, старое предупреждение про общий appRouter больше не описывает текущие тесты.
+# Flyprox — действующие правила приложения
+
+## Область действия и источники
+
+- Этот файл содержит правила репозитория, а не журнал задач и старых разрешений.
+- Учитывать родительские инструкции и актуальные явные команды владельца.
+- Сначала `git status`; сохранять чужие незавершённые правки.
+- Flutter-приложение находится в `app/`, пакет flyprox_app.
+- История сборок/команд: [архив](docs/history/agents-before-cleanup-2026-11-24.md).
+- Архив и прошлые команды не разрешают новые deploy/build/upload.
+- Backend — отдельный flyprox_backend: [расположение и ссылки](docs/backend-reference.md).
+- [Единственный production-статус](/Users/amanyessen/projects/flyprox_backend/docs/runtime-status.md) — в backend.
+- Не копировать сюда live commit, флаги, номера тестов и статусы прошлых релизов.
+- Версию source-клиента читать в [app/pubspec.yaml](app/pubspec.yaml).
+- Наличие номера в source не доказывает доступность соответствующего TestFlight.
+
+## Архитектура и авторитетные данные
+
+- Flutter → Node.js/Express → Appwrite TablesDB → PostgreSQL.
+- Правила доступа/наград исполняет Node; Appwrite Functions не используются.
+- Firebase — SMS-вход; push transport — Appwrite Messaging/APNs без FCM.
+- Существующий Firebase Messaging SDK для клиентского APNs пока сохраняется.
+- Superwall — покупки; профильный debug/local Premium flag не даёт серверных прав.
+- Авторитетные campus/year — onboarding_details; username — social_handles.
+- Signed-in balance — profiles.stars; гостевой баланс остаётся локальным.
+- Серверные подписки — notify_subscriptions с проверенными owner/state/expiry.
+- Legacy fields profiles не использовать как второй источник прав.
+- Auth userId определяется серверной сессией; клиентские body IDs не являются полномочиями.
+- Сессию фиксировать на запрос; stale success/401 не меняет данные другого аккаунта.
+- Не превращать сетевую ошибку в подтверждённое отсутствие подписки/данных.
+- Redis-клиент/кэш рекомендаций в backend реализованы; состояние подключения — в runtime-status.
+- Использовать только существующий Appwrite Redis; отдельный сервис не добавлять.
+
+## Схема и документация в одном коммите
+
+- Единственный машинный контракт БД — backend src/database-schema.js.
+- Справочник backend docs/database-schema.md генерируется из чистых schema modules.
+- История схемы — backend schema/migrations; применённые миграции неизменяемы.
+- Поля таблиц в AGENTS.md и отдельную ручную схему в приложении не копировать.
+- Backend/API/table change обновляет затронутые contracts, миграцию при изменении БД,
+  генерируемый справочник/API docs и необходимые тесты в commit соответствующего репозитория.
+- Если схема не менялась, пустая миграция не нужна.
+- Проверять совместимость установленного клиента; новые profiles columns не добавлять.
+- [Контракт интеграции клиента](docs/database-hardening-client.md) дополняет backend contracts.
+
+## Продуктовые правила и дизайн
+
+- Интерфейс приложения — English; сохранять существующий blue/white AppColors-дизайн.
+- Навигация: Home · Search · Likes · Profile · Settings, единый Phosphor regular/fill.
+- StatefulShellRoute сохраняет поиск и незавершённый раунд между вкладками.
+- Friends и Blocked users — в Settings; Activity — отдельный экран в Settings.
+- Likes не заменять старыми mock voter screens; текущие route implementations — в app_router.dart.
+- Фото профиля не возвращать: используется фиксированный 🙂; gallery originals не менять.
+- Возрастной gate —13+; сохранять outcome/time, не точный выбранный возраст/DOB.
+- Legacy Premium age key не засчитывает общий gate; это не независимая age verification.
+- Поток: phone/guest → age → About you → Choose your campus + graduation year →
+  contacts/examples → username → optional push → Home.
+- School-ready branch может пропустить contacts только по подтверждённому server mode.
+- Имя/фамилия и @username независимы; full name не подставлять в username.
+- Female/Male/Non-binary и формы кампуса сохраняют существующий дизайн.
+- US/CA — одна выдача; Canada dataset отсутствует, GB-каталог покрывает England.
+- Missing campus request сохраняется перед mailto; письмо отправляет сам пользователь.
+- Skip/requested campus не открывает игру новым enrollment; server gate обязателен.
+- Remote skip/guest/example flags — UI controls, не серверная авторизация.
+- Возрастной gate, ожидание и school gate не обходятся Reset game/deep link.
+- Подробный контракт форм: [onboarding](docs/onboarding-schools.md); release sections там исторические.
+
+## Раунд и баланс
+
+- Ожидание после раунда —60минут (один час), включая Premium.
+- За себя голосовать нельзя; self не является кандидатом.
+- Backend-константы — src/rules.js; клиентская реализация — LocalGameService.
+- Изменение общего game contract требует согласованной правки и проверок обеих реализаций.
+- Открытие share/compose и клики сами по себе не снимают ожидание и не дают награды.
+- Invitation rollout остаётся на паузе; server-confirmed redemption нельзя заменять UI-фактом.
+- Online draft хранит точные IDs, owner/session identity и sealed answers для replay.
+- До/после submit проверять аккаунт; ошибка отправки не завершает подтверждённый online round.
+- Повтор batch не начисляет награду снова; абсолютный баланс брать с сервера.
+- Guest stars не загружать числом для серверного начисления; online reward не добавлять гостю.
+- При offline signed-in показывать последний подтверждённый баланс своей сессии либо ожидание.
+- Старые counters/balances не пересчитывать без подтверждённой истории начислений.
+- Не обещать полную анонимность или несуществующее раскрытие имён входящих голосов.
+- Текущий Full Reveal показывает собственные ответы; новые quotas требуют отдельного контракта.
+
+## Контакты, поиск и кампус
+
+- Контакты выбирает пользователь; полную книгу и сырые номера контактов не загружать.
+- Соль/нормализация hash должны совпадать с backend rules.js; hash не гарантирует анонимность.
+- Новый клиент отправляет hashes и хранит labels локально; mapping — по owned contactHash.
+- Неоднозначный/unmatched контакт не даёт права голосовать за произвольный профиль.
+- Privacy cutover старого клиента и school voting activation определяются backend runtime-status.
+- Рекомендации кампуса сделаны: Friends of friends и From your campus.
+- Сначала5карточек и See more; server limit кампуса50; общего каталога пользователей нет.
+- Карточки показывают @username/relationship; не показывать ФИО, телефоны и имена общих друзей.
+- Порог5учеников относится к школьным раундам, а не к рекомендациям.
+- Search/cards/friends/accept проверяют текущий selected campus и блокировки в обе стороны.
+- Смена campus/account очищает видимые старые результаты; stale responses игнорируются.
+- Search сейчас prefix @username от2символов, debounce300мс; регистрация ника3–32 ASCII.
+- Кампусы ищутся от3символов; города от2 либо локально по уже загруженному списку.
+- Meilisearch — согласованный отложенный переход; не включать его этой задачей неявно.
+- Для Meili: oneTypo=5, twoTypos=9; master keys в приложение не передавать.
+- Activity: English,20сначала, следующие20только при scroll, максимум200в выдаче.
+- Показывать выбранного человека, вопрос, graduation year и время; имя/ID голосовавшего не выдавать.
+
+## Проверки и основные пути
+
+- Основная проверка из корня poll-main: `python3 scripts/checks.py`.
+- Она последовательно запускает полный Flutter suite и analyzer; устройство/cloud build не нужны.
+- Диагностика из app/: `flutter test --no-pub`, затем `flutter analyze lib test`.
+- Errors/warnings блокируют успех; новые info разбирать, не объявлять автоматически прежними.
+- До изменения читать относящиеся тесты; новые/изменённые тесты просматривать после green.
+- Общий API/game contract: также полный `python3 scripts/checks.py` из backend root.
+- Runner change: `python3 scripts/test_checks.py`, затем настоящий полный прогон.
+- Ноль тестов/incomplete report/ненулевой exit не являются успехом; не маскировать failures.
+- Тесты постоянны в app/test; временные логи не заменяют их и не коммитятся.
+- Widget tests используют fake secure storage и fresh router с dispose.
+- Fake tests не доказывают SMS/APNs, native Contacts, Sandbox purchase/restore или device delivery.
+- [Проверки](app/test/README.md) и [device checklist](app/test/device/README.md) разделены.
+- Маршруты: app/lib/router/app_router.dart; игра: app/lib/services/local_game_service.dart.
+- Баланс: app/lib/services/account_balance_service.dart; API: app/lib/services/api_service.dart.
+- Версии/зависимости: app/pubspec.yaml и app/pubspec.lock; обновления только по необходимости, по одной.
+
+## Разрешения и завершение
+
+- Безопасные чтение, правки, тесты и commits выполнять в согласованном scope.
+- Опасный пакет заранее описать: конкретные изменения, backup, QA и rollback.
+- Уже полученное подтверждение этого пакета не спрашивать повторно; новые действия оценивать отдельно.
+- Прошлые разрешения другой задачи не действуют как постоянное разрешение.
+- Push/deploy/внешние записи — по действующим разрешениям; force-push запрещён.
+- Cloud/native build, TestFlight upload и публичный submit — только по явной актуальной команде.
+- При разрешённом push последний commit содержит `[ci skip]` для защиты от случайного cloud build.
+- [iOS release runbook](docs/ios-release-runbook.md) — процедура, а не разрешение на запуск.
+- Credentials читать только внутри авторизованного процесса; не выводить .env/JWT/.p8/tokens.
+- Не коммитить credentials; публичный Firebase config — ранее согласованное исключение.
+- Server erasure подтверждать deleted:true; при ошибке сохранять credential/progress для retry.
+- Не обещать удаление Apple records или подтверждённое соответствие законам по одному age gate.
+- В отчёте различать: код готов / committed / pushed / deployed / build available / device tested.
