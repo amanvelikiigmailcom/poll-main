@@ -13,12 +13,14 @@ class FakeActivity extends ActivityService {
   FakeActivity(super.api, super.storage);
   final calls = <String?>[];
   bool fail = false;
+  Map<String, dynamic>? response;
   Completer<Map<String, dynamic>>? pending;
   @override
   Future<Map<String, dynamic>> page({String? cursor}) async {
     calls.add(cursor);
     if (pending != null) return pending!.future;
     if (fail) throw const ApiException('Offline');
+    if (response != null) return response!;
     final offset = cursor == null ? 0 : int.parse(cursor);
     return {
       'items': List.generate(
@@ -50,9 +52,12 @@ void main() {
     WidgetTester tester, {
     bool fail = false,
     double scale = 1,
+    Map<String, dynamic>? response,
   }) async {
     final storage = ActivityStorage();
-    final service = FakeActivity(ApiService(storage), storage)..fail = fail;
+    final service = FakeActivity(ApiService(storage), storage)
+      ..fail = fail
+      ..response = response;
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -91,7 +96,8 @@ void main() {
       final (_, service) = await mount(tester);
       expect(service.calls, [null]);
       expect(find.text('Activity'), findsOneWidget);
-      expect(find.text('Student 0 was chosen'), findsOneWidget);
+      expect(find.text('Student 0'), findsOneWidget);
+      expect(find.text('Was chosen in a poll'), findsWidgets);
       expect(find.text('From a student graduating in 2028'), findsWidgets);
       await tester.pump(const Duration(seconds: 2));
       expect(service.calls.length, 1);
@@ -113,7 +119,7 @@ void main() {
       service.fail = false;
       await tester.tap(find.text('Retry'));
       await tester.pumpAndSettle();
-      expect(find.text('Student 0 was chosen'), findsOneWidget);
+      expect(find.text('Student 0'), findsOneWidget);
       service.pending = Completer();
       await storage.saveToken('other');
       await tester.pump();
@@ -121,7 +127,7 @@ void main() {
       await tester.pump();
       service.pending!.complete({'items': [], 'nextCursor': null});
       await tester.pumpAndSettle();
-      expect(find.text('Student 0 was chosen'), findsNothing);
+      expect(find.text('Student 0'), findsNothing);
     },
   );
   testWidgets('cards wrap at 320px and double text size without overflow', (
@@ -139,7 +145,7 @@ void main() {
   ) async {
     SharedPreferences.setMockInitialValues({});
     final (_, service) = await mount(tester);
-    expect(find.text('Student 0 was chosen'), findsOneWidget);
+    expect(find.text('Student 0'), findsOneWidget);
     final context = tester.element(find.byType(ActivityScreen));
     final setup = ProviderScope.containerOf(
       context,
@@ -152,10 +158,84 @@ void main() {
       'school': {'id': 'new-campus'},
     });
     await tester.pump();
-    expect(find.text('Student 0 was chosen'), findsNothing);
+    expect(find.text('Student 0'), findsNothing);
     expect(service.calls, [null, null]);
     service.pending!.complete({'items': [], 'nextCursor': null});
     await tester.pumpAndSettle();
-    expect(find.text('No campus activity yet'), findsOneWidget);
+    expect(find.text('Your campus activity starts here'), findsOneWidget);
+  });
+  testWidgets('empty campus feed explains the screen without fake events', (
+    tester,
+  ) async {
+    await mount(tester, response: {'items': [], 'nextCursor': null});
+    expect(find.text('Your campus activity starts here'), findsOneWidget);
+    expect(
+      find.text(
+        'See who gets chosen in polls around your campus. '
+        'New activity will appear here.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Was chosen in a poll'), findsNothing);
+    expect(find.text('Retry'), findsNothing);
+  });
+  testWidgets('missing campus is distinct from an empty feed', (tester) async {
+    await mount(
+      tester,
+      response: {'items': [], 'nextCursor': null, 'campusRequired': true},
+    );
+    expect(find.text('Choose your campus first'), findsOneWidget);
+    expect(find.text('Your campus activity starts here'), findsNothing);
+  });
+  testWidgets('failed loading is not presented as an empty campus feed', (
+    tester,
+  ) async {
+    await mount(tester, fail: true);
+    expect(find.text('Offline'), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+    expect(find.text('Your campus activity starts here'), findsNothing);
+  });
+  testWidgets('cards use server fields and omit an unconfirmed year', (
+    tester,
+  ) async {
+    await mount(
+      tester,
+      response: {
+        'items': [
+          {
+            'id': 'real-event',
+            'chosenName': 'Alex Taylor',
+            'question': 'Most likely to become famous',
+            'graduationYear': null,
+            'occurredAt': DateTime.now()
+                .subtract(const Duration(hours: 8))
+                .toUtc()
+                .toIso8601String(),
+          },
+        ],
+        'nextCursor': null,
+      },
+    );
+    expect(find.text('Alex Taylor'), findsOneWidget);
+    expect(find.text('Most likely to become famous'), findsOneWidget);
+    expect(find.text('8h'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('activity-time-real-event')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('graduating'), findsNothing);
+    final bar = tester.widget<AppBar>(find.byType(AppBar));
+    expect(bar.centerTitle, isTrue);
+  });
+  testWidgets('pull to refresh restarts the feed at the first page', (
+    tester,
+  ) async {
+    final (_, service) = await mount(tester);
+    await tester.drag(
+      find.byKey(const Key('activity-list')),
+      const Offset(0, 400),
+    );
+    await tester.pumpAndSettle();
+    expect(service.calls, [null, null]);
   });
 }

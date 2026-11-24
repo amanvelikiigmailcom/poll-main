@@ -122,15 +122,31 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen>
     if (time == null) return '';
     final age = DateTime.now().difference(time);
     if (age.inMinutes < 1) return 'Just now';
-    if (age.inMinutes < 60) return '${age.inMinutes}m ago';
-    if (age.inHours < 24) return '${age.inHours}h ago';
-    return '${age.inDays}d ago';
+    if (age.inMinutes < 60) return '${age.inMinutes}m';
+    if (age.inHours < 24) return '${age.inHours}h';
+    final now = DateTime.now();
+    final local = time.toLocal();
+    final date = DateTime(local.year, local.month, local.day);
+    final today = DateTime(now.year, now.month, now.day);
+    if (date == DateTime(today.year, today.month, today.day - 1)) {
+      return 'Yesterday';
+    }
+    return '${age.inDays}d';
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: AppColors.background,
-    appBar: AppBar(title: const Text('Activity'), centerTitle: true),
+    appBar: AppBar(
+      title: const Text(
+        'Activity',
+        style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
+      ),
+      centerTitle: true,
+      backgroundColor: AppColors.primaryBlue,
+      foregroundColor: AppColors.white,
+      surfaceTintColor: Colors.transparent,
+    ),
     body: _loading && _items.isEmpty
         ? const Center(child: CircularProgressIndicator())
         : RefreshIndicator(
@@ -174,7 +190,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen>
                     child: Column(
                       children: [
                         const Icon(
-                          Icons.auto_awesome_outlined,
+                          Icons.star_rounded,
                           size: 48,
                           color: AppColors.primaryBlue,
                         ),
@@ -182,7 +198,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen>
                         Text(
                           _campusRequired
                               ? 'Choose your campus first'
-                              : 'No campus activity yet',
+                              : 'Your campus activity starts here',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontSize: 20,
@@ -193,7 +209,8 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen>
                         Text(
                           _campusRequired
                               ? 'Campus activity appears after you select a campus.'
-                              : 'Completed campus votes will appear here.',
+                              : 'See who gets chosen in polls around your campus. '
+                                    'New activity will appear here.',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             color: AppColors.textSecondary,
@@ -223,27 +240,58 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen>
           width: 44,
           height: 44,
           decoration: BoxDecoration(
-            color: AppColors.primaryBlue.withValues(alpha: .08),
+            color: AppColors.surface,
             shape: BoxShape.circle,
           ),
           child: const Icon(
             Icons.star_rounded,
-            color: AppColors.primaryBlue,
+            color: AppColors.premiumGold,
             size: 26,
           ),
         ),
         const SizedBox(width: 14),
         Expanded(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                '${item['chosenName']} was chosen',
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 12,
+                runSpacing: 8,
+                children: [
+                  Text(
+                    item['chosenName'] as String,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  Container(
+                    key: ValueKey('activity-time-${item['id']}'),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      _timeAgo(item['occurredAt'] as String),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Was chosen in a poll',
+                style: TextStyle(fontSize: 14, color: AppColors.textPrimary),
               ),
               const SizedBox(height: 6),
               Text(
@@ -264,11 +312,6 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen>
                   ),
                 ),
               ],
-              const SizedBox(height: 8),
-              Text(
-                _timeAgo(item['occurredAt'] as String),
-                style: const TextStyle(fontSize: 12, color: AppColors.textHint),
-              ),
             ],
           ),
         ),

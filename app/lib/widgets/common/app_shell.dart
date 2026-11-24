@@ -86,7 +86,10 @@ class AppShell extends StatelessWidget {
     return Scaffold(
       body: child,
       bottomNavigationBar: AppBottomNavBar(
-        currentIndex: navigationShell?.currentIndex ?? indexFor(path),
+        // Activity is a detail screen, not a sixth tab.
+        currentIndex: path == AppRoutes.activity
+            ? -1
+            : navigationShell?.currentIndex ?? indexFor(path),
         onTap: (i) => _onTap(context, i),
       ),
     );

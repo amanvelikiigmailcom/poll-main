@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flyprox_app/screens/profile/person_profile_screen.dart';
+import 'package:flyprox_app/screens/social/activity_screen.dart';
 import 'package:flyprox_app/screens/voting/vote_screen.dart';
 import 'package:flyprox_app/screens/voting/timer_screen.dart';
 import 'fakes/eligible_player.dart';
@@ -90,6 +91,35 @@ void main() {
     expect(
       tester.widget<AppBottomNavBar>(find.byType(AppBottomNavBar)).currentIndex,
       3,
+    );
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('Settings opens Activity with five unselected tabs and back', (
+    tester,
+  ) async {
+    await mount(tester, AppRoutes.settings);
+    await tester.tap(find.text('Activity'));
+    await pumpRoute(tester);
+    expect(find.byType(ActivityScreen), findsOneWidget);
+    expect(
+      tester.widget<AppBottomNavBar>(find.byType(AppBottomNavBar)).currentIndex,
+      -1,
+    );
+    for (final tab in ['Home', 'Search', 'Likes', 'Profile', 'Settings']) {
+      expect(find.byTooltip(tab), findsOneWidget);
+    }
+    await tester.tap(find.byType(BackButton));
+    await pumpRoute(tester);
+    expect(find.byType(ActivityScreen), findsNothing);
+    expect(
+      testAppRouter.routeInformationProvider.value.uri.path,
+      AppRoutes.settings,
+    );
+    expect(
+      tester.widget<AppBottomNavBar>(find.byType(AppBottomNavBar)).currentIndex,
+      4,
     );
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
