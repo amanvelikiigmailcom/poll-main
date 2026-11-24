@@ -1,5 +1,8 @@
 # Worktree integration and build 14
 
+Completed integration, production rollout and VALID1.0.3(14) upload:
+[release evidence](release-1.0.3-build14.md).
+
 ## Scope and sources
 
 The owner stopped other editing processes and requested consolidation of all
