@@ -138,3 +138,11 @@ Companion backend source commit: `e4c1c13` in `flyprox_backend`.
 This source requires that matching backend change. Source commits do not imply
 production deployment or a new available TestFlight build. Device Firebase,
 Contacts and purchase checks remain separate from fake-provider tests.
+
+
+Reviewer Continue without login awaits the same verified-session restoration on
+both phone and OTP screens. Repeated taps are disabled while it runs. Failed
+restoration stays on the login screen with a recoverable connection message;
+it does not throw an unhandled asynchronous exception or render either hidden
+form. The button requires the existing reviewer session and remote guest flag;
+a merely typed/remembered reviewer number does not grant it before Firebase login.

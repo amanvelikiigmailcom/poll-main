@@ -522,6 +522,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           if ((_original!['limits'] as Map)['gender'] != null)
                             DropdownButtonFormField<String>(
                               key: const Key('edit-gender'),
+                              isExpanded: true,
                               initialValue: _gender,
                               decoration: const InputDecoration(
                                 labelText: 'Gender',
@@ -529,15 +530,27 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                               items: const [
                                 DropdownMenuItem(
                                   value: 'female',
-                                  child: Text('Female'),
+                                  child: Text(
+                                    'Female',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                                 DropdownMenuItem(
                                   value: 'male',
-                                  child: Text('Male'),
+                                  child: Text(
+                                    'Male',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                                 DropdownMenuItem(
                                   value: 'nonbinary',
-                                  child: Text('Non-binary'),
+                                  child: Text(
+                                    'Non-binary',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                               ],
                               onChanged: _editable('gender')
@@ -568,6 +581,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                               null) ...[
                             DropdownButtonFormField<String>(
                               key: const Key('edit-country'),
+                              isExpanded: true,
                               initialValue: _country,
                               decoration: const InputDecoration(
                                 labelText: 'Country of study',
@@ -575,27 +589,51 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                               items: const [
                                 DropdownMenuItem(
                                   value: 'US',
-                                  child: Text('United States'),
+                                  child: Text(
+                                    'United States',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                                 DropdownMenuItem(
                                   value: 'CA',
-                                  child: Text('Canada'),
+                                  child: Text(
+                                    'Canada',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                                 DropdownMenuItem(
                                   value: 'GB',
-                                  child: Text('United Kingdom'),
+                                  child: Text(
+                                    'United Kingdom',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                                 DropdownMenuItem(
                                   value: 'NZ',
-                                  child: Text('New Zealand'),
+                                  child: Text(
+                                    'New Zealand',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                                 DropdownMenuItem(
                                   value: 'SG',
-                                  child: Text('Singapore'),
+                                  child: Text(
+                                    'Singapore',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                                 DropdownMenuItem(
                                   value: 'HK',
-                                  child: Text('Hong Kong'),
+                                  child: Text(
+                                    'Hong Kong',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                               ],
                               onChanged: _editable('country')

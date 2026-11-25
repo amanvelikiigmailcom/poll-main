@@ -101,6 +101,7 @@ Future<({GoRouter router, SessionStorage storage, EditorFake service})> mount(
   WidgetTester tester, {
   void Function(EditorFake)? configure,
   bool shell = false,
+  double scale = 1,
   List<Map<String, dynamic>>? onboardingSchools,
 }) async {
   final storage = SessionStorage();
@@ -141,7 +142,15 @@ Future<({GoRouter router, SessionStorage storage, EditorFake service})> mount(
         profileEditServiceProvider.overrideWithValue(service),
         onboardingDetailsProvider.overrideWith((ref) => onboarding),
       ],
-      child: MaterialApp.router(routerConfig: router),
+      child: MaterialApp.router(
+        routerConfig: router,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(scale)),
+          child: child!,
+        ),
+      ),
     ),
   );
   router.push('/edit-profile');
@@ -159,6 +168,35 @@ Future<void> tap(WidgetTester tester, String text) async {
 }
 
 void main() {
+  for (final scale in [1.0, 2.0]) {
+    testWidgets(
+      'blank reviewer editor and new dropdowns fit 320px at text scale $scale',
+      (tester) async {
+        tester.view.physicalSize = const Size(320, 568);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        await mount(
+          tester,
+          scale: scale,
+          configure: (fake) => fake.blankReviewer = true,
+        );
+        expect(tester.takeException(), isNull);
+        for (final key in ['edit-gender', 'edit-country']) {
+          final dropdown = find.byKey(Key(key));
+          await tester.ensureVisible(dropdown);
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+          await tester.tap(dropdown);
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+          await tester.tapAt(const Offset(5, 5));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+        }
+      },
+    );
+  }
   testWidgets(
     'blank reviewer can fill a name without mandatory gender or campus',
     (tester) async {

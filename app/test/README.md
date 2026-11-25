@@ -15,10 +15,14 @@ These fakes do not prove real purchase/restore, webhooks or production DB unique
 
 `reviewer_onboarding_flow_test.dart` follows OTP → contacts → examples → username
 → Home → empty profile, proves both skipped forms never render, checks direct
-links/back navigation, canonical username restore and retry after identity errors.
+links/back navigation across saved stages, canonical username restore and retry after identity errors.
+Additional paths cover typed phone + test OTP, Firebase automatic verification,
+Continue without login on both phone/code pages, network failure/retry, duplicate
+taps, remembered phone without a session, restart and the reviewer age gate.
 An ordinary Firebase test phone still enters personal-details setup.
 `edit_profile_screen_test.dart` covers independent first-name/gender/country fill
-with other reviewer fields blank. Backend HTTP tests prove campus-free contacts
+with other reviewer fields blank, including both dropdowns on a 320px phone at
+1×/2× text scale. Backend HTTP tests prove campus-free contacts
 round submission/replay for the verified reviewer only, and atomic editor saves.
 These tests use fake Firebase/HTTP providers and do not log into a real account.
 

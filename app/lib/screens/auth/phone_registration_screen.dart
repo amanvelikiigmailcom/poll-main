@@ -140,10 +140,29 @@ class _PhoneRegistrationScreenState
     }
   }
 
-  void _continueAsGuest() {
-    if ((ref.read(storageServiceProvider).reviewerSkipsAllowed &&
-        ContentService.instance.flag('guest_enabled'))) {
-      _next();
+  bool _continuingAsGuest = false;
+
+  Future<void> _continueAsGuest() async {
+    if (_continuingAsGuest ||
+        !ref.read(storageServiceProvider).reviewerSkipsAllowed ||
+        !ContentService.instance.flag('guest_enabled')) {
+      return;
+    }
+    setState(() {
+      _continuingAsGuest = true;
+      _sendError = null;
+    });
+    try {
+      await _next();
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _sendError =
+              'Couldn’t continue. Check your connection and try again.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _continuingAsGuest = false);
     }
   }
 
@@ -307,7 +326,9 @@ class _PhoneRegistrationScreenState
                           ContentService.instance.flag('guest_enabled'))) ...[
                         const SizedBox(height: 8),
                         OutlinedButton(
-                          onPressed: _continueAsGuest,
+                          onPressed: _continuingAsGuest
+                              ? null
+                              : _continueAsGuest,
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white,
                             side: const BorderSide(color: Colors.white70),

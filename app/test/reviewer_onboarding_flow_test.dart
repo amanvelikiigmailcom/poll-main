@@ -15,6 +15,7 @@ import 'package:flyprox_app/services/content_service.dart';
 import 'package:flyprox_app/services/local_game_service.dart';
 import 'package:flyprox_app/services/onboarding_details_service.dart';
 import 'package:flyprox_app/services/phone_auth_service.dart';
+import 'package:flyprox_app/services/phone_auth_driver.dart';
 import 'package:flyprox_app/services/push_service.dart';
 import 'package:flyprox_app/services/storage_service.dart';
 import 'fakes/eligible_player.dart';
@@ -30,8 +31,9 @@ class ReviewFixture {
   final phone = FakePhoneAuthDriver();
   final requests = <RequestOptions>[];
   String? username;
-  bool reviewer = true, failIdentity = false;
+  bool reviewer = true, failIdentity = false, failOnboarding = false;
   Completer<void>? holdIdentity;
+  Completer<void>? holdOnboarding;
 
   Future<void> mount(
     WidgetTester tester, {
@@ -59,6 +61,16 @@ class ReviewFixture {
               'isNewUser': true,
             };
           } else if (r.path == '/api/onboarding') {
+            if (holdOnboarding != null) await holdOnboarding!.future;
+            if (failOnboarding) {
+              h.reject(
+                DioException(
+                  requestOptions: r,
+                  type: DioExceptionType.connectionError,
+                ),
+              );
+              return;
+            }
             body = {
               'status': 'pending',
               'country': 'US',
@@ -151,6 +163,7 @@ void main() {
     ContentService.instance.debugClear();
     ContentService.instance.debugSetOverrides({
       'example_names_enabled': 'true',
+      'guest_enabled': 'true',
     });
   });
   tearDown(() => ContentService.instance.debugClear());
@@ -234,18 +247,27 @@ void main() {
         route: AppRoutes.profileDetails,
         stage: 'school',
       );
-      for (final route in [
-        AppRoutes.profileDetails,
-        AppRoutes.schoolSetup,
-        AppRoutes.schoolWaiting,
+      for (final stage in [
+        'profile',
+        'school',
+        'waiting',
+        'username',
+        'done',
       ]) {
-        testAppRouter.go(route);
-        await tester.pumpAndSettle();
-        expect(
-          testAppRouter.routeInformationProvider.value.uri.path,
-          AppRoutes.namesEntry,
-        );
-        expectNoHiddenForms();
+        await f.onboarding.draft({'stage': stage});
+        for (final route in [
+          AppRoutes.profileDetails,
+          AppRoutes.schoolSetup,
+          AppRoutes.schoolWaiting,
+        ]) {
+          testAppRouter.go(route);
+          await tester.pumpAndSettle();
+          expect(
+            testAppRouter.routeInformationProvider.value.uri.path,
+            AppRoutes.namesEntry,
+          );
+          expectNoHiddenForms();
+        }
       }
       await tester.tap(find.byTooltip('Back to login'));
       await tester.pumpAndSettle();
@@ -362,6 +384,228 @@ void main() {
       expect(await LocalGameService.instance.getUsername(), 'original_local');
       expect(f.requests.where((r) => r.path == '/api/social/handle'), isEmpty);
       expect(find.text('Retry'), findsOneWidget);
+    },
+  );
+  testWidgets(
+    'typed reviewer phone and Firebase test code hide both forms from start to contacts',
+    (tester) async {
+      final f = ReviewFixture();
+      await f.mount(tester, route: AppRoutes.phone);
+      expect(find.text('Continue without login'), findsNothing);
+      await tester.enterText(find.byType(TextField), '6505551234');
+      await tester.ensureVisible(find.text('Send code'));
+      await tester.pump();
+      await tester.tap(find.text('Send code'));
+      for (var i = 0; i < 12; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+        expectNoHiddenForms();
+      }
+      expect(f.phone.lastPhone, '+16505551234');
+      expect(find.byType(Pinput), findsOneWidget);
+      tester.widget<Pinput>(find.byType(Pinput)).controller!.text = '123456';
+      for (var i = 0; i < 12; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+        expectNoHiddenForms();
+      }
+      expect(
+        testAppRouter.routeInformationProvider.value.uri.path,
+        AppRoutes.namesEntry,
+      );
+      expect(f.phone.lastSmsCode, '123456');
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'reviewer automatic Firebase verification also hides both forms',
+    (tester) async {
+      final f = ReviewFixture();
+      f.phone.codeResult = const CodeSent(autoIdToken: 'verified-auto-token');
+      await f.mount(tester, route: AppRoutes.phone);
+      await tester.enterText(find.byType(TextField), '6505551234');
+      await tester.ensureVisible(find.text('Send code'));
+      await tester.pump();
+      await tester.tap(find.text('Send code'));
+      await tester.pumpAndSettle();
+      expect(
+        testAppRouter.routeInformationProvider.value.uri.path,
+        AppRoutes.namesEntry,
+      );
+      expectNoHiddenForms();
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  for (final route in [AppRoutes.phone, AppRoutes.otp]) {
+    testWidgets(
+      'reviewer Continue without login on $route goes to contacts then examples without hidden forms',
+      (tester) async {
+        final f = ReviewFixture()..username = 'existing_review_handle';
+        await f.mount(
+          tester,
+          authenticated: true,
+          route: route,
+          stage: 'profile',
+        );
+        final skip = find.text('Continue without login');
+        await tester.ensureVisible(skip);
+        await tester.pump();
+        await tester.tap(skip);
+        await tester.pumpAndSettle();
+        expect(
+          testAppRouter.routeInformationProvider.value.uri.path,
+          AppRoutes.namesEntry,
+        );
+        expectNoHiddenForms();
+        final examples = find.text(
+          ContentService.instance.text('example_names_button'),
+        );
+        await tester.ensureVisible(examples);
+        await tester.pump();
+        await tester.tap(examples);
+        await tester.pumpAndSettle();
+        expect(
+          testAppRouter.routeInformationProvider.value.uri.path,
+          AppRoutes.home,
+        );
+        expect(find.text('Choose your username'), findsNothing);
+        expectNoHiddenForms();
+        expect(tester.takeException(), isNull);
+        expect(
+          f.requests.where((r) => r.path == '/api/social/handle'),
+          isEmpty,
+        );
+      },
+    );
+
+    testWidgets(
+      'Continue without login on $route handles server failure without uncaught errors or hidden forms',
+      (tester) async {
+        final f = ReviewFixture()..failOnboarding = true;
+        await f.mount(tester, authenticated: true, route: route);
+        final skip = find.text('Continue without login');
+        await tester.ensureVisible(skip);
+        await tester.pump();
+        await tester.tap(skip);
+        await tester.pumpAndSettle();
+        expectNoHiddenForms();
+        expect(tester.takeException(), isNull);
+        expect(testAppRouter.routeInformationProvider.value.uri.path, route);
+        expect(
+          find.text('Couldn’t continue. Check your connection and try again.'),
+          findsOneWidget,
+        );
+        f.failOnboarding = false;
+        await tester.tap(skip);
+        await tester.pumpAndSettle();
+        expect(
+          testAppRouter.routeInformationProvider.value.uri.path,
+          AppRoutes.namesEntry,
+        );
+        expectNoHiddenForms();
+      },
+    );
+  }
+
+  testWidgets(
+    'remembered reviewer phone without verified session grants no guest exit or example access',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'reviewer_seen_v1': true,
+        'registered_phone': '+16505551234',
+      });
+      final f = ReviewFixture();
+      await f.mount(tester, route: AppRoutes.phone);
+      expect(f.storage.reviewerSkipsAllowed, isFalse);
+      expect(find.text('Continue without login'), findsNothing);
+      await tester.enterText(find.byType(TextField), '6505551234');
+      await tester.pump();
+      expect(find.text('Continue without login'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'restart with completed reviewer onboarding and stale local name opens Home and correct profile',
+    (tester) async {
+      await LocalGameService.instance.savePlayerAndFriends(
+        playerName: 'local_round_owner',
+        friends: ['Alex', 'Sam', 'Jordan', 'Taylor'],
+      );
+      await LocalGameService.instance.saveUsername('wrong_local_name');
+      final f = ReviewFixture()..username = 'server_handle';
+      await f.mount(
+        tester,
+        authenticated: true,
+        route: AppRoutes.splash,
+        stage: 'done',
+      );
+      await tester.pump(const Duration(seconds: 8));
+      await tester.pumpAndSettle();
+      expect(
+        testAppRouter.routeInformationProvider.value.uri.path,
+        AppRoutes.home,
+      );
+      testAppRouter.go(AppRoutes.profile);
+      await tester.pumpAndSettle();
+      expect(find.text('@server_handle'), findsWidgets);
+      expect(find.text('@wrong_local_name'), findsNothing);
+      expectNoHiddenForms();
+      expect(tester.takeException(), isNull);
+    },
+  );
+  for (final route in [AppRoutes.phone, AppRoutes.otp]) {
+    testWidgets(
+      'reviewer guest button on $route prevents duplicate pending transitions',
+      (tester) async {
+        final pending = Completer<void>();
+        final f = ReviewFixture()..holdOnboarding = pending;
+        await f.mount(tester, authenticated: true, route: route);
+        final skip = find.text('Continue without login');
+        await tester.ensureVisible(skip);
+        await tester.pump();
+        await tester.tap(skip);
+        for (var i = 0; i < 8; i++) {
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+        final button = tester.widget<OutlinedButton>(
+          find.widgetWithText(OutlinedButton, 'Continue without login'),
+        );
+        expect(button.onPressed, isNull);
+        await tester.tap(skip);
+        await tester.pump();
+        expect(f.requests.where((r) => r.path == '/api/onboarding').length, 1);
+        expectNoHiddenForms();
+        pending.complete();
+        await tester.pumpAndSettle();
+        expect(
+          testAppRouter.routeInformationProvider.value.uri.path,
+          AppRoutes.namesEntry,
+        );
+        expectNoHiddenForms();
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+  testWidgets(
+    'reviewer below minimum age stays blocked even via hidden-form or Home links',
+    (tester) async {
+      AgeGateService.instance.statusListenable.value = AgeGateStatus.blocked;
+      final f = ReviewFixture();
+      await f.mount(tester, authenticated: true, route: AppRoutes.phone);
+      for (final route in [
+        AppRoutes.home,
+        AppRoutes.profileDetails,
+        AppRoutes.schoolSetup,
+      ]) {
+        testAppRouter.go(route);
+        await tester.pumpAndSettle();
+        expect(
+          testAppRouter.routeInformationProvider.value.uri.path,
+          AppRoutes.ageBlocked,
+        );
+        expectNoHiddenForms();
+        expect(tester.takeException(), isNull);
+      }
     },
   );
 }
