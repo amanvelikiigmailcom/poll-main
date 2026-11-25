@@ -141,8 +141,11 @@ void main() {
         SchoolRegions.caProvinces.singleWhere((p) => p.code == 'ON').server,
         'ONTARIO',
       );
-      expect(SchoolRegions.gbRegions.length, 223);
+      expect(SchoolRegions.gbRegions.length, 262);
       expect(SchoolRegions.gbRegions, contains('City of London'));
+      expect(SchoolRegions.gbRegions, contains('City of Edinburgh'));
+      expect(SchoolRegions.gbRegions, contains('The Vale of Glamorgan'));
+      expect(SchoolRegions.gbRegions, contains('ANTRIM'));
       expect(
         SchoolRegions.gbRegions.toSet().length,
         SchoolRegions.gbRegions.length,
@@ -163,7 +166,7 @@ void main() {
         SchoolRegions.forCountry('US').singleWhere((e) => e.label == 'Texas'),
         (value: 'TEXAS', label: 'Texas'),
       );
-      expect(SchoolRegions.forCountry('GB').length, 223);
+      expect(SchoolRegions.forCountry('GB').length, 262);
       expect(SchoolRegions.forCountry('HK'), isEmpty);
     });
   });

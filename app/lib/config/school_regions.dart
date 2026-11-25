@@ -67,9 +67,8 @@ abstract final class SchoolRegions {
     (code: 'VI', label: 'U.S. Virgin Islands', server: 'U.S. VIRGIN ISLANDS'),
   ];
 
-  /// Canadian provinces and territories. No CA rows are imported yet, so the
-  /// server values assume the future import uses full UPPER names like CCD.
-  /// Re-check against the CA source file before its first import.
+  /// Canadian provinces and territories. Server values are full UPPER names
+  /// matching the StatCan ODEF import (backend data/schools_ca.json).
   static const caProvinces = <({String code, String label, String server})>[
     (code: 'AB', label: 'Alberta', server: 'ALBERTA'),
     (code: 'BC', label: 'British Columbia', server: 'BRITISH COLUMBIA'),
@@ -86,7 +85,9 @@ abstract final class SchoolRegions {
     (code: 'YT', label: 'Yukon', server: 'YUKON'),
   ];
 
-  /// GB regions exactly as stored by the GIAS import (223 values).
+  /// GB regions exactly as stored by the imports (262 values): England GIAS
+  /// plus Scotland SEED councils, Welsh local authorities and NI counties.
+  /// Welsh LAs were already present from GIAS except The Vale of Glamorgan.
   static const gbRegions = <String>[
     'Avon',
     'BFPO Overseas Establishments',
@@ -311,6 +312,45 @@ abstract final class SchoolRegions {
     'Wrexham',
     'Wrexham (Wrecsam)',
     'York',
+    'ANTRIM',
+    'ARMAGH',
+    'Aberdeen City',
+    'Aberdeenshire',
+    'Angus',
+    'Argyll and Bute',
+    'City of Edinburgh',
+    'Clackmannanshire',
+    'DOWN',
+    'Dumfries and Galloway',
+    'Dundee City',
+    'East Ayrshire',
+    'East Dunbartonshire',
+    'East Lothian',
+    'East Renfrewshire',
+    'FERMANAGH',
+    'Falkirk',
+    'Fife',
+    'Glasgow City',
+    'Highland',
+    'Inverclyde',
+    'LONDONDERRY',
+    'Midlothian',
+    'Moray',
+    'Na h-Eileanan an Iar',
+    'North Ayrshire',
+    'North Lanarkshire',
+    'Orkney Islands',
+    'Perth and Kinross',
+    'Renfrewshire',
+    'Scottish Borders',
+    'Shetland Islands',
+    'South Ayrshire',
+    'South Lanarkshire',
+    'Stirling',
+    'TYRONE',
+    'The Vale of Glamorgan',
+    'West Dunbartonshire',
+    'West Lothian',
   ];
 
   /// True when [country] has a canonical region list for dropdown UI.

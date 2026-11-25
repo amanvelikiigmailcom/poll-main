@@ -18,7 +18,7 @@ CA, county/region for GB, district for SG/HK, and region for NZ.
 
 Flow: phone/guest → age → About you (first name, last name, Female/Male/Non-binary) → Choose your campus (catalog + graduation year) → contacts/examples → username → optional notifications → Home. Existing blue/white form styling is retained. Names were removed from the username step. Full names never prefill @username or appear in voting cards.
 
-School lookup uses the country selected with the phone number. US and CA share one directory; there is no extra country picker. School cards include city, state/region and source country. GB currently has England coverage only. NZ/SG/HK use the missing-school flow until actual catalogs are added. Guest defaults to US if no country was selected. An international phone does not prove the country of study; the requested-school form records the current directory country and location typed by the user.
+School lookup uses the country selected with the phone number. US and CA share one directory; there is no extra country picker. School cards include city, state/region and source country. GB covers England, Scotland, Wales and Northern Ireland. CA, NZ, SG and HK catalogs are imported; the missing-school flow remains for schools absent from the catalogs. Guest defaults to US if no country was selected. An international phone does not prove the country of study; the requested-school form records the current directory country and location typed by the user.
 
 `I can’t find my campus` opens a form for school/campus, country (from the phone step), city, state/region and graduation year. Prepare email first persists the signed-in user's request, then opens a `mailto:` draft to the existing server-configured `support_email`. The user sends it. Opening/returning from Mail is not proof of sending or approval. A failed Mail launch displays the support address and keeps the fields. The account stays blocked from voting until a real directory entry is selected; adding an entry never enrolls a user automatically.
 
@@ -37,11 +37,31 @@ School lookup uses the country selected with the phone number. US and CA share o
 
 US: existing `data/schools_ccd.json` (CCD 2024–25) and `data/schools_pss.json` (PSS 2023–24), 124,688 records in the actual checked-in files. Stable IDs use NCES external IDs, not array positions.
 
-England: [Department for Education, Get Information about Schools](https://www.get-information-schools.service.gov.uk/Downloads), Open Government Licence v3.0. Official extract retrieved from `https://ea-edubase-api-prod.azurewebsites.net/edubase/downloads/public/edubasealldata20261123.csv`. `python3 scripts/build-gb-schools.py /path/to/edubasealldata.csv` in backend filters open establishments with a recorded English GOR, preserves URN, and exports minimal public location fields. Result: 27,195 entries in `data/schools_gb.json`. This is not a complete UK/university directory. Canada shares the search group but a Canadian source file has NOT been imported; do not describe the US files as Canadian data.
+England: [Department for Education, Get Information about Schools](https://www.get-information-schools.service.gov.uk/Downloads), Open Government Licence v3.0. Official extract retrieved from `https://ea-edubase-api-prod.azurewebsites.net/edubase/downloads/public/edubasealldata20261123.csv`. `python3 scripts/build-gb-schools.py /path/to/edubasealldata.csv` in backend filters open establishments with a recorded English GOR, preserves URN, and exports minimal public location fields. Result: 27,195 entries in `data/schools_gb.json`. This is not a complete UK/university directory. Canada shares the search group with its own imported source file (see below).
 
-Validated total: 151,883 distinct stable IDs. `node scripts/import-school-directory.js` validates input without provider access. `--apply` performs idempotent create/update using those IDs; `--limit N` supports an initial small trial. Full ingestion should run on the server, not across the public tunnel from a laptop. No source phones, street addresses or student totals are imported into this directory.
+Canada: [Statistics Canada, Open Database of Educational Facilities v2.1](https://open.canada.ca/data/en/dataset/4dd64c98-b12a-49c7-be29-21c77d22b675), Open Government Licence - Canada. `python3 scripts/build-ca-schools.py /path/to/ODEF_v2_1.csv` keeps K-12 rows (drops post-secondary ISCED4Plus, preschools, career colleges and care/corrections/admin facility types) and exports 16,540 entries in `data/schools_ca.json` with stable `CA-ODEF-<Index>` IDs and full UPPER province regions matching the client list.
+
+Scotland: [Scottish Government School Contact Details](https://www.gov.scot/publications/school-contact-details/) via the School Roll and Locations table, 2,483 entries in `data/schools_scot.json` with stable `GB-SEED-<schuid>` IDs and council-area regions.
+
+Wales: [Welsh Government address list of schools](https://gov.wales/address-list-schools), 1,539 entries in `data/schools_wales.json` with stable `GB-WALEDU-<7-digit number>` IDs and principal-area regions; nursery-only rows excluded.
+
+Northern Ireland: Department of Education open data `locate-a-school` snapshot of February 2016 (no fresher bulk source exists), 1,058 schools in `data/schools_ni.json` with stable `GB-DENI-<Reference>` IDs and county regions. Re-export and rebuild to refresh; closed schools are not pruned automatically.
+
+New Zealand: Ministry of Education Schools Directory (via its ArcGIS mirror; the official CSV is bot-walled for scripts), 2,533 entries in `data/schools_nz.json` with stable `NZ-MOE-<School_ID>` IDs and MoE education regions.
+
+Singapore: MOE "General information of schools" (data.gov.sg datastore API), 337 entries in `data/schools_sg.json` with slug `SG-MOE-<name>` IDs (no official numeric ID; renames orphan old rows), MOE zone regions and planning-area cities.
+
+Hong Kong: EDB "School Location and Information" open CSV, 1,331 primary/secondary entries in `data/schools_hk.json` with stable `HK-EDB-<school no.>` IDs and district regions; kindergartens excluded.
+
+Client `gbRegions` grew 223 → 262 (32 Scottish councils + The Vale of Glamorgan + 6 NI counties; other Welsh LAs were already present from GIAS).
+
+Validated total: 177,704 distinct stable IDs (151,883 on 2026-11-24 plus 25,821 added 2026-11-25: CA 16,540, Scotland 2,483, Wales 1,539, NI 1,058, NZ 2,533, SG 337, HK 1,331). `node scripts/import-school-directory.js` validates input without provider access. `--apply` performs idempotent create/update using those IDs; `--limit N` supports an initial small trial. Full ingestion should run on the server, not across the public tunnel from a laptop. No source phones, street addresses or student totals are imported into this directory.
 
 Search uses Appwrite's full-text index and starts at 3 characters, per [TablesDB query documentation](https://appwrite.io/docs/products/databases/tablesdb/queries). Unit/fake HTTP tests do not prove actual PostgreSQL-backed index behavior; a confirmed migration must include real-database search and cursor checks before enabling the feature.
+
+## Catalog expansion — 2026-11-25
+
+25,821 new rows imported (CA 16,540, Scotland 2,483, Wales 1,539, NI 1,058, NZ 2,533, SG 337, HK 1,331); no existing rows modified. `node scripts/verify-school-rollout.js` confirmed exactly 177,704 live IDs matching the source files, plus US/CA/GB search smoke tests with pagination. NI data is pinned to February 2016; refresh via a fresh DENI export when available.
 
 ## Release boundary
 

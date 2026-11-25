@@ -103,7 +103,7 @@
 - School-ready branch может пропустить contacts только по подтверждённому server mode.
 - Имя/фамилия и @username независимы; full name не подставлять в username.
 - Female/Male/Non-binary и формы кампуса сохраняют существующий дизайн.
-- Новая выдача кампусов разделяет страны; старые запросы US/CA сохраняют общий каталог. Полнота каталога каждой страны проверяется отдельно; GB-каталог покрывает England.
+- Новая выдача кампусов разделяет страны; старые запросы US/CA сохраняют общий каталог. Полнота каталога каждой страны проверяется отдельно; импортированы CA (StatCan ODEF), NZ, SG, HK; GB-каталог покрывает England, Scotland, Wales и Northern Ireland.
 - Missing campus request сохраняется перед mailto; письмо отправляет сам пользователь.
 - Skip/requested campus не открывает игру новым enrollment; server gate обязателен.
 - Reviewer skips, guest exit и examples доступны только текущей подтверждённой reviewer-сессии; старый install-wide reviewer flag не даёт прав.
