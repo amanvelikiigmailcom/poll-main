@@ -31,6 +31,9 @@ class _StartupIntroState extends State<StartupIntro>
 
   Future<void> _start() async {
     _deadline = Timer(const Duration(seconds: 7), _finish);
+    if (GameSettings.instance.haptics) {
+      unawaited(HapticFeedback.mediumImpact());
+    }
     try {
       if (GameSettings.instance.effectiveReduceMotion) {
         _deadline?.cancel();
