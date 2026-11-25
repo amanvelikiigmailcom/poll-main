@@ -29,6 +29,8 @@ class QuizOption {
   final String? serverUserId;
   final bool premiumBadge;
   final String? premiumBadgeUntil;
+  final int? graduationYear;
+  final bool isFriend;
 
   const QuizOption({
     required this.id,
@@ -38,6 +40,8 @@ class QuizOption {
     this.serverUserId,
     this.premiumBadge = false,
     this.premiumBadgeUntil,
+    this.graduationYear,
+    this.isFriend = false,
   });
 }
 
@@ -69,6 +73,8 @@ class QuizQuestion {
           'winnerId': option.serverUserId,
           'premiumBadge': option.premiumBadge,
           'premiumBadgeUntil': option.premiumBadgeUntil,
+          'graduationYear': option.graduationYear,
+          'isFriend': option.isFriend,
         },
     ],
   };
@@ -87,6 +93,10 @@ class QuizQuestion {
           name: option['name'] as String,
           grade: '',
           serverUserId: option['winnerId'] as String?,
+          graduationYear: option['graduationYear'] is int
+              ? option['graduationYear'] as int
+              : null,
+          isFriend: option['isFriend'] == true,
         ),
     ],
   );
@@ -119,6 +129,7 @@ class _VoteScreenState extends State<VoteScreen>
   ServerRoundSource? _source;
   String? _sessionId;
   bool _schoolVoting = false;
+  bool _preferenceFallback = false;
   String? _sessionKey;
   String? _ownerId;
   bool _editingFromReview = false;
@@ -322,6 +333,7 @@ class _VoteScreenState extends State<VoteScreen>
                 MapEntry(key as String, (value as List).cast<String>()),
           ),
         );
+      _preferenceFallback = draft['preferenceFallback'] == true;
       _useRound(
         questions,
         completed,
@@ -377,6 +389,8 @@ class _VoteScreenState extends State<VoteScreen>
                 serverUserId: candidate.id,
                 premiumBadge: candidate.premiumBadge,
                 premiumBadgeUntil: candidate.premiumBadgeUntil,
+                graduationYear: candidate.graduationYear,
+                isFriend: candidate.isFriend,
               ),
             );
           }
@@ -425,6 +439,8 @@ class _VoteScreenState extends State<VoteScreen>
       _schoolVoting = serverSession.schoolVoting;
       _sessionKey = _source!.loadedSessionKey;
       _ownerId = serverSession.ownerId;
+      _preferenceFallback =
+          serverSession.preferenceFallback && !serverSession.schoolVoting;
       await _initializeRound(questions, completed, 0, []);
       return;
     }
@@ -479,6 +495,7 @@ class _VoteScreenState extends State<VoteScreen>
     _schoolVoting = false;
     _sessionKey = null;
     _ownerId = null;
+    _preferenceFallback = false;
     await _initializeRound(questions, completed, startIndex, previous);
   }
 
@@ -561,6 +578,7 @@ class _VoteScreenState extends State<VoteScreen>
           'questions': _questions.map((q) => q.toDraft()).toList(),
           if (_sessionId != null) 'sessionId': _sessionId,
           if (_schoolVoting) 'schoolVoting': true,
+          if (_preferenceFallback) 'preferenceFallback': true,
           if (_sessionKey != null) 'sessionKey': _sessionKey,
           if (_ownerId != null) 'ownerId': _ownerId,
           'editingFromReview': _editingFromReview,
@@ -897,6 +915,7 @@ class _VoteScreenState extends State<VoteScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildQuestion(),
+                        if (_preferenceFallback) _buildFallbackNotice(),
                         if (_sessionId != null)
                           const Padding(
                             padding: EdgeInsets.only(top: 12),
@@ -1082,6 +1101,34 @@ class _VoteScreenState extends State<VoteScreen>
     );
   }
 
+  /// Round-level notice: the server found nobody matching the quiz filters
+  /// and dealt a plain contacts round with the local test names instead.
+  Widget _buildFallbackNotice() => Container(
+    margin: const EdgeInsets.only(top: 12),
+    padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+    decoration: BoxDecoration(
+      color: AppColors.white,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: AppColors.border),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Nobody matches your filters. Playing with your test names this round.',
+          style: TextStyle(height: 1.4),
+        ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton(
+            onPressed: () => showQuizPreferences(context),
+            child: const Text('Change filters'),
+          ),
+        ),
+      ],
+    ),
+  );
+
   Widget _buildQuestion() {
     return Text(
       '${_currentQuestion.emoji} ${_currentQuestion.question}'.trim(),
@@ -1185,6 +1232,17 @@ class _VoteScreenState extends State<VoteScreen>
 // ---------------------------------------------------------------------------
 // Option card widget
 // ---------------------------------------------------------------------------
+
+/// Tier subtitle for a vote card: friend and cohort markers from the frozen
+/// server snapshot, falling back to the legacy grade label.
+String _tierSubtitle(QuizOption option) {
+  final parts = [
+    if (option.isFriend) 'Friend',
+    if (option.graduationYear != null) 'Class of ${option.graduationYear}',
+  ];
+  if (parts.isNotEmpty) return parts.join(' · ');
+  return option.grade;
+}
 
 class _OptionCard extends StatelessWidget {
   final QuizOption option;
@@ -1318,7 +1376,7 @@ class _OptionCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  option.grade,
+                  _tierSubtitle(option),
                   style: TextStyle(
                     fontSize: 11,
                     color: isDisabled

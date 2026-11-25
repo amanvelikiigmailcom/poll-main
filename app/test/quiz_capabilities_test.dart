@@ -91,4 +91,49 @@ void main() {
       expect(session.serverCandidatesOnly, isTrue);
     },
   );
+  test('school candidate cards parse tier fields with legacy defaults', () {
+    final session = QuizSession.fromJson({
+      'sessionId': 'round',
+      'ownerId': 'owner',
+      'questions': [
+        {
+          'id': 'q1',
+          'text': 'Who?',
+          'category': 'normal',
+          'candidates': [
+            {
+              'id': 'a',
+              'firstName': 'Aibek',
+              'graduationYear': 2026,
+              'isFriend': true,
+            },
+            {'id': 'b', 'firstName': 'Classmate'},
+          ],
+        },
+      ],
+      'totalQuestions': 12,
+      'supportsRoundSubmission': true,
+      'votingMode': 'school',
+    });
+    final cards = session.questions.single.candidates;
+    expect(cards[0].graduationYear, 2026);
+    expect(cards[0].isFriend, isTrue);
+    expect(cards[1].graduationYear, isNull);
+    expect(cards[1].isFriend, isFalse);
+  });
+  test('round parses the preference fallback flag with a false default', () {
+    final fallback = QuizSession.fromJson({
+      'sessionId': 'round',
+      'questions': [],
+      'totalQuestions': 12,
+      'preferenceFallback': true,
+    });
+    expect(fallback.preferenceFallback, isTrue);
+    final plain = QuizSession.fromJson({
+      'sessionId': 'round',
+      'questions': [],
+      'totalQuestions': 12,
+    });
+    expect(plain.preferenceFallback, isFalse);
+  });
 }
