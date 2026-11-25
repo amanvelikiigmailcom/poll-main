@@ -337,22 +337,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get premium_purchaseError => 'Failed to complete purchase';
 
   @override
-  String get premiumResult_remaining => 'You have left:';
-
-  @override
-  String get premiumResult_revealFirstLetter => 'Reveal first letter';
-
-  @override
-  String get premiumResult_revealFullName => 'Reveal full name';
-
-  @override
-  String get premiumResult_limitExhausted =>
-      'Limit exhausted. Get Premium Max for unlimited';
-
-  @override
-  String get premiumResult_tapToReveal => 'Tap the card to reveal';
-
-  @override
   String get settings_title => 'Settings';
 
   @override

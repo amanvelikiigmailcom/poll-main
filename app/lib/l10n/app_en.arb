@@ -239,17 +239,6 @@
   "premium_purchaseError": "Failed to complete purchase",
   "@premium_purchaseError": {},
 
-  "premiumResult_remaining": "You have left:",
-  "@premiumResult_remaining": {},
-  "premiumResult_revealFirstLetter": "Reveal first letter",
-  "@premiumResult_revealFirstLetter": {},
-  "premiumResult_revealFullName": "Reveal full name",
-  "@premiumResult_revealFullName": {},
-  "premiumResult_limitExhausted": "Limit exhausted. Get Premium Max for unlimited",
-  "@premiumResult_limitExhausted": {},
-  "premiumResult_tapToReveal": "Tap the card to reveal",
-  "@premiumResult_tapToReveal": {},
-
   "settings_title": "Settings",
   "@settings_title": {},
   "settings_notifications": "Notifications",

@@ -125,12 +125,6 @@
   "premium_activated": "Premium активирован!",
   "premium_purchaseError": "Не удалось завершить покупку",
 
-  "premiumResult_remaining": "У вас осталось:",
-  "premiumResult_revealFirstLetter": "Узнать первую букву имени",
-  "premiumResult_revealFullName": "Узнать полное имя",
-  "premiumResult_limitExhausted": "Лимит исчерпан. Оформите Premium Max для безлимита",
-  "premiumResult_tapToReveal": "Нажмите на карточку кого хотите узнать",
-
   "settings_title": "Настройки",
   "settings_notifications": "Уведомления",
   "settings_newVotes": "Новые голоса",

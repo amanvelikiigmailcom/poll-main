@@ -27,12 +27,16 @@ void main() {
   );
 
   test(
-    'retired local university directory is not part of runtime assets',
+    'retired university directory and localization JSON are not bundled',
     () async {
       final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
       expect(
         manifest.listAssets(),
         isNot(contains('assets/data/us_universities.json')),
+      );
+      expect(
+        manifest.listAssets().where((asset) => asset.startsWith('assets/l10n/')),
+        isEmpty,
       );
     },
   );
