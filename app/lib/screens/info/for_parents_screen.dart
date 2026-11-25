@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../../services/support_email_service.dart';
+import '../../widgets/common/support_email_dialog.dart';
 
 import '../../services/content_service.dart';
 import 'package:go_router/go_router.dart';
@@ -10,26 +11,6 @@ class ForParentsScreen extends ConsumerWidget {
   const ForParentsScreen({super.key});
 
   static const _primaryBlue = Color(0xFF4B6EF5);
-
-  Future<void> _sendEmail(BuildContext context) async {
-    final uri = Uri(
-      scheme: 'mailto',
-      path: ContentService.instance.text('support_email'),
-      queryParameters: const {'subject': 'Flyprox parent or guardian question'},
-    );
-    try {
-      final opened = await launchUrl(uri);
-      if (opened || !context.mounted) return;
-    } catch (_) {
-      if (!context.mounted) return;
-    }
-    if (context.mounted) {
-      final email = ContentService.instance.text('support_email');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Please email $email')));
-    }
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -47,7 +28,7 @@ class ForParentsScreen extends ConsumerWidget {
             _section(
               Icons.info_rounded,
               'How the game works',
-              'Flyprox is a name-based quiz game played on one device. Players select at least four contacts or use ready-made examples, then play 12-question rounds.',
+              'Flyprox is a quiz game with 12-question rounds. Guest players use selected contacts or examples on their device. Eligible signed-in players can take part in online votes with their campus community.',
             ),
             _section(
               Icons.chat_bubble_outline_rounded,
@@ -67,7 +48,7 @@ class ForParentsScreen extends ConsumerWidget {
             _section(
               Icons.shield_outlined,
               'Block, remove or report',
-              'Players can remove a friend, block an account or report a concern from its profile. Blocking prevents new friend requests and online votes between those accounts and hides them from each other in search. Manage blocked accounts in Settings. Blocking does not erase names someone has typed into their own offline game.',
+              'Players can remove a friend, block an account or open an email report from its profile. Email reports must be sent by the player to support@flyprox.com. Blocking prevents new friend requests and online votes between those accounts and hides them from each other in search. Manage blocked accounts in Settings. Blocking does not erase names someone has typed into their own offline game.',
             ),
             _section(
               Icons.timer_outlined,
@@ -87,7 +68,7 @@ class ForParentsScreen extends ConsumerWidget {
             _section(
               Icons.privacy_tip_rounded,
               'Game data and privacy',
-              'Guest play needs no account and game progress is stored on the device. Signed-in features also store account data, usernames, friend relationships, blocks, reports, selected-contact hashes and online votes on our server. Selected contacts’ raw phone numbers are not uploaded; the account’s own phone number is used for sign-in. Optional phone sign-in is offered before the age question. Underage answers block contacts, gameplay and subscription access for the current run. Read the Privacy Policy for details.',
+              'Guest play needs no account and game progress is stored on the device. Signed-in features also store account data, usernames, friend relationships, blocks, selected-contact hashes and online votes on our server. Selected contacts’ raw phone numbers are not uploaded; the account’s own phone number is used for sign-in. Optional phone sign-in is offered before the age question. Underage answers block contacts, gameplay and subscription access for the current run. Read the Privacy Policy for details.',
             ),
             _section(
               Icons.supervisor_account_rounded,
@@ -121,7 +102,10 @@ class ForParentsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
-                    onPressed: () => _sendEmail(context),
+                    onPressed: () => showSupportEmail(
+                      context,
+                      kind: SupportEmailKind.parent,
+                    ),
                     icon: const Icon(Icons.mail_outline_rounded),
                     label: const Text('Email support'),
                     style: ElevatedButton.styleFrom(

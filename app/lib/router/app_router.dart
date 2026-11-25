@@ -1,3 +1,4 @@
+import '../screens/info/account_notice_screen.dart';
 import '../screens/registration/profile_details_screen.dart';
 import '../screens/registration/school_setup_screen.dart';
 import '../providers/service_providers.dart';
@@ -70,6 +71,8 @@ abstract final class AppRoutes {
   static const profile = '/home/profile';
   static const editProfile = '/edit-profile';
   static const settings = '/settings';
+  static const accountUpdate = '/account-update';
+  static const signInNotice = '/sign-in-notice';
   static const deleteAccount = '/delete-account';
   static const howToUse = '/how-to-use';
   static const safetyCenter = '/safety-center';
@@ -299,10 +302,15 @@ class _SplashRedirectState extends ConsumerState<_SplashRedirect> {
     // A tap that arrived while the intro was playing is picked up here.
     tap ??= await _drainTap();
     if (!mounted) return;
+    if (tap != null &&
+        !await PushRouting.canOpen(tap, ref.read(storageServiceProvider))) {
+      tap = null;
+    }
+    if (!mounted) return;
     context.go(
       tap == null
           ? AppRoutes.home
-          : (PushRouting.routeFor(tap.type) ?? AppRoutes.home),
+          : (PushRouting.locationFor(tap) ?? AppRoutes.home),
     );
   }
 
@@ -494,11 +502,13 @@ GoRouter createAppRouter({bool showInvitationIntro = true}) => GoRouter(
           routes: [
             GoRoute(
               path: AppRoutes.likesFilled,
-              builder: (_, __) => const ReceivedLikesScreen(),
+              builder: (_, state) =>
+                  ReceivedLikesScreen(key: ValueKey(state.uri.toString())),
             ),
             GoRoute(
               path: AppRoutes.likesEmpty,
-              builder: (_, __) => const ReceivedLikesScreen(),
+              builder: (_, state) =>
+                  ReceivedLikesScreen(key: ValueKey(state.uri.toString())),
             ),
             GoRoute(
               path: AppRoutes.likesResult,
@@ -523,7 +533,8 @@ GoRouter createAppRouter({bool showInvitationIntro = true}) => GoRouter(
           routes: [
             GoRoute(
               path: AppRoutes.invite,
-              builder: (_, __) => const InviteFriendScreen(),
+              builder: (_, state) =>
+                  InviteFriendScreen(key: ValueKey(state.uri.toString())),
             ),
             GoRoute(
               path: AppRoutes.profile,
@@ -539,7 +550,8 @@ GoRouter createAppRouter({bool showInvitationIntro = true}) => GoRouter(
             ),
             GoRoute(
               path: AppRoutes.premium,
-              builder: (_, __) => const PremiumScreen(),
+              builder: (_, state) =>
+                  PremiumScreen(key: ValueKey(state.uri.toString())),
             ),
             // Retired fake-voters result URL leads back to the free game.
             GoRoute(
@@ -567,6 +579,19 @@ GoRouter createAppRouter({bool showInvitationIntro = true}) => GoRouter(
               builder: (_, __) => const HowToUseScreen(),
             ),
             GoRoute(
+              path: AppRoutes.accountUpdate,
+              builder: (_, state) => AccountNoticeScreen(
+                eventReference: state.uri.queryParameters['event'],
+              ),
+            ),
+            GoRoute(
+              path: AppRoutes.signInNotice,
+              builder: (_, state) => AccountNoticeScreen(
+                security: true,
+                eventReference: state.uri.queryParameters['event'],
+              ),
+            ),
+            GoRoute(
               path: AppRoutes.safetyCenter,
               builder: (_, __) => const SafetyCenterScreen(),
             ),
@@ -575,13 +600,19 @@ GoRouter createAppRouter({bool showInvitationIntro = true}) => GoRouter(
 
             GoRoute(
               path: AppRoutes.friends,
-              builder: (_, __) => const SocialScreen(page: SocialPage.friends),
+              builder: (_, state) => SocialScreen(
+                key: ValueKey(state.uri.toString()),
+                page: SocialPage.friends,
+                focusUserId: state.uri.queryParameters['focus'],
+              ),
             ),
             GoRoute(
               path: AppRoutes.friendRequests,
-              builder: (_, __) => const SocialScreen(
+              builder: (_, state) => SocialScreen(
+                key: ValueKey(state.uri.toString()),
                 page: SocialPage.friends,
                 initialKind: 'incoming',
+                focusUserId: state.uri.queryParameters['focus'],
               ),
             ),
             GoRoute(

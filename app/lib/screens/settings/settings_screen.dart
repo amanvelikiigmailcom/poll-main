@@ -1,3 +1,5 @@
+import '../../services/support_email_service.dart';
+import '../../widgets/common/support_email_dialog.dart';
 import '../../widgets/common/friends_link.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -72,7 +74,7 @@ class SettingsScreen extends ConsumerWidget {
               AppRoutes.blockedUsers,
             ),
           ]),
-          const _SectionHeader(title: 'GAME & FEEDBACK'),
+          const _SectionHeader(title: 'GAME'),
           card([
             _ArrowTile(
               icon: Icons.tune,
@@ -118,11 +120,19 @@ class SettingsScreen extends ConsumerWidget {
           card([
             route(Icons.help_outline, 'How to play', AppRoutes.howToUse),
             route(Icons.live_help_outlined, 'FAQ', AppRoutes.faq),
-            route(
-              Icons.support_agent,
-              'Support and safety',
-              AppRoutes.safetyCenter,
-            ),
+            for (final kind in [
+              SupportEmailKind.support,
+              SupportEmailKind.problem,
+              SupportEmailKind.feedback,
+            ])
+              _ArrowTile(
+                icon: kind == SupportEmailKind.feedback
+                    ? Icons.feedback_outlined
+                    : Icons.mail_outline,
+                title: kind.title,
+                onTap: () => showSupportEmail(context, kind: kind),
+              ),
+            route(Icons.support_agent, 'Safety', AppRoutes.safetyCenter),
             route(
               Icons.family_restroom_outlined,
               'For parents',

@@ -250,7 +250,7 @@ void main() {
     expect(find.text('Nursultan Karimov'), findsOneWidget);
   });
 
-  testWidgets('full-name search and report reason use actual service actions', (
+  testWidgets('full-name search preserves email reporting without automatic submission', (
     tester,
   ) async {
     final (social, _, _) = await mount(tester);
@@ -263,9 +263,11 @@ void main() {
     await tester.tap(find.text('Report account'));
     await tester.pumpAndSettle();
     expect(social.reports, isEmpty);
-    await tester.tap(find.text('Spam'));
+    expect(find.text('Reason'), findsOneWidget);
+    expect(find.textContaining('Account reference: one'), findsOneWidget);
+    await tester.tap(find.text('Close'));
     await tester.pumpAndSettle();
-    expect(social.reports, ['one:spam']);
+    expect(social.reports, isEmpty);
   });
 
   for (final scale in [1.0, 2.0]) {

@@ -1,6 +1,6 @@
 import 'package:url_launcher/url_launcher.dart';
 
-import 'content_service.dart';
+import '../utils/constants.dart';
 
 /// Contains only the built-in question, never player names, choices or profile data.
 class QuestionReport {
@@ -9,7 +9,7 @@ class QuestionReport {
   final String questionId;
   final String questionText;
 
-  String get recipient => ContentService.instance.text('support_email');
+  String get recipient => AppConstants.supportEmail;
   String get subject => 'Flyprox question report';
   String get body => 'Question: $questionText\n\n'
       'What’s wrong with this question?\n\n\n'

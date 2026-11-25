@@ -10,7 +10,34 @@ class PushMessage {
 class PushTap {
   final String type;
 
-  const PushTap(this.type);
+  const PushTap(this.type, {this.recipientId, this.eventId, this.actorId});
+  final String? recipientId, eventId, actorId;
+
+  /// Legacy type-only messages remain supported during a staged rollout.
+  static PushTap? fromPayload(Object? payload) {
+    if (payload is String) {
+      final type = payload.trim();
+      return type.isEmpty || type.length > 64 ? null : PushTap(type);
+    }
+    if (payload is! Map || payload['type'] is! String) return null;
+    final type = (payload['type'] as String).trim();
+    if (type.isEmpty || type.length > 64) return null;
+    for (final key in ['recipientId', 'eventId', 'actorId']) {
+      if (payload.containsKey(key) &&
+          (payload[key] is! String ||
+              !RegExp(
+                r'^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$',
+              ).hasMatch(payload[key] as String))) {
+        return null;
+      }
+    }
+    return PushTap(
+      type,
+      recipientId: payload['recipientId'] as String?,
+      eventId: payload['eventId'] as String?,
+      actorId: payload['actorId'] as String?,
+    );
+  }
 }
 
 /// Push plumbing behind a seam tests can fake. Tokens go to our backend,

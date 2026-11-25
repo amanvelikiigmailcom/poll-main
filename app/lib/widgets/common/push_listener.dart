@@ -55,8 +55,14 @@ class _PushListenerState extends ConsumerState<PushListener>
     _open(tap);
   }
 
-  void _open(PushTap tap) {
-    final route = PushRouting.routeFor(tap.type);
+  int _tapRevision = 0;
+  Future<void> _open(PushTap tap) async {
+    final revision = ++_tapRevision;
+    if (!await PushRouting.canOpen(tap, ref.read(storageServiceProvider))) {
+      return;
+    }
+    if (!mounted || revision != _tapRevision) return;
+    final route = PushRouting.locationFor(tap);
     if (!mounted || route == null) return;
     GoRouter.of(context).go(route);
   }

@@ -15,6 +15,13 @@ class FakeSocial extends SocialService {
   FakeSocial(super.api, super.storage);
   final results = <String, Completer<Map<String, dynamic>>>{};
   final searches = <String>[];
+  final actions = <String>[];
+  @override
+  Future<Map<String, dynamic>> act(String id, String action) async {
+    actions.add(action);
+    return {};
+  }
+
   Map<String, dynamic> suggestionData = {};
   int suggestionCalls = 0;
   final hiddenIds = <String>{};
@@ -152,6 +159,25 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  testWidgets(
+    'report from a friends list opens an email form without server submission',
+    (tester) async {
+      final storage = SessionStorage();
+      final social = FakeSocial(ApiService(storage), storage);
+      await mount(tester, storage, social, page: SocialPage.friends);
+      await tester.tap(find.byTooltip('Account actions'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Report account'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Account reference: one'), findsOneWidget);
+      expect(find.textContaining('support@flyprox.com'), findsOneWidget);
+      expect(social.actions, isEmpty);
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
+      expect(social.actions, isEmpty);
+    },
+  );
 
   for (final scale in [1.0, 2.0]) {
     testWidgets(

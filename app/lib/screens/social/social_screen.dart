@@ -1,3 +1,5 @@
+import '../../services/support_email_service.dart';
+import '../../widgets/common/support_email_dialog.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,7 +10,6 @@ import '../../services/api_service.dart';
 import '../../services/storage_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/common/social_identity.dart';
-import '../../widgets/common/account_report_dialog.dart';
 
 enum SocialPage { search, friends, blocked, hidden }
 
@@ -28,9 +29,11 @@ class SocialScreen extends ConsumerStatefulWidget {
     super.key,
     required this.page,
     this.initialKind = 'friends',
+    this.focusUserId,
   });
   final SocialPage page;
   final String initialKind;
+  final String? focusUserId;
   @override
   ConsumerState<SocialScreen> createState() => _SocialScreenState();
 }
@@ -180,6 +183,16 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                 for (final card in [..._users, ...users]) card['id']: card,
               }.values.toList()
             : users;
+        // Only reorder authorized rows. A push cannot inject a user into a list.
+        final focused = _users
+            .where((user) => user['id'] == widget.focusUserId)
+            .toList();
+        if (focused.isNotEmpty) {
+          _users = [
+            ...focused,
+            ..._users.where((user) => user['id'] != widget.focusUserId),
+          ];
+        }
         _next = data['nextCursor'] as String?;
         _loading = false;
       });
@@ -216,13 +229,17 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
 
   Future<void> _action(Map<String, dynamic> user, String action) async {
     if (_busy) return;
+    if (action == 'report') {
+      await showSupportEmail(
+        context,
+        kind: SupportEmailKind.account,
+        targetId: user['id'] as String,
+        username: user['username'] as String?,
+      );
+      return;
+    }
     final owner = await _storage.getToken();
     if (!mounted) return;
-    String? reason;
-    if (action == 'report') {
-      reason = await showAccountReportDialog(context);
-      if (reason == null || !mounted) return;
-    }
     if (['block', 'remove', 'unblock'].contains(action)) {
       final confirmed = await showDialog<bool>(
         context: context,
@@ -260,24 +277,14 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
     setState(() => _busy = true);
     try {
       final service = ref.read(socialServiceProvider);
-      if (reason != null) {
-        await service.report(user['id'] as String, reason);
-      } else {
-        await service.act(user['id'] as String, action);
-      }
+      await service.act(user['id'] as String, action);
       if (owner != await _storage.getToken() ||
           !mounted ||
           generation != _generation) {
         return;
       }
       ref.invalidate(socialSummaryProvider);
-      if (action == 'report') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Report received. You can also block this account.'),
-          ),
-        );
-      } else if (action == 'hide' || action == 'show') {
+      if (action == 'hide' || action == 'show') {
         ref.read(socialVisibilityRevisionProvider.notifier).changed();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

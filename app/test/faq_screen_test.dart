@@ -89,7 +89,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const ValueKey('faq-search')), findsOneWidget);
-    expect(find.text('37 answers'), findsOneWidget);
+    expect(find.text('38 answers'), findsOneWidget);
     expect(find.text('9 topics'), findsOneWidget);
     for (final title in [
       'Getting started',
@@ -106,7 +106,7 @@ void main() {
     }
     // Collapsed answers stay hidden until expanded.
     expect(find.textContaining('You cannot vote for yourself'), findsNothing);
-    expect(find.text('0 of 37 questions explored'), findsOneWidget);
+    expect(find.text('0 of 38 questions explored'), findsOneWidget);
   });
 
   testWidgets('expanding a question reveals the answer and moves progress', (
@@ -117,7 +117,7 @@ void main() {
     await tester.tap(find.text('How do I start playing?'));
     await tester.pumpAndSettle();
     expect(find.textContaining('at least 4 people'), findsOneWidget);
-    expect(find.text('1 of 37 questions explored'), findsOneWidget);
+    expect(find.text('1 of 38 questions explored'), findsOneWidget);
 
     await tester.tap(find.text('Expand all'));
     await tester.pumpAndSettle();

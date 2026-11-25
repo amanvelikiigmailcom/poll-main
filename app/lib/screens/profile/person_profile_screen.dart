@@ -1,6 +1,7 @@
+import '../../services/support_email_service.dart';
+import '../../widgets/common/support_email_dialog.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../widgets/common/account_report_dialog.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/person_profile.dart';
@@ -190,15 +191,12 @@ class _PersonProfileScreenState extends ConsumerState<PersonProfileScreen>
     final title = switch (action) {
       'remove' => 'Remove friend?',
       'block' => 'Block account?',
-      'report' => 'Report account?',
       _ => 'Cancel friend request?',
     };
     final description = switch (action) {
       'remove' => 'You will both be removed from each other’s friends list.',
       'block' =>
         'You won’t see each other’s profiles or appear in each other’s search. Any friendship or pending request will be removed.',
-      'report' =>
-        'Send a safety report about this account to Flyprox? You can also block this account.',
       _ => 'Your sent request will be withdrawn.',
     };
     return await showDialog<bool>(
@@ -216,7 +214,6 @@ class _PersonProfileScreenState extends ConsumerState<PersonProfileScreen>
                 child: Text(switch (action) {
                   'remove' => 'Remove',
                   'block' => 'Block',
-                  'report' => 'Send report',
                   _ => 'Withdraw request',
                 }),
               ),
@@ -228,15 +225,19 @@ class _PersonProfileScreenState extends ConsumerState<PersonProfileScreen>
 
   Future<void> _action(String action) async {
     if (_busy || _profile == null) return;
+    if (action == 'report') {
+      await showSupportEmail(
+        context,
+        kind: SupportEmailKind.account,
+        targetId: _profile!.id,
+        username: _profile!.username,
+      );
+      return;
+    }
     final generation = _generation;
     final person = _profile!;
     setState(() => _busy = true);
     try {
-      String? reason;
-      if (action == 'report') {
-        reason = await showAccountReportDialog(context);
-        if (reason == null) return;
-      }
       if (['remove', 'block', 'cancel'].contains(action) &&
           !await _confirm(action)) {
         return;
@@ -244,11 +245,7 @@ class _PersonProfileScreenState extends ConsumerState<PersonProfileScreen>
       if (!mounted || generation != _generation) return;
       setState(() => _saving = true);
       final social = ref.read(socialServiceProvider);
-      if (reason != null) {
-        await social.report(person.id, reason);
-      } else {
-        await social.act(person.id, action);
-      }
+      await social.act(person.id, action);
       if (!mounted || generation != _generation) return;
       ref.invalidate(socialSummaryProvider);
       // Refresh every mounted list, not just whichever branch initiated this action.
@@ -264,7 +261,7 @@ class _PersonProfileScreenState extends ConsumerState<PersonProfileScreen>
           'decline' => 'Friend request declined',
           'cancel' => 'Friend request cancelled',
           'remove' => 'Friend removed',
-          _ => 'Report received. You can also block this account.',
+          _ => 'Account updated',
         });
       }
       if (action == 'block') {
@@ -277,7 +274,7 @@ class _PersonProfileScreenState extends ConsumerState<PersonProfileScreen>
           _error = 'Profile unavailable.';
           _generation++;
         });
-      } else if (action != 'report') {
+      } else {
         await _load();
       }
     } catch (_) {
@@ -286,7 +283,6 @@ class _PersonProfileScreenState extends ConsumerState<PersonProfileScreen>
         'request' => 'Couldn’t send friend request. Try again.',
         'remove' => 'Couldn’t remove friend. Try again.',
         'block' => 'Couldn’t block account. Try again.',
-        'report' => 'Couldn’t send report. Try again later.',
         _ => 'Couldn’t update friend request. Try again.',
       });
     } finally {

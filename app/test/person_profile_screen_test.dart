@@ -247,42 +247,50 @@ void main() {
     },
   );
 
-  for (final action in ['Block account', 'Report account']) {
-    testWidgets(
-      '$action requires confirmation and shows only confirmed success',
-      (tester) async {
-        final storage = SessionStorage();
-        final social = PersonFake(ApiService(storage), storage);
-        await mount(tester, storage, social);
-        await tester.pumpAndSettle();
-        await tester.tap(find.byTooltip('Account actions'));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text(action));
-        await tester.pumpAndSettle();
-        expect(social.actions, isEmpty);
-        await tester.tap(
-          find.text(
-            action == 'Block account' ? 'Block' : 'Other safety concern',
-          ),
-        );
-        await tester.pumpAndSettle();
-        expect(social.actions, [
-          action == 'Block account' ? 'block' : 'report',
-        ]);
-        if (action == 'Block account') {
-          expect(find.text('Profile unavailable.'), findsOneWidget);
-          expect(find.text('@alex_123'), findsNothing);
-          expect(find.text('54'), findsNothing);
-          expect(find.text('Received votes · 12'), findsNothing);
-        } else {
-          expect(
-            find.text('Report received. You can also block this account.'),
-            findsOneWidget,
-          );
-        }
-      },
-    );
-  }
+  testWidgets('block requires confirmation and clears the blocked profile', (
+    tester,
+  ) async {
+    final storage = SessionStorage();
+    final social = PersonFake(ApiService(storage), storage);
+    await mount(tester, storage, social);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Account actions'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Block account'));
+    await tester.pumpAndSettle();
+    expect(social.actions, isEmpty);
+    await tester.tap(find.text('Block'));
+    await tester.pumpAndSettle();
+    expect(social.actions, ['block']);
+    expect(find.text('Profile unavailable.'), findsOneWidget);
+    expect(find.text('@alex_123'), findsNothing);
+    expect(find.text('Received votes · 12'), findsNothing);
+  });
+
+  testWidgets(
+    'account report prepares an email and never submits a server action',
+    (tester) async {
+      final storage = SessionStorage();
+      final social = PersonFake(ApiService(storage), storage);
+      await mount(tester, storage, social);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Account actions'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Report account'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Account reference: alex'), findsOneWidget);
+      expect(find.textContaining('Account: @alex_123'), findsOneWidget);
+      expect(find.text('Reason'), findsOneWidget);
+      expect(social.actions, isEmpty);
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
+      expect(social.actions, isEmpty);
+      expect(
+        find.text('Report received. You can also block this account.'),
+        findsNothing,
+      );
+    },
+  );
 
   testWidgets(
     'failed action preserves relationship; unavailable profile has no private UI',
@@ -332,7 +340,7 @@ void main() {
     },
   );
 
-  for (final action in ['remove', 'block', 'report', 'decline']) {
+  for (final action in ['remove', 'block', 'decline']) {
     testWidgets(
       'failed $action retains confirmed data and reports an English error',
       (tester) async {
@@ -342,12 +350,10 @@ void main() {
           ..actionFail = true;
         await mount(tester, storage, social);
         await tester.pumpAndSettle();
-        if (action == 'block' || action == 'report') {
+        if (action == 'block') {
           await tester.tap(find.byTooltip('Account actions'));
           await tester.pumpAndSettle();
-          await tester.tap(
-            find.text(action == 'block' ? 'Block account' : 'Report account'),
-          );
+          await tester.tap(find.text('Block account'));
         } else {
           await tester.tap(
             find.text(action == 'remove' ? 'Remove friend' : 'Decline'),
@@ -359,7 +365,7 @@ void main() {
             find.text(switch (action) {
               'remove' => 'Remove',
               'block' => 'Block',
-              _ => 'Other safety concern',
+              _ => 'Block',
             }),
           );
           await tester.pumpAndSettle();
@@ -369,7 +375,6 @@ void main() {
           find.text(switch (action) {
             'remove' => 'Couldn’t remove friend. Try again.',
             'block' => 'Couldn’t block account. Try again.',
-            'report' => 'Couldn’t send report. Try again later.',
             _ => 'Couldn’t update friend request. Try again.',
           }),
           findsOneWidget,
