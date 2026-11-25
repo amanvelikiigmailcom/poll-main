@@ -38,9 +38,6 @@ dependencies:
   intl: ^0.20.2
   equatable: ^2.0.5
 
-  # Animations
-  flutter_animate: ^4.5.0
-
   # Crypto (for contacts hashing)
   crypto: ^3.0.3
 
