@@ -24,7 +24,6 @@ class _MainTabState extends ConsumerState<MainTab> with WidgetsBindingObserver {
   int _secondsRemaining = 0;
   Timer? _ticker;
 
-  int _peopleCount = 0;
   bool _hasProgress = false;
   bool _schoolDraft = false;
   bool _schoolWaiting = false;
@@ -64,13 +63,11 @@ class _MainTabState extends ConsumerState<MainTab> with WidgetsBindingObserver {
     final waiting = !await ref.read(onboardingDetailsProvider).votingAllowed();
     final remaining = await LocalGameService.instance.secondsUntilNextRound();
     final progress = await LocalGameService.instance.loadRoundProgress();
-    final people = (await LocalGameService.instance.getNames()).length;
     if (!mounted) return;
     setState(() {
       _schoolWaiting = waiting;
       _hasProgress = progress != null;
       _schoolDraft = progress?.draft?['schoolVoting'] == true;
-      _peopleCount = people;
       _secondsRemaining = remaining;
       _tabState = remaining > 0
           ? _HomeTabState.timerActive
@@ -225,31 +222,35 @@ class _MainTabState extends ConsumerState<MainTab> with WidgetsBindingObserver {
                     onInvite: () => context.push(AppRoutes.invite),
                   ),
               const SizedBox(height: 20),
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: _StatCard(
-                        icon: Icons.star_rounded,
-                        iconColor: const Color(0xFFECA900),
-                        value: ref.watch(starBalanceProvider).when(
-                          skipLoadingOnRefresh: false, skipLoadingOnReload: false,
-                          data: (n) => n?.toString() ?? '—',
-                          error: (_, _) => '—', loading: () => '—'),
-                        label: 'Stars',
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _StatCard(
-                        icon: Icons.people_alt_outlined,
-                        iconColor: AppColors.primaryBlue,
-                        value: '$_peopleCount',
-                        label: 'People',
-                      ),
-                    ),
-                  ],
+              Material(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                clipBehavior: Clip.antiAlias,
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  leading: const Text('⭐', style: TextStyle(fontSize: 30)),
+                  title: const Text(
+                    'Collection',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  subtitle: Text(
+                    ref
+                        .watch(starBalanceProvider)
+                        .when(
+                          skipLoadingOnRefresh: false,
+                          skipLoadingOnReload: false,
+                          data: (n) => n == null
+                              ? 'Your stars & boosts'
+                              : '$n stars · Explore boosts',
+                          error: (_, _) => 'Couldn’t load stars',
+                          loading: () => 'Loading stars…',
+                        ),
+                  ),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => context.push(AppRoutes.collection),
                 ),
               ),
             ],
@@ -301,11 +302,21 @@ class _MainTabState extends ConsumerState<MainTab> with WidgetsBindingObserver {
             ),
           ),
         ),
-        const SizedBox(height: 28),
+        const SizedBox(height: 16),
+        const Text(
+          'Invite one friend to unlock another round once confirmed.',
+          style: TextStyle(color: Colors.white, height: 1.4),
+        ),
+        const SizedBox(height: 20),
         _heroButton(
-          'Details',
-          () => context.push(AppRoutes.timer),
+          'Invite a friend',
+          () => context.push(AppRoutes.invite),
           Icons.arrow_forward_rounded,
+        ),
+        TextButton(
+          onPressed: () => context.push(AppRoutes.timer),
+          style: TextButton.styleFrom(foregroundColor: Colors.white),
+          child: const Text('Details'),
         ),
       ],
     ),
@@ -339,7 +350,7 @@ class _MainTabState extends ConsumerState<MainTab> with WidgetsBindingObserver {
         ),
         const SizedBox(height: 14),
         const Text(
-          '12 questions about the people you choose.',
+          '12 questions. Pick the person who fits and make their day.',
           style: TextStyle(color: Colors.white, fontSize: 16, height: 1.45),
         ),
         if (decorative) ...[
@@ -541,51 +552,4 @@ class _RoundCards extends StatelessWidget {
           ),
         ),
       );
-}
-
-class _StatCard extends StatelessWidget {
-  const _StatCard({
-    required this.icon,
-    required this.iconColor,
-    required this.value,
-    required this.label,
-  });
-  final IconData icon;
-  final Color iconColor;
-  final String value;
-  final String label;
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: const Color(0xFFE9ECF4)),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: iconColor, size: 24),
-        const SizedBox(height: 12),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
-              height: 1.1,
-            ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-        ),
-      ],
-    ),
-  );
 }

@@ -128,6 +128,9 @@ class _VoteScreenState extends State<VoteScreen>
   String? _loadError;
   bool _canDiscardDraft = false;
   final Map<String, RoundAnswer> _answers = {};
+  static const _actionLimit = 2;
+  int _skipUses = 0, _shuffleUses = 0;
+  final Map<String, List<String>> _visibleOptions = {};
   bool get _isReview => _currentIndex == _totalQuestions;
 
   ServerRoundSource? _resolveSource() {
@@ -303,6 +306,22 @@ class _VoteScreenState extends State<VoteScreen>
       _ownerId = ownerId;
       _sealed = draft['sealed'] == true;
       _editingFromReview = draft['editingFromReview'] == true;
+      _skipUses =
+          (draft['skipUses'] as int? ??
+                  (saved.draftAnswers ?? [])
+                      .where((a) => a.choice == null)
+                      .length)
+              .clamp(0, _actionLimit);
+      _shuffleUses = (draft['shuffleUses'] as int? ?? 0).clamp(0, _actionLimit);
+      final visible = draft['visibleOptions'] as Map? ?? {};
+      _visibleOptions
+        ..clear()
+        ..addAll(
+          visible.map(
+            (key, value) =>
+                MapEntry(key as String, (value as List).cast<String>()),
+          ),
+        );
       _useRound(
         questions,
         completed,
@@ -427,6 +446,8 @@ class _VoteScreenState extends State<VoteScreen>
       throw StateError('Incomplete round');
     }
 
+    final localPool = await svc.getNames();
+    if (!mounted) return;
     final questions = generated
         .map(
           (g) => QuizQuestion(
@@ -434,17 +455,23 @@ class _VoteScreenState extends State<VoteScreen>
             question: g.question,
             emoji: g.emoji,
             category: g.category,
-            options: g.optionNames
-                .asMap()
-                .entries
-                .map(
-                  (e) => QuizOption(
-                    id: '${g.id}_${e.key}',
-                    name: e.value,
-                    grade: '',
-                  ),
-                )
-                .toList(),
+            options:
+                [
+                      ...g.optionNames,
+                      ...localPool.where(
+                        (name) => !g.optionNames.contains(name),
+                      ),
+                    ]
+                    .asMap()
+                    .entries
+                    .map(
+                      (e) => QuizOption(
+                        id: '${g.id}_${e.key}',
+                        name: e.value,
+                        grade: '',
+                      ),
+                    )
+                    .toList(),
           ),
         )
         .toList();
@@ -488,6 +515,9 @@ class _VoteScreenState extends State<VoteScreen>
     _roundNumber = round;
     _editingFromReview = false;
     _sealed = false;
+    _skipUses = 0;
+    _shuffleUses = 0;
+    _visibleOptions.clear();
     final byId = {for (final answer in answers) answer.questionId: answer};
     _answers
       ..clear()
@@ -535,12 +565,26 @@ class _VoteScreenState extends State<VoteScreen>
           if (_ownerId != null) 'ownerId': _ownerId,
           'editingFromReview': _editingFromReview,
           'sealed': _sealed,
+          'skipUses': _skipUses,
+          'shuffleUses': _shuffleUses,
+          'visibleOptions': _visibleOptions,
         },
       );
 
   void _showPosition(int index) {
     _currentIndex = index;
-    _shuffledOptions = _isReview ? [] : List.of(_currentQuestion.options);
+    if (_isReview) {
+      _shuffledOptions = [];
+    } else {
+      final question = _currentQuestion;
+      final ids =
+          _visibleOptions[question.id] ??
+          question.options.take(4).map((o) => o.id).toList();
+      _shuffledOptions = [
+        for (final id in ids) ...question.options.where((o) => o.id == id),
+      ];
+      _visibleOptions[question.id] = _shuffledOptions.map((o) => o.id).toList();
+    }
     _selectedOptionId = _isReview ? null : _savedOptionId(_currentQuestion);
   }
 
@@ -564,6 +608,7 @@ class _VoteScreenState extends State<VoteScreen>
 
   Future<void> _choose(QuizOption? option) async {
     if (_isAdvancing || _sealed) return;
+    if (option == null && _skipUses >= _actionLimit) return;
     GameSettings.instance.feedback();
     final question = _currentQuestion;
     final old = _answers[question.id];
@@ -572,6 +617,7 @@ class _VoteScreenState extends State<VoteScreen>
     setState(() {
       _isAdvancing = true;
       _selectedOptionId = option?.id;
+      if (option == null) _skipUses++;
     });
     try {
       final voter = await LocalGameService.instance.getPlayerName() ?? 'You';
@@ -593,6 +639,7 @@ class _VoteScreenState extends State<VoteScreen>
         _answers[question.id] = old;
       }
       setState(() {
+        if (option == null) _skipUses--;
         _editingFromReview = oldEditing;
         _isAdvancing = false;
         _selectedOptionId = _savedOptionId(question);
@@ -732,9 +779,42 @@ class _VoteScreenState extends State<VoteScreen>
     }
   }
 
-  void _shuffleOptions() {
+  Future<void> _shuffleOptions() async {
+    if (_isAdvancing ||
+        _sealed ||
+        _shuffleUses >= _actionLimit ||
+        _shuffledOptions.length < 2) {
+      return;
+    }
     GameSettings.instance.feedback(selection: true);
-    setState(() => _shuffledOptions.shuffle());
+    final question = _currentQuestion;
+    final previous = List<QuizOption>.of(_shuffledOptions);
+    final currentIds = previous.map((o) => o.id).toSet();
+    final alternatives =
+        question.options.where((o) => !currentIds.contains(o.id)).toList()
+          ..shuffle();
+    final remaining = List<QuizOption>.of(previous)..shuffle();
+    final next = [...alternatives, ...remaining].take(4).toList()..shuffle();
+    if (next.map((o) => o.id).join(',') ==
+        previous.map((o) => o.id).join(',')) {
+      next.add(next.removeAt(0));
+    }
+    setState(() {
+      _isAdvancing = true;
+      _shuffleUses++;
+      _shuffledOptions = next;
+      _visibleOptions[question.id] = next.map((o) => o.id).toList();
+    });
+    try {
+      await _saveDraft(_currentIndex);
+    } catch (_) {
+      _shuffleUses--;
+      _shuffledOptions = previous;
+      _visibleOptions[question.id] = previous.map((o) => o.id).toList();
+      if (mounted) _showSaveError();
+    } finally {
+      if (mounted) setState(() => _isAdvancing = false);
+    }
   }
 
   Future<void> _reportQuestion() async {
@@ -1056,9 +1136,14 @@ class _VoteScreenState extends State<VoteScreen>
             child: Text(_editingFromReview ? 'Back to review' : 'Next'),
           ),
         TextButton.icon(
-          onPressed: _isAdvancing ? null : _shuffleOptions,
+          onPressed:
+              _isAdvancing ||
+                  _shuffleUses >= _actionLimit ||
+                  _shuffledOptions.length < 2
+              ? null
+              : _shuffleOptions,
           icon: const Icon(Icons.shuffle_rounded, size: 18),
-          label: const Text('Shuffle'),
+          label: Text('Shuffle (${_actionLimit - _shuffleUses})'),
           style: TextButton.styleFrom(
             foregroundColor: AppColors.textSecondary,
             textStyle: const TextStyle(
@@ -1068,7 +1153,9 @@ class _VoteScreenState extends State<VoteScreen>
           ),
         ),
         OutlinedButton(
-          onPressed: _isAdvancing ? null : () => _choose(null),
+          onPressed: _isAdvancing || _skipUses >= _actionLimit
+              ? null
+              : () => _choose(null),
           style: OutlinedButton.styleFrom(
             side: const BorderSide(color: AppColors.border),
             shape: RoundedRectangleBorder(
@@ -1083,7 +1170,7 @@ class _VoteScreenState extends State<VoteScreen>
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             visualDensity: VisualDensity.compact,
           ),
-          child: const Text('Skip'),
+          child: Text('Skip (${_actionLimit - _skipUses})'),
         ),
         TextButton.icon(
           onPressed: _reporting || _isAdvancing ? null : _reportQuestion,

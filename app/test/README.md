@@ -64,3 +64,26 @@ and small-phone large-text layout. `quiz_preferences_service_test.dart` verifies
 the backend contract and stale-session isolation. `server_round_source_test.dart`
 also prevents authenticated load failures from bypassing filters via local play.
 These fake tests do not prove device UI or production rollout.
+
+## Onboarding and UI polish
+
+- `phone_login_test.dart`: Privacy/Terms launch their configured URLs while the
+  phone route stays open.
+- `school_onboarding_test.dart`: selection from 30 results reveals the year field,
+  setup offers exactly 2026–2041, country-specific location labels, and both campus
+  branches still continue through their required onboarding steps.
+- `sharing_timer_test.dart` and `vote_screen_test.dart`: Skip and Shuffle each
+  allow two actions per 12-question round, persist their usage in the draft, keep
+  server candidates scoped to each question, and preserve exact submission retry.
+  Shuffle displays at most four candidates, prioritizing replacements when the
+  current question has other eligible candidates. A fixed four-candidate server
+  question only permits reordering; no candidates are borrowed from other questions.
+  These are client interaction limits, not new server authorization rules.
+- `settings_profile_layout_test.dart`: home/profile/settings at 320px and 1×/2×
+  text scale, local-data access, single profile edit entry, and no People counter.
+- `reset_game_test.dart`: less frequent destructive actions remain reachable at
+  the bottom of Settings; cancellation and failed erasure preserve account data.
+
+Settings order: account → circle → game/feedback → Premium → help → privacy/data →
+account actions. The local JSON viewer remains under privacy/data and exports only
+on-device data. It is not a complete server-data access/export workflow.

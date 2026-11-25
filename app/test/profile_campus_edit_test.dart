@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:go_router/go_router.dart';
+import 'package:flyprox_app/router/app_router.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,7 +13,7 @@ import 'fakes/social_storage.dart';
 
 void main() {
   testWidgets(
-    'profile validates username and confirms one campus change before saving',
+    'profile shows campus once and has one edit entry for all profile fields',
     (tester) async {
       SharedPreferences.setMockInitialValues({});
       await LocalGameService.instance.saveUsername('old_name');
@@ -19,7 +21,6 @@ void main() {
       await storage.init();
       final api = ApiService(storage);
       final campusWrites = <Map<String, dynamic>>[];
-      final handleWrites = <String>[];
       const oldCampus = {
         'id': 'US-CCD-1',
         'name': 'Central High',
@@ -51,7 +52,6 @@ void main() {
                 };
               case '/api/social/handle':
                 final handle = request.data['username'] as String;
-                handleWrites.add(handle);
                 if (handle == 'taken') {
                   status = 409;
                   reply = {
@@ -104,13 +104,24 @@ void main() {
           },
         ),
       );
+      final router = GoRouter(
+        routes: [
+          GoRoute(path: '/', builder: (_, _) => const ProfileScreen()),
+          GoRoute(
+            path: AppRoutes.editProfile,
+            builder: (_, _) =>
+                const Scaffold(body: Text('Profile editor destination')),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             storageServiceProvider.overrideWithValue(storage),
             apiServiceProvider.overrideWithValue(api),
           ],
-          child: const MaterialApp(home: ProfileScreen()),
+          child: MaterialApp.router(routerConfig: router),
         ),
       );
       await tester.pumpAndSettle();
@@ -121,47 +132,15 @@ void main() {
         await tester.pumpAndSettle();
       }
 
-      await tap('@old_name');
-      expect(find.text('Edit username'), findsOneWidget);
-      await tester.enterText(find.byType(TextFormField), 'bad name');
-      await tap('Save username');
-      expect(handleWrites, isEmpty);
-      await tester.enterText(find.byType(TextFormField), 'taken');
-      await tap('Save username');
-      expect(
-        find.text('This username is taken. Choose another.'),
-        findsOneWidget,
-      );
-      expect(find.text('taken'), findsOneWidget);
-      await tester.enterText(find.byType(TextFormField), 'New_Name');
-      await tap('Save username');
-      expect(find.text('@new_name'), findsOneWidget);
-
+      expect(find.text('@old_name'), findsOneWidget);
       expect(find.textContaining('Central High'), findsOneWidget);
-      await tap('Edit');
-      expect(find.textContaining('only once'), findsOneWidget);
-      await tap('Cancel');
-      expect(campusWrites, isEmpty);
-      await tap('Edit');
-      await tap('Find a new campus');
-      expect(find.text('Skip for now'), findsNothing);
-      await tester.enterText(find.byKey(const Key('school-search')), 'West');
-      await tester.pump(const Duration(milliseconds: 350));
-      await tester.pumpAndSettle();
-      await tap('West Campus');
-      await tap('Save campus');
-      expect(
-        find.textContaining('From Central High\nTo West Campus'),
-        findsOneWidget,
-      );
-      expect(campusWrites, isEmpty);
-      await tap('Confirm change');
-      expect(campusWrites.single['confirmChange'], isTrue);
-      expect(campusWrites.single['expectedCampusId'], 'US-CCD-1');
-      expect(campusWrites.single['schoolId'], 'US-CCD-2');
-      expect(find.textContaining('West Campus'), findsOneWidget);
-      expect(find.textContaining('Campus change used'), findsOneWidget);
+      expect(find.text('Edit profile'), findsOneWidget);
       expect(find.text('Edit'), findsNothing);
+      expect(find.text('Edit username'), findsNothing);
+      expect(campusWrites, isEmpty);
+      await tap('Edit profile');
+      expect(find.text('Profile editor destination'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
     },
   );
   testWidgets(

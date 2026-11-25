@@ -84,7 +84,7 @@ class _FaqScreenState extends State<FaqScreen> {
         ),
         _FaqItem(
           'What do Shuffle and Skip do?',
-          'Shuffle reorders the same 4 cards. Skip moves to the next question. '
+          'Shuffle replaces cards when other eligible people are available; otherwise it reorders them. Skip moves to the next question. Each has 2 uses per round. '
               'Skipped questions carry no penalty.',
         ),
         _FaqItem(
