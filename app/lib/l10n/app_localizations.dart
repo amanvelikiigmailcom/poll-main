@@ -734,36 +734,6 @@ abstract class AppLocalizations {
   /// **'Failed to complete purchase'**
   String get premium_purchaseError;
 
-  /// No description provided for @premiumResult_remaining.
-  ///
-  /// In en, this message translates to:
-  /// **'You have left:'**
-  String get premiumResult_remaining;
-
-  /// No description provided for @premiumResult_revealFirstLetter.
-  ///
-  /// In en, this message translates to:
-  /// **'Reveal first letter'**
-  String get premiumResult_revealFirstLetter;
-
-  /// No description provided for @premiumResult_revealFullName.
-  ///
-  /// In en, this message translates to:
-  /// **'Reveal full name'**
-  String get premiumResult_revealFullName;
-
-  /// No description provided for @premiumResult_limitExhausted.
-  ///
-  /// In en, this message translates to:
-  /// **'Limit exhausted. Get Premium Max for unlimited'**
-  String get premiumResult_limitExhausted;
-
-  /// No description provided for @premiumResult_tapToReveal.
-  ///
-  /// In en, this message translates to:
-  /// **'Tap the card to reveal'**
-  String get premiumResult_tapToReveal;
-
   /// No description provided for @settings_title.
   ///
   /// In en, this message translates to:
