@@ -28,7 +28,7 @@ class ForParentsScreen extends ConsumerWidget {
             _section(
               Icons.info_rounded,
               'How the game works',
-              'Flyprox is a quiz game with 12-question rounds. Guest players use selected contacts or examples on their device. Eligible signed-in players can take part in online votes with their campus community.',
+              'Flyprox is a quiz game with 12-question rounds. Guest players use selected contacts or examples on their device. Eligible signed-in players can take part in online quiz answers with their campus community.',
             ),
             _section(
               Icons.chat_bubble_outline_rounded,
@@ -48,7 +48,7 @@ class ForParentsScreen extends ConsumerWidget {
             _section(
               Icons.shield_outlined,
               'Block, remove or report',
-              'Players can remove a friend, block an account or open an email report from its profile. Email reports must be sent by the player to support@flyprox.com. Blocking prevents new friend requests and online votes between those accounts and hides them from each other in search. Manage blocked accounts in Settings. Blocking does not erase names someone has typed into their own offline game.',
+              'Players can remove a friend, block an account or open an email report from its profile. Email reports must be sent by the player to support@flyprox.com. Blocking prevents new friend requests and online quiz answers between those accounts and hides them from each other in search. Manage blocked accounts in Settings. Blocking does not erase names someone has typed into their own offline game.',
             ),
             _section(
               Icons.timer_outlined,
@@ -58,7 +58,7 @@ class ForParentsScreen extends ConsumerWidget {
             _section(
               Icons.lock_rounded,
               'Participant names',
-              'Nicknames and fictional names are welcome. Participant labels may be fictional. In optional online play, selected contacts matching registered accounts can receive vote notifications. Merely choosing a contact sends no invitation.',
+              'Nicknames and fictional names are welcome. Participant labels may be fictional. In optional online play, selected contacts matching registered accounts can receive quiz-result notifications. Merely choosing a contact sends no invitation.',
             ),
             _section(
               Icons.child_care_rounded,
@@ -68,7 +68,7 @@ class ForParentsScreen extends ConsumerWidget {
             _section(
               Icons.privacy_tip_rounded,
               'Game data and privacy',
-              'Guest play needs no account and game progress is stored on the device. Signed-in features also store account data, usernames, friend relationships, blocks, selected-contact hashes and online votes on our server. Selected contacts’ raw phone numbers are not uploaded; the account’s own phone number is used for sign-in. Optional phone sign-in is offered before the age question. Underage answers block contacts, gameplay and subscription access for the current run. Read the Privacy Policy for details.',
+              'Guest play needs no account and game progress is stored on the device. Signed-in features also store account data, usernames, friend relationships, blocks, selected-contact hashes and online quiz answers on our server. Selected contacts’ raw phone numbers are not uploaded; the account’s own phone number is used for sign-in. Optional phone sign-in is offered before the age question. Underage answers block contacts, gameplay and subscription access for the current run. Read the Privacy Policy for details.',
             ),
             _section(
               Icons.supervisor_account_rounded,

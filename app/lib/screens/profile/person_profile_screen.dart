@@ -357,8 +357,8 @@ class _PersonProfileScreenState extends ConsumerState<PersonProfileScreen>
                 const SizedBox(height: 24),
                 Text(
                   _stats == null
-                      ? 'Received votes'
-                      : 'Received votes · ${_stats!.votesReceived}',
+                      ? 'Times picked'
+                      : 'Times picked · ${_stats!.votesReceived}',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 22,
@@ -367,7 +367,7 @@ class _PersonProfileScreenState extends ConsumerState<PersonProfileScreen>
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Available completed-round votes, grouped by question. Voter identities aren’t shown.',
+                  'Available quiz results from completed rounds, grouped by question. The people who made these picks aren’t identified here.',
                   style: TextStyle(color: Colors.white, height: 1.5),
                 ),
                 const SizedBox(height: 16),
@@ -491,7 +491,7 @@ class _PersonProfileScreenState extends ConsumerState<PersonProfileScreen>
           children: [
             Expanded(child: _stat('Friends', _stats?.friendsCount)),
             const SizedBox(width: 8),
-            Expanded(child: _stat('Votes', _stats?.votesReceived)),
+            Expanded(child: _stat('Times picked', _stats?.votesReceived)),
             const SizedBox(width: 8),
             PopupMenuButton<String>(
               tooltip: 'Account actions',

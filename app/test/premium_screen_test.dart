@@ -31,9 +31,9 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Premium Weekly'), findsOneWidget);
-      expect(find.textContaining('2 full-name voter reveals'), findsOneWidget);
+      expect(find.textContaining('2 full-name reveals'), findsOneWidget);
       expect(
-        find.textContaining('5 first-initial voter reveals'),
+        find.textContaining('5 first-initial reveals'),
         findsOneWidget,
       );
       expect(find.textContaining('Full names: 1 left'), findsOneWidget);

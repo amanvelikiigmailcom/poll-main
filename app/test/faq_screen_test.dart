@@ -93,7 +93,7 @@ void main() {
     expect(find.text('9 topics'), findsOneWidget);
     for (final title in [
       'Getting started',
-      'Rounds & voting',
+      'Quiz rounds',
       'Breaks & limits',
       'Stars & Collection',
       'Friends & search',
@@ -105,7 +105,7 @@ void main() {
       expect(find.widgetWithText(ActionChip, title), findsOneWidget);
     }
     // Collapsed answers stay hidden until expanded.
-    expect(find.textContaining('You cannot vote for yourself'), findsNothing);
+    expect(find.textContaining('You cannot pick yourself'), findsNothing);
     expect(find.text('0 of 38 questions explored'), findsOneWidget);
   });
 
@@ -156,14 +156,17 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(
-        find.textContaining('2 full-name voter reveals and 5 first-initial'),
+        find.textContaining('2 full-name reveals and 5 first-initial'),
         findsOneWidget,
       );
-      expect(find.textContaining('older votes remain hidden'), findsOneWidget);
+      expect(
+        find.textContaining('older answers remain hidden'),
+        findsOneWidget,
+      );
       expect(find.text('What is Full Reveal?'), findsNothing);
       await tester.enterText(
         find.byKey(const ValueKey('faq-search')),
-        'Can I see who voted for me?',
+        'Can I see who picked me?',
       );
       await tester.pumpAndSettle();
       expect(find.textContaining('limited weekly reveals'), findsOneWidget);

@@ -461,8 +461,8 @@ void main() {
     expect(find.text('Back to review'), findsOneWidget);
     await choose(tester, 'Саша');
     expect(find.text('Review your answers'), findsOneWidget);
-    await tester.tap(find.text('Submit votes'));
-    await tester.tap(find.text('Submit votes'));
+    await tester.tap(find.text('Submit answers'));
+    await tester.tap(find.text('Submit answers'));
     await tester.pumpAndSettle();
     expect(submissions, hasLength(1));
     expect(submissions.single, {
@@ -533,7 +533,7 @@ void main() {
         await choose(tester, i <= 2 ? 'Skip (${3 - i})' : visible.first);
       }
       expect(find.text('10 answered · 2 skipped'), findsOneWidget);
-      await choose(tester, 'Submit votes');
+      await choose(tester, 'Submit answers');
       expect(submitted, {for (var i = 0; i < 12; i++) 'sq$i': null});
     },
   );

@@ -88,10 +88,10 @@ void main() {
       );
       await _mount(tester);
       await tester.pumpAndSettle();
-      expect(find.text('Vote details'), findsOneWidget);
+      expect(find.text('Quiz result'), findsOneWidget);
       expect(find.text(_question), findsOneWidget);
       expect(
-        find.text('Participants are not available for this vote.'),
+        find.text('Participants are not available for this quiz result.'),
         findsOneWidget,
       );
       for (final name in _friends) {
@@ -99,7 +99,7 @@ void main() {
       }
       expect(find.byIcon(Icons.check_rounded), findsNothing);
       expect(find.text('Share the result'), findsNothing);
-      expect(find.text('Find out who voted for you'), findsOneWidget);
+      expect(find.text('See who picked you'), findsOneWidget);
     },
   );
 
@@ -150,7 +150,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(card);
       await tester.pumpAndSettle();
-      expect(find.text('Vote details'), findsOneWidget);
+      expect(find.text('Quiz result'), findsOneWidget);
       expect(find.text('Share vote v1'), findsNothing);
       expect(find.text('Graduating in 2027'), findsOneWidget);
       expect(find.text('Your pick'), findsNothing);
@@ -168,10 +168,10 @@ void main() {
     await _mount(tester);
     await tester.pumpAndSettle();
     expect(
-      find.text('Participants are not available for this vote.'),
+      find.text('Participants are not available for this quiz result.'),
       findsOneWidget,
     );
-    expect(find.text('Vote details'), findsOneWidget);
+    expect(find.text('Quiz result'), findsOneWidget);
   });
 
   testWidgets('missing like shows the not-found state', (tester) async {

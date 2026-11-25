@@ -74,7 +74,7 @@ void main() {
       expect(find.text(title), findsWidgets);
     }
     // Collapsed bodies stay hidden until expanded.
-    expect(find.textContaining('You cannot vote for yourself'), findsNothing);
+    expect(find.textContaining('You cannot pick yourself'), findsNothing);
     expect(find.text('0 of 10 sections explored'), findsOneWidget);
   });
 
@@ -86,7 +86,7 @@ void main() {
     await scrollTo(tester, find.widgetWithText(ActionChip, 'Game rules'));
     await tester.tap(find.widgetWithText(ActionChip, 'Game rules'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('You cannot vote for yourself'), findsOneWidget);
+    expect(find.textContaining('You cannot pick yourself'), findsOneWidget);
     expect(find.text('1 of 10 sections explored'), findsOneWidget);
 
     await scrollTo(tester, find.text('Expand all'));

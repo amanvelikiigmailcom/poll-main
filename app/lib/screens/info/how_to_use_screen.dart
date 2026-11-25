@@ -60,7 +60,7 @@ class _HowToUseScreenState extends State<HowToUseScreen> {
     _GuideStep(
       Icons.how_to_vote_rounded,
       'Answer 12 questions',
-      'Pick one of 4 cards per question. You can’t vote for yourself. '
+      'Pick one of 4 cards per question. You can’t pick yourself. '
           'Shuffle changes available cards; Skip moves on. Each can be used twice per round.',
     ),
     _GuideStep(
@@ -85,7 +85,7 @@ class _HowToUseScreenState extends State<HowToUseScreen> {
       intro: 'One round, 12 questions, 4 cards each.',
       bullets: [
         'Each round has 12 questions. For every question you pick one of 4 name cards.',
-        'You cannot vote for yourself — your card is never a candidate.',
+        'You cannot pick yourself — your card is never a candidate.',
         'Shuffle replaces cards with other eligible people. If nobody else is available, no use is spent. Skip moves to the next question. Each has 2 uses per round.',
         'Skipped questions carry no penalty — report ones that feel wrong.',
         'To start you need a display name and at least 4 participants (or example names).',
@@ -99,7 +99,7 @@ class _HowToUseScreenState extends State<HowToUseScreen> {
       bullets: [
         'A 60-minute break starts after every round — Premium included.',
         'The center tab shows the same remaining time.',
-        'Up to 50 completed online rounds per UTC day. Invitations never bypass this cap.',
+        'Up to 50 completed online quiz rounds per UTC day. Invitations never bypass this cap.',
         'Unused earned rounds stay saved.',
         'Reset game never skips the wait, the age gate, or the school gate.',
       ],
@@ -115,7 +115,7 @@ class _HowToUseScreenState extends State<HowToUseScreen> {
         'All purchases are confirmed by the server — never by the app alone.',
         '5,000-star boost: your name appears in 4 random questions of one other player’s round (at most 1 crush question).',
         '20,000-star boost: your name appears in 1 crush question in another player’s round.',
-        'Boosts apply to future eligible campus rounds — a placement is never a guaranteed vote.',
+        'Boosts apply to future eligible campus rounds — a placement never guarantees you’ll be picked.',
       ],
     ),
     _GuideSection(
@@ -142,7 +142,7 @@ class _HowToUseScreenState extends State<HowToUseScreen> {
         'Start with 5 cards, tap See more for the full campus list (up to 50).',
         'Try “Friends of friends” and “From your campus” recommendations.',
         'Friendship always needs an accepted request. There is no in-app chat.',
-        'Blocking hides you from each other in search and stops requests and online votes.',
+        'Blocking hides you from each other in search and stops requests and online quiz answers.',
         'Hide suggestion only removes a recommendation. Undo it or restore it in Settings → Hidden suggestions; it does not block anyone.',
       ],
     ),
@@ -150,12 +150,12 @@ class _HowToUseScreenState extends State<HowToUseScreen> {
       id: 'likes',
       icon: Icons.favorite_outline_rounded,
       title: 'Likes & Activity',
-      intro: 'See your picks and eligible voter reveals.',
+      intro: 'See your picks and eligible reveals of who picked you.',
       bullets: [
         'Profile tabs: Friends, Likes, Requests. Collection lives on its own card.',
         'Activity shows who was picked, the question, graduation year and time.',
         'Newest 20 first, 20 more on scroll, 200 per query at most.',
-        'Premium can reveal the first initial or full name behind eligible new votes, with weekly limits. Older votes stay hidden. Votes from users who also have active Premium are protected, and attempts do not use your weekly reveals.',
+        'Premium can reveal the first initial or full name behind eligible new quiz answers, with weekly limits. Older answers stay hidden. Answers from users who also have active Premium are protected, and attempts do not use your weekly reveals.',
       ],
     ),
     _GuideSection(
@@ -179,7 +179,7 @@ class _HowToUseScreenState extends State<HowToUseScreen> {
       bullets: [
         'You pick every contact yourself — the full address book is never uploaded.',
         'Only hashes leave the device; labels stay local. Hashing is not anonymity.',
-        'Guest progress lives on this device; sign-in adds matching, votes and notifications.',
+        'Guest progress lives on this device; sign-in adds matching, online play and notifications.',
         'Flyprox is 13+. The gate saves only the outcome, never your exact age.',
         'Reset game clears local progress. Delete account (Settings) removes server data — needs a connection, safe to retry.',
         'Report with the question text only — leave names and private details out.',
@@ -215,15 +215,15 @@ class _HowToUseScreenState extends State<HowToUseScreen> {
         'The center tab always shows your live break countdown.',
         'Invite early — passes are the only way to skip waiting.',
         'A Messages “sent” receipt counts; a bare shared link does not.',
-        'Plan around the cap: 50 online rounds per UTC day.',
+        'Plan around the cap: 50 online quiz rounds per UTC day.',
         'Sign in — guest stars never leave this device.',
-        'Boosts shine in active rounds, but votes are never guaranteed.',
+        'Boosts shine in active rounds, but being picked is never guaranteed.',
         'Save the 20,000-star crush for someone special.',
         'Search needs just 2 letters of a @username.',
         'The first 5 cards are a preview — tap See more.',
         '“From your campus” finds familiar faces fastest.',
         'Friendship needs both sides — accept requests you trust.',
-        'Blocked accounts can’t vote for each other or match in search.',
+        'Blocked accounts can’t pick each other or match in search.',
         'Scroll Activity for older picks — history keeps 200 entries.',
         'Lost? Replay the intro from Settings anytime.',
       ],

@@ -6,7 +6,7 @@ import 'storage_service.dart';
 import 'subscription_service.dart';
 
 const notificationCategories = <String, String>{
-  'votes': 'New votes',
+  'votes': 'New quiz results',
   'invitations': 'Invitations',
   'friends': 'Friend requests and acceptances',
   'premium': 'Premium subscription',

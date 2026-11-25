@@ -1077,7 +1077,7 @@ class _VoteScreenState extends State<VoteScreen>
                       ? 'Retry submission'
                       : _sessionId == null
                       ? 'Finish round'
-                      : 'Submit votes',
+                      : 'Submit answers',
                 ),
               ),
             ),

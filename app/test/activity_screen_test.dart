@@ -136,8 +136,8 @@ void main() {
       expect(service.calls, [null]);
       expect(find.text('Activity'), findsOneWidget);
       expect(find.text('Student 0'), findsOneWidget);
-      expect(find.text('Was chosen in a poll'), findsWidgets);
-      expect(find.text('From a student · Graduating in 2028'), findsWidgets);
+      expect(find.text('Was picked in a quiz'), findsWidgets);
+      expect(find.text('From a student · Class of 2028'), findsWidgets);
       await tester.pump(const Duration(seconds: 2));
       expect(service.calls.length, 1);
       for (var i = 1; i < 10; i++) {
@@ -210,12 +210,12 @@ void main() {
     expect(find.text('Your campus activity starts here'), findsOneWidget);
     expect(
       find.text(
-        'See who gets chosen in polls around your campus. '
+        'See who gets picked in quizzes around your campus. '
         'New activity will appear here.',
       ),
       findsOneWidget,
     );
-    expect(find.text('Was chosen in a poll'), findsNothing);
+    expect(find.text('Was picked in a quiz'), findsNothing);
     expect(find.text('Retry'), findsNothing);
   });
   testWidgets('missing campus is distinct from an empty feed', (tester) async {

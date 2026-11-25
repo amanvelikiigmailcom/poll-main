@@ -41,7 +41,7 @@ void main() {
     (tester) async {
       final premium = FakePremium();
       await mount(tester, premium);
-      await tester.tap(find.text('Find out who voted for you'));
+      await tester.tap(find.text('See who picked you'));
       await tester.pumpAndSettle();
       expect(find.text('Paywall'), findsOneWidget);
       expect(premium.spends, 0);
@@ -53,16 +53,16 @@ void main() {
     (tester) async {
       final premium = FakePremium()..active = true;
       await mount(tester, premium);
-      expect(find.text('From a girl · Graduating in 2028'), findsOneWidget);
-      await tester.tap(find.text('Find out who voted for you'));
+      expect(find.text('From a girl · Class of 2028'), findsOneWidget);
+      await tester.tap(find.text('See who picked you'));
       await tester.pumpAndSettle();
       expect(find.text('2 left this week'), findsOneWidget);
       expect(find.text('5 left this week'), findsOneWidget);
       expect(find.textContaining('Max'), findsNothing);
       await tester.tap(find.text('Reveal first initial'));
       await tester.pumpAndSettle();
-      expect(find.text('From M. (girl) · Graduating in 2028'), findsOneWidget);
-      await tester.tap(find.text('Find out who voted for you'));
+      expect(find.text('From M. (girl) · Class of 2028'), findsOneWidget);
+      await tester.tap(find.text('See who picked you'));
       await tester.pumpAndSettle();
       expect(find.text('4 left this week'), findsOneWidget);
       await tester.tap(find.text('Reveal full name'));
@@ -79,7 +79,7 @@ void main() {
       final premium = FakePremium()
         ..failure = const ApiException('Network unavailable', statusCode: 503);
       await mount(tester, premium);
-      await tester.tap(find.text('Find out who voted for you'));
+      await tester.tap(find.text('See who picked you'));
       await tester.pumpAndSettle();
       expect(find.text('Network unavailable'), findsOneWidget);
       expect(find.text('Paywall'), findsNothing);

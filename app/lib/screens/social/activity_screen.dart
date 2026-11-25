@@ -210,7 +210,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen>
                         Text(
                           _campusRequired
                               ? 'Campus activity appears after you select a campus.'
-                              : 'See who gets chosen in polls around your campus. '
+                              : 'See who gets picked in quizzes around your campus. '
                                     'New activity will appear here.',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
@@ -298,7 +298,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen>
               ),
               const SizedBox(height: 4),
               const Text(
-                'Was chosen in a poll',
+                'Was picked in a quiz',
                 style: TextStyle(fontSize: 14, color: AppColors.textPrimary),
               ),
               const SizedBox(height: 6),

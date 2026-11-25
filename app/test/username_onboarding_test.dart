@@ -127,7 +127,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.pump(const Duration(seconds: 3));
       await tester.pumpAndSettle();
-      expect(find.text('Never miss a vote'), findsOneWidget);
+      expect(find.text('Know when you’re picked'), findsOneWidget);
       expect(await LocalGameService.instance.isUsernameSetupPending(), isFalse);
     },
   );
@@ -205,7 +205,7 @@ void main() {
     await tester.ensureVisible(find.text('Continue'));
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
-    expect(find.text('Never miss a vote'), findsOneWidget);
+    expect(find.text('Know when you’re picked'), findsOneWidget);
     expect(attempts, 2);
   });
 
@@ -282,10 +282,10 @@ void main() {
     );
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
-    expect(find.text('Never miss a vote'), findsOneWidget);
+    expect(find.text('Know when you’re picked'), findsOneWidget);
   });
 
-  testWidgets('valid nickname persists in profile, never in voting cards', (
+  testWidgets('valid nickname persists in profile, never in quiz cards', (
     tester,
   ) async {
     await mount(tester);
@@ -358,11 +358,11 @@ void main() {
     'signed-in player gets notification prompt after nickname, not before',
     (tester) async {
       await mount(tester, loggedIn: true);
-      expect(find.text('Never miss a vote'), findsNothing);
+      expect(find.text('Know when you’re picked'), findsNothing);
       await tester.ensureVisible(find.text('Continue'));
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();
-      expect(find.text('Never miss a vote'), findsOneWidget);
+      expect(find.text('Know when you’re picked'), findsOneWidget);
       expect(await LocalGameService.instance.getUsername(), 'user234432');
     },
   );

@@ -166,7 +166,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Likes'), findsOneWidget);
     expect(find.text('Total: 3'), findsOneWidget);
-    expect(find.text('Find out who picked you in votes'), findsOneWidget);
+    expect(find.text('See who picked you in quizzes'), findsOneWidget);
     expect(find.text('Today'), findsOneWidget);
     // Section header plus the yesterday card's own time label.
     expect(find.text('Yesterday'), findsNWidgets(2));
@@ -188,12 +188,12 @@ void main() {
     expect(find.text('EMPTY FOR NOW'), findsOneWidget);
     expect(
       find.text(
-        'When someone picks you in a vote, all your likes will appear here. '
-        'Want more votes? Play more polls.',
+        'When someone picks you in a quiz, your likes will appear here. '
+        'Want more likes? Play more rounds.',
       ),
       findsOneWidget,
     );
-    expect(find.text('Go to polls'), findsOneWidget);
+    expect(find.text('Play a quiz'), findsOneWidget);
     expect(find.text('Total: 0'), findsNothing);
     expect(find.byTooltip('Close'), findsNothing);
   });
@@ -203,9 +203,9 @@ void main() {
     final social = LikesFake(ApiService(storage), storage)..votes = 0;
     final router = await mount(tester, storage, social);
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Go to polls'));
+    await tester.ensureVisible(find.text('Play a quiz'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Go to polls'));
+    await tester.tap(find.text('Play a quiz'));
     await tester.pumpAndSettle();
     expect(router.routeInformationProvider.value.uri.path, '/home');
     expect(find.text('Home polls'), findsOneWidget);
@@ -283,11 +283,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Who makes everyone smile?'));
     await tester.pumpAndSettle();
-    expect(find.text('Vote details'), findsOneWidget);
+    expect(find.text('Quiz result'), findsOneWidget);
     expect(find.text('Who makes everyone smile?'), findsOneWidget);
-    expect(find.text('Voter identity is hidden'), findsOneWidget);
+    expect(find.text('Who picked you is hidden'), findsOneWidget);
     expect(find.text('Someone picked you!'), findsNothing);
     expect(find.text('Share'), findsOneWidget);
-    expect(find.text('Find out who voted for you'), findsOneWidget);
+    expect(find.text('See who picked you'), findsOneWidget);
   });
 }

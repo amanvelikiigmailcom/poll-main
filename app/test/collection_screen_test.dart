@@ -227,12 +227,12 @@ void main() {
     expect(find.text('What is Collection?'), findsOneWidget);
     expect(
       find.text(
-        'Stars are in-game points. Spend them on boosts that put your name in more polls.',
+        'Stars are in-game points. Spend them on boosts that include your name in more quiz questions.',
       ),
       findsOneWidget,
     );
     expect(
-      find.text('More placements, more chances to be voted for.'),
+      find.text('More placements, more chances to be picked.'),
       findsOneWidget,
     );
   });

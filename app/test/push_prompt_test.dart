@@ -109,7 +109,7 @@ void main() {
       tester,
       push: PushService(driver: driver, api: api),
     );
-    expect(find.text('Never miss a vote'), findsOneWidget);
+    expect(find.text('Know when you’re picked'), findsOneWidget);
     await tester.tap(find.text('Enable notifications'));
     await tester.pumpAndSettle();
     expect(driver.requestCalls, 1);

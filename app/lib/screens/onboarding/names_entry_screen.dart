@@ -276,7 +276,7 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
                 Text(
                   _campusMode == null
                       ? 'Choose at least 4 contacts to start your quiz.'
-                      : 'School voting opens automatically when ${_campusMode!.threshold} students from your campus join Flyprox. Until then, choose at least 4 contacts to play.',
+                      : 'Campus quiz rounds open automatically when ${_campusMode!.threshold} students from your campus join Flyprox. Until then, choose at least 4 contacts to play.',
                   style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 16,
