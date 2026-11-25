@@ -9,6 +9,7 @@ import '../../router/app_router.dart';
 import '../../services/api_service.dart';
 import '../../services/contact_sync_service.dart';
 import '../../services/invitation_service.dart';
+import '../../theme/app_colors.dart';
 import '../../widgets/common/wait_pass_card.dart';
 
 class InviteFriendScreen extends ConsumerStatefulWidget {
@@ -141,55 +142,115 @@ class _InviteFriendScreenState extends ConsumerState<InviteFriendScreen> {
     final service = ref.watch(invitationServiceProvider);
     final whatsapp = service.preferredChannel == 'whatsapp';
     return Scaffold(
-      appBar: AppBar(title: const Text('Invite friends')),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text(
+          'Invite friends',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
+      ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           children: [
-            const Text(
-              'One friend. One more round.',
-              style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Each eligible recipient unlocks one round of 12 questions. Unlock 10 rounds with 10 different recipients. You can complete up to 50 rounds per UTC day; unused unlocks stay in your account.',
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.primaryBlueDark,
+                borderRadius: BorderRadius.circular(28),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'One friend. One more round.',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      height: 1.2,
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  Text(
+                    'Each eligible recipient unlocks one round of 12 questions. Unlock 10 rounds with 10 different recipients. You can complete up to 50 rounds per UTC day; unused unlocks stay in your account.',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 16),
             WaitPassCard(onCheck: _check),
             const SizedBox(height: 16),
-            if (!service.signedIn && !_checking) ...[
-              const Text(
-                'Sign in to unlock rounds with invitations. Guest practice earns no invitation rewards.',
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0xFFE9ECF4)),
               ),
-              FilledButton(
-                onPressed: () => context.push(AppRoutes.phone),
-                child: const Text('Sign in to invite'),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (!service.signedIn && !_checking) ...[
+                    const Text(
+                      'Sign in to unlock rounds with invitations. Guest practice earns no invitation rewards.',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: () => context.push(AppRoutes.phone),
+                      child: const Text('Sign in to invite'),
+                    ),
+                  ] else if (service.signedIn) ...[
+                    const Text(
+                      'Choose one friend and one phone number. Raw contact numbers and contact names are not uploaded.',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
+                      onPressed: _busy ? null : _invite,
+                      icon: const Icon(Icons.person_add_alt_1),
+                      label: Text(
+                        _busy
+                            ? 'Opening…'
+                            : whatsapp
+                            ? 'Invite through WhatsApp'
+                            : 'Invite through Messages',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      whatsapp
+                          ? 'The first 5 qualifying WhatsApp returns per UTC day unlock a round immediately. Later invitations unlock after the recipient confirms the link. Returning does not verify delivery.'
+                          : 'A Messages sent result unlocks one round per recipient. Cancelled or failed messages do not. Sent does not confirm delivery.',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'If messaging is unavailable, sharing the link requires recipient confirmation.',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ],
               ),
-            ] else if (service.signedIn) ...[
-              const Text(
-                'Choose one friend and one phone number. Raw contact numbers and contact names are not uploaded.',
-              ),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: _busy ? null : _invite,
-                icon: const Icon(Icons.person_add_alt_1),
-                label: Text(
-                  _busy
-                      ? 'Opening…'
-                      : whatsapp
-                      ? 'Invite through WhatsApp'
-                      : 'Invite through Messages',
-                ),
-              ),
-              Text(
-                whatsapp
-                    ? 'The first 5 qualifying WhatsApp returns per UTC day unlock a round immediately. Later invitations unlock after the recipient confirms the link. Returning does not verify delivery.'
-                    : 'A Messages sent result unlocks one round per recipient. Cancelled or failed messages do not. Sent does not confirm delivery.',
-              ),
-              const Text(
-                'If messaging is unavailable, sharing the link requires recipient confirmation.',
-              ),
-            ],
+            ),
             const SizedBox(height: 16),
             OutlinedButton.icon(
               onPressed: _checking ? null : _check,
@@ -197,16 +258,28 @@ class _InviteFriendScreenState extends ConsumerState<InviteFriendScreen> {
               label: Text(_checking ? 'Checking…' : 'Check invitations'),
             ),
             if (_error != null)
-              Text(_error!, style: const TextStyle(color: Colors.red)),
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  _error!,
+                  style: const TextStyle(color: Colors.red),
+                ),
+              ),
             const SizedBox(height: 24),
             const Text(
               'My invitations',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
             ),
+            const SizedBox(height: 12),
             if (_invites.isEmpty && !_checking)
               const Text('Your invitations will appear here.'),
             for (final invite in _invites)
               Card(
+                margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
                   title: Text('Code ${invite['code']}'),
                   subtitle: Text(switch (invite['status']) {

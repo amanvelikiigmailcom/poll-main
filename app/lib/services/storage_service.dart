@@ -86,6 +86,39 @@ class StorageService extends ChangeNotifier {
     return _prefs.getString(_phoneKey);
   }
 
+  // ── Reviewer ──────────────────────────────────────────────────────────────
+
+  static const String _reviewerKey = 'reviewer_seen_v1';
+
+  /// Firebase test numbers used by the App Store reviewer (OTP 123456).
+  static const Set<String> reviewerTestPhones = {'+16505551234'};
+
+  static bool isReviewerPhone(String? phone) =>
+      phone != null && reviewerTestPhones.contains(phone.trim());
+
+  /// Remembers that the reviewer signed in on this install.
+  /// [clearAll] wipes it together with the rest of local state.
+  Future<void> markReviewerSeen() async {
+    await _prefs.setBool(_reviewerKey, true);
+  }
+
+  bool isReviewerSeen() {
+    try {
+      return _prefs.getBool(_reviewerKey) ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Skip buttons stay visible only for the reviewer session.
+  bool get reviewerSkipsAllowed {
+    try {
+      return isReviewerPhone(getPhone()) || isReviewerSeen();
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Random app-installation identifier for sign-in notices. No hardware fingerprint.
   Future<String> notificationInstallationId() async {
     const key = 'notification_installation_id_v1';

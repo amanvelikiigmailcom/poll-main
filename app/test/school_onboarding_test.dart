@@ -34,10 +34,12 @@ void main() {
     String route = AppRoutes.profileDetails,
     double scale = 1,
     bool schoolMode = false,
+    bool reviewer = false,
     void Function(RequestOptions, RequestInterceptorHandler)? search,
   }) async {
     final storage = StorageService();
     await storage.init();
+    if (reviewer) await storage.markReviewerSeen();
     if (schoolMode) await storage.saveToken('fixture-session');
     final api = ApiService(storage);
     api.dio.interceptors.add(
@@ -235,9 +237,9 @@ void main() {
     },
   );
   testWidgets(
-    'skip visibility updates live; skipping resumes contacts and direct voting remains blocked after setup',
+    'reviewer skip visibility updates live; skipping resumes contacts and direct voting remains blocked after setup',
     (tester) async {
-      final service = await mount(tester);
+      final service = await mount(tester, reviewer: true);
       await profile(tester);
       expect(find.byKey(const Key('skip-school')), findsOneWidget);
       ContentService.instance.debugSetOverrides({
@@ -269,6 +271,19 @@ void main() {
         testAppRouter.routeInformationProvider.value.uri.path,
         AppRoutes.schoolWaiting,
       );
+    },
+  );
+  testWidgets(
+    'regular users see no school skip and a campus-only hint',
+    (tester) async {
+      await mount(tester);
+      await profile(tester);
+      expect(find.byKey(const Key('skip-school')), findsNothing);
+      expect(
+        find.text('Voting opens after you choose a campus.'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Skipping lets you finish'), findsNothing);
     },
   );
   testWidgets(
@@ -349,7 +364,7 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
         addTearDown(tester.view.resetViewInsets);
-        await mount(tester, scale: scale);
+        await mount(tester, scale: scale, reviewer: true);
         await profile(tester);
         await tester.ensureVisible(find.byKey(const Key('skip-school')));
         await tester.pumpAndSettle();

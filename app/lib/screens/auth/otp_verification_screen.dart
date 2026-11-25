@@ -10,6 +10,7 @@ import '../../router/app_router.dart';
 import '../../services/age_gate_service.dart';
 import '../../services/onboarding_flow.dart';
 import '../../services/content_service.dart';
+import '../../services/storage_service.dart';
 
 /// Phone login, step 2: the SMS code. On success the backend session is
 /// stored, then the declared-age step precedes contacts.
@@ -105,6 +106,10 @@ class _OTPVerificationScreenState extends ConsumerState<OTPVerificationScreen> {
     }
     if (!mounted) return;
     FocusManager.instance.primaryFocus?.unfocus();
+    if (StorageService.isReviewerPhone(widget.phone)) {
+      await ref.read(storageServiceProvider).markReviewerSeen();
+      if (!mounted) return;
+    }
     OnboardingFlow.instance.completePhoneStep();
     context.go(
       AgeGateService.instance.status == AgeGateStatus.verified

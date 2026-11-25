@@ -134,6 +134,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final last = _page == _slides.length - 1;
+    final reviewer =
+        ref.read(storageServiceProvider).reviewerSkipsAllowed;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
@@ -174,14 +176,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                       fontSize: 21,
                                       fontWeight: FontWeight.w800,
                                       letterSpacing: -0.7)))),
-                      TextButton(
-                        onPressed: _saving ? null : _finish,
-                        style: TextButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size(64, 48)),
-                        child:
-                            const Text('Skip', style: TextStyle(fontSize: 14)),
-                      ),
+                      if (reviewer)
+                        TextButton(
+                          onPressed: _saving ? null : _finish,
+                          style: TextButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(64, 48)),
+                          child:
+                              const Text('Skip', style: TextStyle(fontSize: 14)),
+                        ),
                     ]),
                   ),
                   Expanded(

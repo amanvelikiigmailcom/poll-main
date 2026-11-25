@@ -390,37 +390,50 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
               const SizedBox(height: 18),
             ],
             if (_isSearch || widget.page == SocialPage.friends) ...[
-              TextField(
-                controller: _search,
-                onChanged: _onQuery,
-                onSubmitted: (_) {
-                  _debounce?.cancel();
-                  if (_isSearch) unawaited(_load());
-                },
-                autocorrect: false,
-                enableSuggestions: false,
-                textInputAction: TextInputAction.search,
-                style: const TextStyle(fontSize: 16),
-                decoration: InputDecoration(
-                  hintText: _isSearch
-                      ? 'Search by @username'
-                      : 'Search this list',
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  suffixIcon: _search.text.isEmpty
-                      ? null
-                      : IconButton(
-                          tooltip: 'Clear search',
-                          icon: const Icon(Icons.close_rounded),
-                          onPressed: () {
-                            _search.clear();
-                            _onQuery('');
-                          },
-                        ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(18),
-                    borderSide: const BorderSide(color: AppColors.border),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.border),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  controller: _search,
+                  onChanged: _onQuery,
+                  onSubmitted: (_) {
+                    _debounce?.cancel();
+                    if (_isSearch) unawaited(_load());
+                  },
+                  autocorrect: false,
+                  enableSuggestions: false,
+                  textInputAction: TextInputAction.search,
+                  style: const TextStyle(fontSize: 16),
+                  decoration: InputDecoration(
+                    hintText: _isSearch
+                        ? 'Search by @username'
+                        : 'Search this list',
+                    prefixIcon: const Icon(
+                      Icons.search_rounded,
+                      color: AppColors.primaryBlueDark,
+                    ),
+                    suffixIcon: _search.text.isEmpty
+                        ? null
+                        : IconButton(
+                            tooltip: 'Clear search',
+                            icon: const Icon(Icons.close_rounded),
+                            onPressed: () {
+                              _search.clear();
+                              _onQuery('');
+                            },
+                          ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                 ),
               ),
@@ -512,6 +525,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
               const SizedBox(height: 14),
               _recommendations(
                 'Friends of friends',
+                Icons.people_alt_outlined,
                 _mutuals,
                 _mutualLimit,
                 'No mutual connections yet. Search for someone you know.',
@@ -520,6 +534,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
               const SizedBox(height: 14),
               _recommendations(
                 'From your campus',
+                Icons.school_outlined,
                 _campus,
                 _campusLimit,
                 'No more people from your campus yet.',
@@ -534,6 +549,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
 
   Widget _recommendations(
     String title,
+    IconData icon,
     List<Map<String, dynamic>> cards,
     int limit,
     String empty,
@@ -543,17 +559,96 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(title, style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 8),
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: const BoxDecoration(
+                color: Color(0xFFEFF1FE),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                icon,
+                color: AppColors.primaryBlueDark,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+            if (users.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF1FE),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${users.length}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primaryBlueDark,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 12),
         if (users.isEmpty)
-          Text(empty, style: const TextStyle(color: AppColors.textSecondary)),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: AppColors.border.withValues(alpha: .7),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.person_search_outlined,
+                  color: AppColors.textSecondary,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    empty,
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      height: 1.45,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         for (final user in users.take(limit))
           _userCard(user, recommendation: true),
         if (users.length > limit)
           Align(
             alignment: Alignment.centerLeft,
-            child: TextButton(
+            child: OutlinedButton(
               onPressed: more,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primaryBlueDark,
+                side: const BorderSide(color: AppColors.primaryBlue),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
               child: Text('See more (${users.length - limit})'),
             ),
           ),
@@ -595,6 +690,13 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.border.withValues(alpha: .7)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -86,11 +86,20 @@ void main() {
     final result = await mount(tester, stars: 1000);
     await tester.pumpAndSettle();
     expect(find.text('⭐ 1,000'), findsOneWidget);
-    expect(find.text('Not enough stars'), findsNWidgets(2));
+    await tester.ensureVisible(find.text('⭐ 5,000'));
+    await tester.pumpAndSettle();
+    expect(find.text('Not enough stars'), findsWidgets);
     final purchase = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, '⭐ 5,000'),
     );
     expect(purchase.onPressed, isNull);
+    await tester.ensureVisible(find.text('⭐ 20,000'));
+    await tester.pumpAndSettle();
+    expect(find.text('Not enough stars'), findsWidgets);
+    final second = tester.widget<FilledButton>(
+      find.widgetWithText(FilledButton, '⭐ 20,000'),
+    );
+    expect(second.onPressed, isNull);
     await tester.tap(find.byTooltip('Close'));
     await tester.pumpAndSettle();
     expect(
@@ -104,6 +113,8 @@ void main() {
   ) async {
     final result = await mount(tester);
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('⭐ 5,000'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('⭐ 5,000'));
     await tester.pumpAndSettle();
     expect(find.text('Buy boost?'), findsOneWidget);
@@ -116,7 +127,17 @@ void main() {
     await tester.tap(find.text('Buy'));
     await tester.pumpAndSettle();
     expect(result.api.requests.length, 1);
-    expect(find.text('⭐ 20,000'), findsNWidgets(2)); // balance and second price
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, 600));
+    await tester.pumpAndSettle();
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Text &&
+            widget.data == '⭐ 20,000' &&
+            widget.style?.fontSize == 48,
+      ),
+      findsOneWidget,
+    ); // absolute balance updated
   });
 
   testWidgets(
@@ -152,6 +173,8 @@ void main() {
       final result = await mount(tester);
       await tester.pumpAndSettle();
       result.api.loseReply = true;
+      await tester.ensureVisible(find.text('⭐ 5,000'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('⭐ 5,000'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Buy'));
@@ -197,6 +220,22 @@ void main() {
       expect(find.text('⭐ 25,000'), findsOneWidget);
     },
   );
+
+  testWidgets('collection explains itself and its benefits', (tester) async {
+    await mount(tester);
+    await tester.pumpAndSettle();
+    expect(find.text('What is Collection?'), findsOneWidget);
+    expect(
+      find.text(
+        'Stars are in-game points. Spend them on boosts that put your name in more polls.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text('More placements, more chances to be voted for.'),
+      findsOneWidget,
+    );
+  });
 
   testWidgets('guest cannot spend and gets a sign-in action', (tester) async {
     final result = await mount(tester, guest: true);

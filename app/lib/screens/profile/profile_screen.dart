@@ -109,11 +109,9 @@ class _ProfileHeaderCard extends ConsumerWidget {
         : (user?.firstName ?? '');
     final login =
         identity?['username'] as String? ??
-        (!guest
-            ? ''
-            : local.username.isNotEmpty
+        (local.username.isNotEmpty
             ? local.username
-            : (user?.username ?? ''));
+            : (!guest ? '' : (user?.username ?? '')));
     final username = login.isNotEmpty ? '@$login' : '';
 
     return Container(
@@ -153,7 +151,10 @@ class _ProfileHeaderCard extends ConsumerWidget {
               ),
             ],
           ),
-          if (username.isNotEmpty) ...[
+          if (identityState.isLoading) ...[
+            // Reserve the button height so the header does not jump.
+            const SizedBox(height: 48),
+          ] else if (username.isNotEmpty) ...[
             const SizedBox(height: 4),
             TextButton.icon(
               onPressed: () => showDialog<void>(
@@ -161,7 +162,12 @@ class _ProfileHeaderCard extends ConsumerWidget {
                 builder: (_) => _UsernameEditor(initial: login),
               ),
               icon: const Icon(Icons.edit_outlined, size: 16),
-              label: Text(username, textAlign: TextAlign.center),
+              label: Text(
+                username,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ] else ...[
             TextButton(

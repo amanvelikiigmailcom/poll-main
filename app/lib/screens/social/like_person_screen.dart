@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../../services/story_share_service.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/helpers.dart';
 import '../../widgets/common/voter_reveal_card.dart';
@@ -9,14 +9,71 @@ import '../../widgets/common/voter_reveal_card.dart';
 ///
 /// Matches the voting screen: light background, initial avatar, question
 /// card, share actions and the backend-authorized voter reveal entry.
-class LikePersonScreen extends StatelessWidget {
-  const LikePersonScreen({super.key, this.data});
+/// Sharing captures only the avatar and the question card; the voter
+/// reveal below it is never part of the shared screenshot.
+class LikePersonScreen extends StatefulWidget {
+  const LikePersonScreen({super.key, this.data, this.storyShare});
 
   final Map<String, dynamic>? data;
+  final StoryShareService? storyShare;
+
+  @override
+  State<LikePersonScreen> createState() => _LikePersonScreenState();
+}
+
+class _LikePersonScreenState extends State<LikePersonScreen> {
+  final _shotKey = GlobalKey();
+  bool _sharing = false;
+
+  StoryShareService get _share => widget.storyShare ?? StoryShareService();
+
+  Future<void> _shareResult(
+    StoryShareTarget target,
+    Rect? origin,
+    String question,
+  ) async {
+    if (_sharing) return;
+    setState(() => _sharing = true);
+    try {
+      final png = await _share.capture(
+        _shotKey,
+        pixelRatio: MediaQuery.devicePixelRatioOf(context),
+      );
+      if (!mounted) return;
+      if (png == null || png.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Couldn’t prepare the image. Try again.'),
+          ),
+        );
+        return;
+      }
+      final outcome = await _share.share(
+        png: png,
+        target: target,
+        caption: 'My Flyprox result: $question',
+        sharePositionOrigin: origin,
+      );
+      if (!mounted) return;
+      if (outcome == StoryShareOutcome.failed) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              target == StoryShareTarget.instagram
+                  ? 'Couldn’t open Instagram'
+                  : 'Couldn’t open Snapchat',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final data = this.data;
+    final data = widget.data;
     final name = data?['name'] as String? ?? '';
     final question = data?['question'] as String? ?? '';
     final isPick = data?['isPick'] == true;
@@ -60,74 +117,86 @@ class LikePersonScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const SizedBox(height: 8),
-                          Center(
-                            child: CircleAvatar(
-                              radius: 48,
-                              backgroundColor: generateAvatarColor(name),
-                              child: Text(
-                                getInitials(name),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Center(
-                            child: Text(
-                              name,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: AppColors.textPrimary,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          if (detail.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Center(
-                              child: Text(
-                                detail,
-                                style: const TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ],
-                          if (isPick) ...[
-                            const SizedBox(height: 8),
-                            Center(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryBlue.withValues(
-                                    alpha: 0.1,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Text(
-                                  'Your pick',
-                                  style: TextStyle(
-                                    color: AppColors.primaryBlue,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
+                          RepaintBoundary(
+                            key: _shotKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                const SizedBox(height: 8),
+                                Center(
+                                  child: CircleAvatar(
+                                    radius: 48,
+                                    backgroundColor: generateAvatarColor(name),
+                                    child: Text(
+                                      getInitials(name),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 30,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
+                                const SizedBox(height: 12),
+                                Center(
+                                  child: Text(
+                                    name,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      color: AppColors.textPrimary,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                if (detail.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Center(
+                                    child: Text(
+                                      detail,
+                                      style: const TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                if (isPick) ...[
+                                  const SizedBox(height: 8),
+                                  Center(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primaryBlue.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: const Text(
+                                        'Your pick',
+                                        style: TextStyle(
+                                          color: AppColors.primaryBlue,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                                const SizedBox(height: 20),
+                                _QuestionCard(question: question),
+                              ],
                             ),
-                          ],
+                          ),
                           const SizedBox(height: 20),
-                          _QuestionCard(question: question),
-                          const SizedBox(height: 20),
-                          const _ShareSection(),
+                          _ShareSection(
+                            busy: _sharing,
+                            onShare: (target, origin) =>
+                                _shareResult(target, origin, question),
+                          ),
                           const SizedBox(height: 20),
                           VoterRevealCard(voteId: data?['voteId'] as String?),
                           const SizedBox(height: 8),
@@ -210,32 +279,19 @@ class _QuestionCard extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _ShareSection extends StatelessWidget {
-  const _ShareSection();
+  const _ShareSection({required this.onShare, required this.busy});
 
-  Future<void> _openInstagram(BuildContext context) async {
-    final uri = Uri.parse('https://www.instagram.com/');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Couldn’t open Instagram')),
-        );
-      }
-    }
-  }
+  final Future<void> Function(StoryShareTarget target, Rect? origin) onShare;
+  final bool busy;
 
-  Future<void> _openSnapchat(BuildContext context) async {
-    final uri = Uri.parse('https://www.snapchat.com/');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Couldn’t open Snapchat')));
-      }
-    }
+  Rect? _origin(BuildContext context) {
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) return null;
+    return Rect.fromCenter(
+      center: box.localToGlobal(box.size.center(Offset.zero)),
+      width: 1,
+      height: 1,
+    );
   }
 
   @override
@@ -258,7 +314,10 @@ class _ShareSection extends StatelessWidget {
               child: _ShareButton(
                 label: 'Instagram',
                 icon: _InstagramIcon(),
-                onTap: () => _openInstagram(context),
+                onTap: busy
+                    ? null
+                    : () =>
+                          onShare(StoryShareTarget.instagram, _origin(context)),
               ),
             ),
             const SizedBox(width: 12),
@@ -266,7 +325,10 @@ class _ShareSection extends StatelessWidget {
               child: _ShareButton(
                 label: 'Snapchat',
                 icon: _SnapchatIcon(),
-                onTap: () => _openSnapchat(context),
+                onTap: busy
+                    ? null
+                    : () =>
+                          onShare(StoryShareTarget.snapchat, _origin(context)),
               ),
             ),
           ],
@@ -279,7 +341,7 @@ class _ShareSection extends StatelessWidget {
 class _ShareButton extends StatelessWidget {
   final String label;
   final Widget icon;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _ShareButton({
     required this.label,
@@ -289,12 +351,15 @@ class _ShareButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final enabled = onTap != null;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: AppColors.primaryBlue,
+          color: enabled
+              ? AppColors.primaryBlue
+              : AppColors.primaryBlue.withValues(alpha: 0.5),
           borderRadius: BorderRadius.circular(14),
         ),
         child: Row(

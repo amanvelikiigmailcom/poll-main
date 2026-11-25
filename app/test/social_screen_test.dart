@@ -214,6 +214,29 @@ void main() {
     },
   );
   testWidgets(
+    'recommendation sections show icons and a designed empty state',
+    (tester) async {
+      final storage = SessionStorage();
+      final social = FakeSocial(ApiService(storage), storage)
+        ..suggestionData = {
+          'friendsOfFriends': [
+            {'id': 'via', 'username': 'via_friend', 'relationship': 'none'},
+          ],
+          'campus': [],
+        };
+      await mount(tester, storage, social);
+      expect(find.byIcon(Icons.people_alt_outlined), findsOneWidget);
+      expect(find.byIcon(Icons.school_outlined), findsOneWidget);
+      expect(find.text('1'), findsOneWidget);
+      expect(
+        find.text('No more people from your campus yet.'),
+        findsOneWidget,
+      );
+      expect(find.byIcon(Icons.person_search_outlined), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets(
     'search starts at two characters after 300ms; malformed handles stay local',
     (tester) async {
       final storage = SessionStorage();

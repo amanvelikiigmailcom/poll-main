@@ -164,4 +164,47 @@ void main() {
       expect(find.text('Edit'), findsNothing);
     },
   );
+  testWidgets(
+    'profile keeps a 32-character username on one line without overflow',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 568);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      SharedPreferences.setMockInitialValues({});
+      const handle = 'abcdefghij1234567890abcdefghij12';
+      final storage = SessionStorage();
+      await storage.init();
+      final api = ApiService(storage);
+      api.dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (request, handler) => handler.resolve(
+            Response(
+              requestOptions: request,
+              data: request.path == '/api/social/me'
+                  ? {
+                      'username': handle,
+                      'firstName': 'Alex',
+                      'lastName': 'Smith',
+                      'votesReceived': 0,
+                    }
+                  : <String, dynamic>{},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            storageServiceProvider.overrideWithValue(storage),
+            apiServiceProvider.overrideWithValue(api),
+          ],
+          child: const MaterialApp(home: ProfileScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('@$handle'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
