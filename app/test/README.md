@@ -18,7 +18,9 @@ These fakes do not prove real purchase/restore, webhooks or production DB unique
   overwrite a saved local university.
 - `runtime_assets_test.dart` verifies the startup logo/video, native reward sound,
   navigation fonts and license remain available, while the retired directory is
-  excluded from the bundle. It does not prove native playback.
+  excluded from the bundle. It also decodes the reduced logo and checks sufficient
+  resolution for the 112 logical-pixel splash at 4× density. It does not prove
+  native playback.
 
 Эти файлы — постоянная часть Git-репозитория. Они доступны любому агенту/разработчику с доступом к этой версии проекта. Логи `/tmp/flyprox-*.log` временные и не заменяют исходники тестов.
 

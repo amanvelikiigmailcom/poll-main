@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flyprox_app/widgets/common/startup_intro.dart';
@@ -35,9 +37,42 @@ void main() {
         isNot(contains('assets/data/us_universities.json')),
       );
       expect(
-        manifest.listAssets().where((asset) => asset.startsWith('assets/l10n/')),
+        manifest.listAssets().where(
+          (asset) => asset.startsWith('assets/l10n/'),
+        ),
         isEmpty,
       );
+      expect(
+        manifest.listAssets().where(
+          (asset) =>
+              asset.startsWith('assets/images/design/') ||
+              asset.startsWith('docs/reference/'),
+        ),
+        isEmpty,
+      );
+    },
+  );
+
+  test(
+    'logo keeps 4x splash resolution within its runtime byte budget',
+    () async {
+      final data = await rootBundle.load('assets/images/flyprox-logo.png');
+      expect(data.lengthInBytes, lessThan(200 * 1024));
+      final codec = await ui.instantiateImageCodec(
+        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+      );
+      try {
+        final frame = await codec.getNextFrame();
+        try {
+          // The largest call-site is 112 logical pixels, not 112 physical pixels.
+          expect(frame.image.width, greaterThanOrEqualTo(112 * 4));
+          expect(frame.image.height, frame.image.width);
+        } finally {
+          frame.image.dispose();
+        }
+      } finally {
+        codec.dispose();
+      }
     },
   );
 }
