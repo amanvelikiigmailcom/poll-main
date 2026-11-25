@@ -176,7 +176,7 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
   Widget build(BuildContext context) => SetupFormPage(
     title: 'About you',
     subtitle:
-        'Add your name and choose your gender. Your name is not shown on voting cards.',
+        'Add your name and choose your gender. Your name is not shown on quiz cards.',
     back: saving ? null : () => context.go(AppRoutes.phone),
     children: [
       if (loading)

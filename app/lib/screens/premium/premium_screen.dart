@@ -402,7 +402,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
             child: const Text('Refresh benefits'),
           ),
           const Text(
-            'Reveals apply only to eligible new votes. Unused reveals do not roll over.',
+            'Reveals apply only to eligible new quiz answers. Unused reveals do not roll over.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.white70, fontSize: 12),
           ),

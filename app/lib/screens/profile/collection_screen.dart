@@ -48,7 +48,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
           content: Text(
             'Buy “${boost.title}” for ${_format(boost.price)} stars?\n\n'
             '${boost.id == 'four_questions' ? 'Your name will appear in 4 random questions in one other player’s round, with at most 1 crush question.' : 'Your name will appear in 1 crush question in another player’s round.'}\n\n'
-            'Active immediately for future eligible campus rounds. Votes are not guaranteed.',
+            'Active immediately for future eligible campus rounds. Being picked is not guaranteed.',
           ),
           actions: [
             TextButton(
@@ -197,7 +197,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                         const _ShopHeading('What is Collection?'),
                         const SizedBox(height: 8),
                         const Text(
-                          'Stars are in-game points. Spend them on boosts that put your name in more polls.',
+                          'Stars are in-game points. Spend them on boosts that include your name in more quiz questions.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.white60,
@@ -217,13 +217,13 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                         ),
                         const _BenefitRow(
                           icon: '🗳️',
-                          text: 'More placements, more chances to be voted for.',
+                          text: 'More placements, more chances to be picked.',
                         ),
                         const SizedBox(height: 28),
                         const _ShopHeading('Promote yourself'),
                         const SizedBox(height: 8),
                         const Text(
-                          'Use stars to put your name in more polls.',
+                          'Use stars to include your name in more quiz questions.',
                           textAlign: TextAlign.center,
                           style: TextStyle(color: Colors.white60, fontSize: 15),
                         ),
@@ -281,7 +281,7 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                         ),
                         const SizedBox(height: 12),
                         const Text(
-                          'Boosts join the queue immediately. They apply to future eligible campus rounds, not rounds already issued. A placement is not a guaranteed vote.',
+                          'Boosts join the queue immediately. They apply to future eligible campus rounds, not rounds already issued. A placement does not guarantee you’ll be picked.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             color: Colors.white54,

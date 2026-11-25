@@ -114,7 +114,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('Unlock school voting'), findsOneWidget);
+      expect(find.text('Unlock campus quizzes'), findsOneWidget);
       expect(find.text('1 of 5 joined'), findsOneWidget);
       expect(
         find.textContaining('you play with your contacts'),

@@ -265,7 +265,7 @@ void main() {
           expect(find.text('Profile unavailable.'), findsOneWidget);
           expect(find.text('@alex_123'), findsNothing);
           expect(find.text('54'), findsNothing);
-          expect(find.text('Received votes · 12'), findsNothing);
+          expect(find.text('Times picked · 12'), findsNothing);
         } else {
           expect(
             find.text('Report received. You can also block this account.'),
@@ -320,7 +320,7 @@ void main() {
       social.statsFail = false;
       await tester.tap(find.text('Retry'));
       await tester.pumpAndSettle();
-      expect(find.text('Received votes · 12'), findsOneWidget);
+      expect(find.text('Times picked · 12'), findsOneWidget);
     },
   );
 
@@ -437,7 +437,7 @@ void main() {
       await tester.tap(find.text('Retry'));
       await tester.pumpAndSettle();
       expect(social.cursors.last, isNull);
-      expect(find.text('Received votes · 12'), findsOneWidget);
+      expect(find.text('Times picked · 12'), findsOneWidget);
     },
   );
 

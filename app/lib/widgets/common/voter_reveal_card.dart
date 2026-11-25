@@ -65,7 +65,7 @@ class _VoterRevealCardState extends ConsumerState<VoterRevealCard> {
 
   String _message(Object error) => error is ApiException
       ? error.message
-      : 'Couldn’t load this vote. Please try again.';
+      : 'Couldn’t load this quiz result. Please try again.';
   void _accept(Map<String, dynamic> result) {
     _expiry?.cancel();
     setState(() {
@@ -126,7 +126,7 @@ class _VoterRevealCardState extends ConsumerState<VoterRevealCard> {
       final id = widget.voteId;
       if (id == null || id.isEmpty) {
         throw const ApiException(
-          'This vote is not available for identity reveals.',
+          'Who picked you cannot be revealed for this quiz result.',
         );
       }
       final current = await ref.read(premiumServiceProvider).vote(id);
@@ -144,7 +144,7 @@ class _VoterRevealCardState extends ConsumerState<VoterRevealCard> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
-                'Reveal your voter',
+                'See who picked you',
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
               ListTile(
@@ -216,13 +216,16 @@ class _VoterRevealCardState extends ConsumerState<VoterRevealCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Voter', style: TextStyle(color: AppColors.textSecondary)),
+          const Text(
+            'Picked by',
+            style: TextStyle(color: AppColors.textSecondary),
+          ),
           const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
                 child: Text(
-                  data == null ? 'Voter identity is hidden' : label,
+                  data == null ? 'Who picked you is hidden' : label,
                   style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w700,
@@ -246,9 +249,7 @@ class _VoterRevealCardState extends ConsumerState<VoterRevealCard> {
             child: FilledButton.icon(
               onPressed: _busy ? null : _open,
               icon: const Icon(Icons.lock_open_outlined),
-              label: Text(
-                _busy ? 'Please wait…' : 'Find out who voted for you',
-              ),
+              label: Text(_busy ? 'Please wait…' : 'See who picked you'),
             ),
           ),
           if (widget.onShare != null) ...[

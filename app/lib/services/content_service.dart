@@ -27,11 +27,11 @@ class ContentService extends ChangeNotifier {
     'paywall_product_name': 'Premium Weekly',
     'paywall_term': '{price} / week · 1-week auto-renewing subscription',
     'paywall_features':
-        '["2 full-name voter reveals per subscription week","5 first-initial voter reveals per subscription week","Stars ×2 for completed online rounds","Blue Premium membership badge"]',
+        '["2 full-name reveals per subscription week","5 first-initial reveals per subscription week","Stars ×2 for completed online rounds","Blue Premium membership badge"]',
     'paywall_features_v2':
-        '["2 full-name voter reveals per subscription week","5 first-initial voter reveals per subscription week","Stars ×2 for completed online rounds","Blue Premium membership badge"]',
+        '["2 full-name reveals per subscription week","5 first-initial reveals per subscription week","Stars ×2 for completed online rounds","Blue Premium membership badge"]',
     'paywall_features_v3':
-        '["2 full-name voter reveals per subscription week","5 first-initial voter reveals per subscription week","Stars ×2 — 2000 per completed online round","Blue Premium badge while your subscription is active"]',
+        '["2 full-name reveals per subscription week","5 first-initial reveals per subscription week","Stars ×2 — 2000 per completed online round","Blue Premium badge while your subscription is active"]',
     'paywall_cta': 'Get Premium · {price}',
     'upsell_timer_button': 'Premium benefits',
     'blocked_title': 'Not available for your age',

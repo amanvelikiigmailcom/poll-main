@@ -499,7 +499,7 @@ void main() {
       await tester.tap(find.text('Verify'));
       await tester.pumpAndSettle();
       expect(find.text('How old are you?'), findsOneWidget);
-      expect(find.text('Never miss a vote'), findsNothing);
+      expect(find.text('Know when you’re picked'), findsNothing);
       expect(find.text('Add your contacts'), findsNothing);
       await tester.tap(find.text('13'));
       await tester.pumpAndSettle();

@@ -200,7 +200,7 @@ class _StarTakingScreenState extends State<StarTakingScreen>
                 child: Column(
                   children: [
                     const Text(
-                      'You got voted! ⭐',
+                      'You were picked! ⭐',
                       style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,

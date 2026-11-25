@@ -70,7 +70,7 @@ class _LikeShareScreenState extends ConsumerState<LikeShareScreen> {
     });
     try {
       final id = widget.voteId;
-      if (id == null || id.isEmpty) throw StateError('Missing vote.');
+      if (id == null || id.isEmpty) throw StateError('Missing quiz result.');
       final token = await _storage.getToken();
       if (!mounted || generation != _generation) return;
       if (token?.isNotEmpty != true) throw StateError('Signed out.');
@@ -85,7 +85,7 @@ class _LikeShareScreenState extends ConsumerState<LikeShareScreen> {
       }
       final vote = ReceivedVote.fromJson(data);
       if (vote.id != id || vote.question.trim().isEmpty) {
-        throw StateError('Invalid vote.');
+        throw StateError('Invalid quiz result.');
       }
       setState(() {
         _vote = vote;
@@ -125,7 +125,7 @@ class _LikeShareScreenState extends ConsumerState<LikeShareScreen> {
       }
       final vote = ReceivedVote.fromJson(data);
       if (vote.id != widget.voteId || vote.question.trim().isEmpty) {
-        throw StateError('Invalid vote.');
+        throw StateError('Invalid quiz result.');
       }
       setState(() => _vote = vote);
       await WidgetsBinding.instance.endOfFrame;
@@ -322,7 +322,7 @@ class LikeStoryCard extends StatelessWidget {
             if (vote.participants.isNotEmpty) ...[
               const SizedBox(height: 24),
               const Text(
-                'In this poll',
+                'In this quiz',
                 style: TextStyle(color: Colors.white70, fontSize: 12),
               ),
               const SizedBox(height: 8),

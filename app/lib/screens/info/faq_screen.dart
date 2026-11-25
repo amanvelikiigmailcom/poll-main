@@ -56,7 +56,7 @@ class _FaqScreenState extends State<FaqScreen> {
         _FaqItem(
           'Can I play as a guest?',
           'Yes. Guest progress stays on this device. Sign in with your phone '
-              'number to unlock contact matching, online votes and notifications.',
+              'number to unlock contact matching, online quiz answers and notifications.',
         ),
         _FaqItem(
           'What is the difference between my name and @username?',
@@ -74,13 +74,13 @@ class _FaqScreenState extends State<FaqScreen> {
     _FaqCategory(
       id: 'rounds',
       icon: Icons.how_to_vote_rounded,
-      title: 'Rounds & voting',
+      title: 'Quiz rounds',
       intro: '12 questions, 4 cards each.',
       items: [
         _FaqItem(
           'How does a round work?',
           'Each round has 12 questions. For every question you pick one of 4 '
-              'name cards. You cannot vote for yourself.',
+              'name cards. You cannot pick yourself.',
         ),
         _FaqItem(
           'What do Shuffle and Skip do?',
@@ -94,9 +94,9 @@ class _FaqScreenState extends State<FaqScreen> {
         ),
         _FaqItem(
           'What can Premium reveal?',
-          'Premium includes 2 full-name voter reveals and 5 first-initial reveals '
-              'per subscription week. Only eligible new votes can be revealed; '
-              'older votes remain hidden.',
+          'Premium includes 2 full-name reveals and 5 first-initial reveals '
+              'per subscription week. Only eligible new quiz answers can be revealed; '
+              'older answers remain hidden.',
         ),
         _FaqItem(
           'Why do some rounds need 5 students?',
@@ -154,7 +154,7 @@ class _FaqScreenState extends State<FaqScreen> {
           'What do boosts do?',
           'A 5,000-star boost places your name in 4 random questions of one '
               'other player’s round. A 20,000-star boost places it in 1 crush '
-              'question. A placement is never a guaranteed vote.',
+              'question. A placement never guarantees you’ll be picked.',
         ),
         _FaqItem(
           'Are purchases confirmed in the app?',
@@ -186,7 +186,7 @@ class _FaqScreenState extends State<FaqScreen> {
         _FaqItem(
           'What happens when I block someone?',
           'Blocking hides you from each other in search and stops requests and '
-              'online votes in both directions.',
+              'online quiz answers in both directions.',
         ),
       ],
     ),
@@ -207,10 +207,10 @@ class _FaqScreenState extends State<FaqScreen> {
               'first, 20 more on scroll, 200 per query at most.',
         ),
         _FaqItem(
-          'Can I see who voted for me?',
+          'Can I see who picked me?',
           'Premium can reveal the first initial or full name behind eligible new '
-              'votes using limited weekly reveals. Older votes stay hidden. '
-              'Ordinary Likes and Activity do not show voter identities.',
+              'quiz answers using limited weekly reveals. Older answers stay hidden. '
+              'Ordinary Likes and Activity do not identify who picked you.',
         ),
       ],
     ),
@@ -259,7 +259,7 @@ class _FaqScreenState extends State<FaqScreen> {
         _FaqItem(
           'What data stays on my device?',
           'Guest progress, contact labels and game drafts. Signing in adds '
-              'matching, votes and notifications.',
+              'matching, online play and notifications.',
         ),
         _FaqItem(
           'What is the age requirement?',
@@ -284,7 +284,7 @@ class _FaqScreenState extends State<FaqScreen> {
           'How do Premium purchases work?',
           'Premium Weekly includes 2 full-name reveals, 5 first-initial reveals, '
               'double online stars and a blue membership badge. Limits reset each '
-              'subscription week; reopening an unlocked vote is free while active. '
+              'subscription week; reopening an unlocked quiz result is free while active. '
               'Purchases run through Superwall and require server confirmation.',
         ),
         _FaqItem(

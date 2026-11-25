@@ -554,8 +554,8 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
           if (!_editing)
             Text(
               ref.read(storageServiceProvider).reviewerSkipsAllowed
-                  ? 'Voting opens after you choose a campus. Skipping lets you finish setting up your profile.'
-                  : 'Voting opens after you choose a campus.',
+                  ? 'Quiz play opens after you choose a campus. Skipping lets you finish setting up your profile.'
+                  : 'Quiz play opens after you choose a campus.',
               style: const TextStyle(color: Colors.white70, height: 1.4),
             ),
         ],
@@ -673,7 +673,7 @@ class _MissingSchoolScreenState extends ConsumerState<MissingSchoolScreen> {
   Widget build(BuildContext context) => SetupFormPage(
     title: 'Add your campus',
     subtitle:
-        'Send the campus details to our team. Voting will be available after your campus is added and you select it. Opening Mail does not send the request.',
+        'Send the campus details to our team. Quiz play will be available after your campus is added and you select it. Opening Mail does not send the request.',
     back: () => Navigator.of(context).pop(),
     children: [
       if (loading)
@@ -814,7 +814,7 @@ class SchoolWaitingScreen extends StatelessWidget {
   Widget build(BuildContext context) => SetupFormPage(
     title: 'Choose your campus to play',
     subtitle:
-        'Voting will be available after you select your campus. If it is missing, send its details to our team.',
+        'Quiz play will be available after you select your campus. If it is missing, send its details to our team.',
     children: [
       ElevatedButton(
         style: setupButton(),

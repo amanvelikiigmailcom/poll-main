@@ -197,7 +197,7 @@ class _MainTabState extends ConsumerState<MainTab> with WidgetsBindingObserver {
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        'Voting opens after you select your campus. If it is missing, send its details to our team.',
+                        'Quiz play opens after you select your campus. If it is missing, send its details to our team.',
                         style: TextStyle(color: Colors.white, height: 1.4),
                       ),
                       const SizedBox(height: 20),
@@ -415,9 +415,9 @@ class _SchoolBanner extends StatelessWidget {
     final open = mode.school;
     final title = open
         ? (hasProgress && !schoolDraft
-              ? 'School voting opens next round'
-              : 'School voting is open')
-        : 'Unlock school voting';
+              ? 'Campus quizzes open next round'
+              : 'Campus quizzes are open')
+        : 'Unlock campus quizzes';
     return Container(
       margin: const EdgeInsets.only(top: 16),
       padding: const EdgeInsets.all(20),

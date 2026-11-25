@@ -222,7 +222,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
           ),
           content: Text(
             action == 'block'
-                ? 'You won’t find each other in search or be able to send new requests or online votes to each other.'
+                ? 'You won’t find each other in search or be able to send new requests or online quiz answers to each other.'
                 : action == 'unblock'
                 ? 'You can find each other and send requests again unless they still block you. You’ll need a new request to become friends.'
                 : 'You will both be removed from each other’s friends list.',

@@ -322,7 +322,7 @@ class _HeaderCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           const Text(
-            'Find out who picked you in votes',
+            'See who picked you in quizzes',
             style: TextStyle(color: Colors.white70, fontSize: 14),
           ),
         ],
@@ -588,8 +588,8 @@ class _LikesEmptyCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           const Text(
-            'When someone picks you in a vote, all your likes will appear '
-            'here. Want more votes? Play more polls.',
+            'When someone picks you in a quiz, your likes will appear '
+            'here. Want more likes? Play more rounds.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.white, fontSize: 15, height: 1.5),
           ),
@@ -608,7 +608,7 @@ class _LikesEmptyCard extends StatelessWidget {
                 elevation: 0,
               ),
               child: const Text(
-                'Go to polls',
+                'Play a quiz',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),

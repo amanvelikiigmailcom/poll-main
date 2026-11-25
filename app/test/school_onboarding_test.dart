@@ -452,7 +452,7 @@ void main() {
     await profile(tester);
     expect(find.byKey(const Key('skip-school')), findsNothing);
     expect(
-      find.text('Voting opens after you choose a campus.'),
+      find.text('Quiz play opens after you choose a campus.'),
       findsOneWidget,
     );
     expect(find.textContaining('Skipping lets you finish'), findsNothing);

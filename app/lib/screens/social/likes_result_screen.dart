@@ -79,7 +79,7 @@ class _LikesResultScreenState extends ConsumerState<LikesResultScreen> {
                           icon: const Icon(Icons.arrow_back),
                         ),
                         const Text(
-                          'Vote details',
+                          'Quiz result',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -205,7 +205,7 @@ class _ParticipantsSection extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'Everyone who was in this vote.',
+          'Everyone who was in this quiz question.',
           style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
         ),
         const SizedBox(height: 14),
@@ -219,7 +219,7 @@ class _ParticipantsSection extends StatelessWidget {
               border: Border.all(color: AppColors.border),
             ),
             child: const Text(
-              'Participants are not available for this vote.',
+              'Participants are not available for this quiz result.',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
             ),

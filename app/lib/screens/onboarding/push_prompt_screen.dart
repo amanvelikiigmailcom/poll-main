@@ -51,7 +51,7 @@ class _PushPromptScreenState extends ConsumerState<PushPromptScreen> {
                       ),
                       const SizedBox(height: 24),
                       const Text(
-                        'Never miss a vote',
+                        'Know when you’re picked',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 28,
@@ -61,7 +61,7 @@ class _PushPromptScreenState extends ConsumerState<PushPromptScreen> {
                       ),
                       const SizedBox(height: 12),
                       const Text(
-                        'Get notified when friends vote for you. '
+                        'Get notified when friends pick you. '
                         'No spam, just game updates — turn off anytime in Settings.',
                         style: TextStyle(
                           color: Colors.white70,
