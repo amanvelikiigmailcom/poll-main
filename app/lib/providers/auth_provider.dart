@@ -38,15 +38,18 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthService _authService;
   final PhoneAuthService? _phoneAuth;
+  int _operation = 0;
 
   AuthNotifier(this._authService, {PhoneAuthService? phoneAuth})
-      : _phoneAuth = phoneAuth,
-        super(const AuthState()) {
+    : _phoneAuth = phoneAuth,
+      super(const AuthState()) {
     _init();
   }
 
   Future<void> _init() async {
+    final operation = _operation;
     final loggedIn = await _authService.isLoggedIn();
+    if (!mounted || operation != _operation) return;
     state = state.copyWith(
       status: loggedIn ? AuthStatus.authenticated : AuthStatus.unauthenticated,
     );
@@ -54,8 +57,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// Sends OTP to [phone]. Returns true on success.
   Future<bool> sendOtp(String phone) async {
+    final operation = ++_operation;
     state = state.copyWith(isLoading: true, errorMessage: null);
     final result = await _authService.sendOtp(phone);
+    if (!mounted || operation != _operation) return false;
     state = state.copyWith(
       isLoading: false,
       errorMessage: result.success ? null : result.message,
@@ -65,18 +70,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// Verifies [code] for [phone]. Updates auth status and returns [OtpVerifyResult].
   Future<OtpVerifyResult> verifyOtp(String phone, String code) async {
+    final operation = ++_operation;
     state = state.copyWith(isLoading: true, errorMessage: null);
     final result = await _authService.verifyOtp(phone, code);
+    if (!mounted || operation != _operation) {
+      return const OtpVerifyResult(
+        success: false,
+        isNewUser: false,
+        message: 'Sign-in was cancelled.',
+      );
+    }
     if (result.success) {
       state = state.copyWith(
         isLoading: false,
         status: AuthStatus.authenticated,
       );
     } else {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: result.message,
-      );
+      state = state.copyWith(isLoading: false, errorMessage: result.message);
     }
     return OtpVerifyResult(
       success: result.success,
@@ -87,8 +97,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// Logs out and resets state.
   Future<void> logout() async {
+    final operation = ++_operation;
     state = state.copyWith(isLoading: true);
     await _authService.logout();
+    if (!mounted || operation != _operation) return;
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 
@@ -104,14 +116,26 @@ class AuthNotifier extends StateNotifier<AuthState> {
         message: 'Phone login isn’t available in this build.',
       );
     }
+    final operation = ++_operation;
     state = state.copyWith(isLoading: true, errorMessage: null);
     final sent = await svc.sendCode(phone);
+    if (!mounted || operation != _operation) {
+      return const PhoneCodeResult(
+        success: false,
+        message: 'Sign-in was cancelled.',
+      );
+    }
     if (sent.autoIdToken != null) {
       final login = await svc.loginWithIdToken(sent.autoIdToken!, phone: phone);
+      if (!mounted || operation != _operation) {
+        return const PhoneCodeResult(
+          success: false,
+          message: 'Sign-in was cancelled.',
+        );
+      }
       state = state.copyWith(
         isLoading: false,
-        status:
-            login.success ? AuthStatus.authenticated : state.status,
+        status: login.success ? AuthStatus.authenticated : state.status,
         errorMessage: login.success ? null : login.message,
       );
       return PhoneCodeResult(
@@ -141,19 +165,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
         message: 'Phone login isn’t available in this build.',
       );
     }
+    final operation = ++_operation;
     state = state.copyWith(isLoading: true, errorMessage: null);
     final result = await svc.verifyCode(
-        verificationId: verificationId, code: code, phone: phone);
+      verificationId: verificationId,
+      code: code,
+      phone: phone,
+    );
+    if (!mounted || operation != _operation) {
+      return const OtpVerifyResult(
+        success: false,
+        isNewUser: false,
+        message: 'Sign-in was cancelled.',
+      );
+    }
     if (result.success) {
       state = state.copyWith(
         isLoading: false,
         status: AuthStatus.authenticated,
       );
     } else {
-      state = state.copyWith(
-        isLoading: false,
-        errorMessage: result.message,
-      );
+      state = state.copyWith(isLoading: false, errorMessage: result.message);
     }
     return OtpVerifyResult(
       success: result.success,
@@ -182,8 +214,9 @@ class OtpVerifyResult {
 
 // ── Providers ─────────────────────────────────────────────────────────────────
 
-final authNotifierProvider =
-    StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+final authNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>((
+  ref,
+) {
   return AuthNotifier(
     ref.watch(authServiceProvider),
     phoneAuth: ref.watch(phoneAuthServiceProvider),

@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart';
+
 import 'api_service.dart';
 import 'storage_service.dart';
 
@@ -59,6 +61,7 @@ class AuthService {
 
   /// Verifies [code] for [phone]. On success the auth token is persisted.
   Future<AuthResult> verifyOtp(String phone, String code) async {
+    final generation = _storage.beginAuthentication();
     try {
       final response = await _api.post<Map<String, dynamic>>(
         '/api/auth/verify-otp',
@@ -68,8 +71,21 @@ class AuthService {
       final token = data['token'] as String?;
       final isNewUser = data['isNewUser'] as bool? ?? false;
 
-      if (token != null) {
-        await _storage.saveToken(token);
+      if (token == null || token.isEmpty) {
+        return const AuthResult(
+          success: false,
+          message: 'Login failed. Try again.',
+        );
+      }
+      if (!await _storage.saveAuthenticatedSession(
+        generation,
+        token: token,
+        phone: phone,
+      )) {
+        return const AuthResult(
+          success: false,
+          message: 'Sign-in was cancelled.',
+        );
       }
 
       return AuthResult(
@@ -85,13 +101,18 @@ class AuthService {
 
   /// Logs the user out by clearing stored credentials.
   Future<void> logout() async {
+    final token = await _storage.clearSession();
+    if (token == null || token.isEmpty) return;
     try {
       // Best-effort server-side invalidation; ignore errors.
-      await _api.post<void>('/api/auth/logout');
+      await _api.post<void>(
+        '/api/auth/logout',
+        options: Options(
+          headers: {'Authorization': 'Bearer $token'},
+          extra: {'callerHandlesUnauthorized': true},
+        ),
+      );
     } catch (_) {}
-    await _storage.clearToken();
-    await _storage.clearUser();
-    await _storage.clearPhone();
   }
 
   /// Returns true when a non-empty auth token is stored locally.
