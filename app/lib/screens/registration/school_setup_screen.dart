@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../config/school_regions.dart';
 import '../../providers/service_providers.dart';
 import '../../router/app_router.dart';
 import '../../services/content_service.dart';
@@ -28,7 +29,7 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
   final form = GlobalKey<FormState>();
   Timer? debounce;
   int generation = 0;
-  String country = 'US', cursor = '';
+  String country = 'US', cursor = '', regionFilter = '';
   bool loading = true, searching = false, saving = false, available = true;
   String? error;
   List<Map<String, dynamic>> schools = [];
@@ -74,6 +75,23 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
     );
   }
 
+  void _regionChanged(String? value) {
+    if (saving) return;
+    debounce?.cancel();
+    generation++;
+    setState(() {
+      regionFilter = value ?? '';
+      schools = [];
+      cursor = '';
+      error = null;
+      searching = false;
+      selected = null;
+    });
+    // A new region invalidates the list, like a new query does; re-run an
+    // existing query immediately instead of waiting for more typing.
+    if (query.text.trim().length >= 3) _search(generation);
+  }
+
   Future<void> _search(int expected, {bool more = false}) async {
     if (!mounted || expected != generation) return;
     final term = query.text.trim();
@@ -89,6 +107,7 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
             term,
             cursor: more ? cursor : '',
             countryOverride: _editing ? country : null,
+            region: regionFilter,
           );
       final currentOwner = await storage.getToken();
       if (!mounted || expected != generation || owner != currentOwner) {
@@ -249,6 +268,32 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
         if (loading)
           const Center(child: CircularProgressIndicator(color: Colors.white))
         else ...[
+          if (SchoolRegions.hasRegions(country))
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: DropdownButtonFormField<String>(
+                key: const Key('school-region'),
+                initialValue: regionFilter,
+                isExpanded: true,
+                menuMaxHeight: 320,
+                decoration: setupInput('State / region (optional)'),
+                items: [
+                  const DropdownMenuItem(
+                    value: '',
+                    child: Text('All regions'),
+                  ),
+                  for (final entry in SchoolRegions.forCountry(country))
+                    DropdownMenuItem(
+                      value: entry.value,
+                      child: Text(
+                        entry.label,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                ],
+                onChanged: saving ? null : _regionChanged,
+              ),
+            ),
           TextField(
             key: const Key('school-search'),
             controller: query,
@@ -505,32 +550,61 @@ class _MissingSchoolScreenState extends ConsumerState<MissingSchoolScreen> {
             for (final field in [
               (name, 'Campus name', 'Enter the campus name.', 256),
               (city, 'City', 'Enter the city.', 128),
-              (region, 'State / region', 'Enter the state or region.', 128),
-              (year, 'Graduation year', '', 4),
             ])
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
-                child: field.$1 == year
-                    ? GraduationYearPicker(controller: year, enabled: !saving)
-                    : TextFormField(
-                        controller: field.$1,
-                        enabled: !saving,
-                        maxLength: field.$4,
-                        style: const TextStyle(fontSize: 16),
-                        decoration: setupInput(field.$2),
-                        validator: (v) {
-                          final value = v?.trim() ?? '';
-                          if (value.isEmpty) return field.$3;
-                          if (value.length > field.$4) {
-                            return 'Use ${field.$4} characters or fewer.';
-                          }
-                          if (RegExp(r'[\x00-\x1f\x7f]').hasMatch(value)) {
-                            return 'Remove line breaks or tabs.';
-                          }
-                          return null;
-                        },
-                      ),
+                child: TextFormField(
+                  controller: field.$1,
+                  enabled: !saving,
+                  maxLength: field.$4,
+                  style: const TextStyle(fontSize: 16),
+                  decoration: setupInput(field.$2),
+                  validator: (v) {
+                    final value = v?.trim() ?? '';
+                    if (value.isEmpty) return field.$3;
+                    if (value.length > field.$4) {
+                      return 'Use ${field.$4} characters or fewer.';
+                    }
+                    if (RegExp(r'[\x00-\x1f\x7f]').hasMatch(value)) {
+                      return 'Remove line breaks or tabs.';
+                    }
+                    return null;
+                  },
+                ),
               ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: SchoolRegions.hasRegions(widget.country)
+                  ? _RegionPicker(
+                      country: widget.country,
+                      controller: region,
+                      enabled: !saving,
+                    )
+                  : TextFormField(
+                      controller: region,
+                      enabled: !saving,
+                      maxLength: 128,
+                      style: const TextStyle(fontSize: 16),
+                      decoration: setupInput('State / region'),
+                      validator: (v) {
+                        final value = v?.trim() ?? '';
+                        if (value.isEmpty) {
+                          return 'Enter the state or region.';
+                        }
+                        if (value.length > 128) {
+                          return 'Use 128 characters or fewer.';
+                        }
+                        if (RegExp(r'[\x00-\x1f\x7f]').hasMatch(value)) {
+                          return 'Remove line breaks or tabs.';
+                        }
+                        return null;
+                      },
+                    ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: GraduationYearPicker(controller: year, enabled: !saving),
+            ),
             if (error != null)
               Semantics(
                 liveRegion: true,
@@ -549,6 +623,46 @@ class _MissingSchoolScreenState extends ConsumerState<MissingSchoolScreen> {
       ),
     ],
   );
+}
+
+/// Canonical region dropdown for the missing-campus request.
+///
+/// The controller holds the exact server value (`TEXAS`), not the display
+/// label, so the stored request matches `school_directory.region` verbatim.
+class _RegionPicker extends StatelessWidget {
+  const _RegionPicker({
+    required this.country,
+    required this.controller,
+    required this.enabled,
+  });
+  final String country;
+  final TextEditingController controller;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final entries = SchoolRegions.forCountry(country);
+    final current = controller.text;
+    return DropdownButtonFormField<String>(
+      key: const Key('missing-region'),
+      initialValue: entries.any((e) => e.value == current) ? current : null,
+      isExpanded: true,
+      menuMaxHeight: 320,
+      decoration: setupInput('State / region'),
+      items: [
+        for (final entry in entries)
+          DropdownMenuItem(
+            value: entry.value,
+            child: Text(entry.label, overflow: TextOverflow.ellipsis),
+          ),
+      ],
+      onChanged: enabled
+          ? (value) => controller.text = value ?? ''
+          : null,
+      validator: (value) =>
+          value == null ? 'Enter the state or region.' : null,
+    );
+  }
 }
 
 class SchoolWaitingScreen extends StatelessWidget {

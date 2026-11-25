@@ -20,6 +20,7 @@ class EditorOnboardingFake extends OnboardingDetailsService {
     String q, {
     String cursor = '',
     String? countryOverride,
+    String region = '',
   }) async => {
     'schools': [
       {'id': 'new-campus', 'name': 'West Campus', 'city': 'Austin'},
@@ -332,6 +333,17 @@ void main() {
     await tap(tester, 'Save');
     await tap(tester, 'Confirm and save');
     expect(f.service.writes.single['changes'], {'schoolId': 'new-campus'});
+  });
+
+  testWidgets('profile campus picker offers the US region filter', (
+    tester,
+  ) async {
+    await mount(tester);
+    await tester.ensureVisible(find.byKey(const Key('edit-campus')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('edit-campus')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('campus-pick-region')), findsOneWidget);
   });
 
   testWidgets(

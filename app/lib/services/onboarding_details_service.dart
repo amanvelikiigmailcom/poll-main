@@ -353,11 +353,17 @@ class OnboardingDetailsService extends ChangeNotifier {
     String q, {
     String cursor = '',
     String? countryOverride,
+    String region = '',
   }) async {
     final countryCode = countryOverride ?? await country();
     final response = await api.get<Map<String, dynamic>>(
       '/api/schools',
-      queryParameters: {'country': countryCode, 'q': q, 'cursor': cursor},
+      queryParameters: {
+        'country': countryCode,
+        'q': q,
+        'cursor': cursor,
+        if (region.isNotEmpty) 'region': region,
+      },
     );
     return response.data ?? {};
   }
