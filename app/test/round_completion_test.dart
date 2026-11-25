@@ -275,4 +275,23 @@ void main() {
     expect(router.state.uri.path, AppRoutes.collection);
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets('reward screen has no share action and stays clean on small screens', (
+    tester,
+  ) async {
+    await GameSettings.instance.setOption('reduce_motion', true);
+    tester.view.physicalSize = const Size(320, 650);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      const MaterialApp(home: StarReceivedScreen(starsAwarded: 1000)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Share Flyprox'), findsNothing);
+    expect(find.text('Continue'), findsOneWidget);
+    expect(find.text('Collection'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
 }

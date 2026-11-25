@@ -238,32 +238,38 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceAround,
                                   children: [
-                                    const _SummaryItem(
-                                      emoji: '🎮',
-                                      label: 'Questions',
-                                      value: '12',
+                                    const Expanded(
+                                      child: _SummaryItem(
+                                        emoji: '🎮',
+                                        label: 'Questions',
+                                        value: '12',
+                                      ),
                                     ),
                                     Container(
                                       width: 1,
                                       height: 40,
                                       color: Colors.white24,
                                     ),
-                                    const _SummaryItem(
-                                      emoji: '✅',
-                                      label: 'Round',
-                                      value: 'Done',
+                                    const Expanded(
+                                      child: _SummaryItem(
+                                        emoji: '✅',
+                                        label: 'Round',
+                                        value: 'Done',
+                                      ),
                                     ),
                                     Container(
                                       width: 1,
                                       height: 40,
                                       color: Colors.white24,
                                     ),
-                                    _SummaryItem(
-                                      emoji: '⭐',
-                                      label: 'Stars',
-                                      value: widget.starsAwarded == null
-                                          ? 'Synced'
-                                          : '+$_starsEarned',
+                                    Expanded(
+                                      child: _SummaryItem(
+                                        emoji: '⭐',
+                                        label: 'Stars',
+                                        value: widget.starsAwarded == null
+                                            ? 'Synced'
+                                            : '+$_starsEarned',
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -319,27 +325,6 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                     child: const Text('Continue'),
                   ),
                 ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => context.push(AppRoutes.invite),
-                    icon: const Icon(Icons.person_add_alt_1_rounded),
-                    label: const Text('Share Flyprox'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.white70, width: 1.5),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      textStyle: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
                 const SizedBox(height: 12),
               ],
             ),
@@ -367,17 +352,23 @@ class _SummaryItem extends StatelessWidget {
       children: [
         Text(emoji, style: const TextStyle(fontSize: 22)),
         const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
         ),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, color: Colors.white60),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 12, color: Colors.white60),
+          ),
         ),
       ],
     );
