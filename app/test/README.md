@@ -147,3 +147,10 @@ These fake tests do not prove device UI or production rollout.
 Settings order: account → circle → game/feedback → Premium → help → privacy/data →
 account actions. The local JSON viewer remains under privacy/data and exports only
 on-device data. It is not a complete server-data access/export workflow.
+# Performance scheduling
+
+`invitation_poller_test.dart` verifies adaptive intervals, hidden/background
+suppression, pause/dispose, slow in-flight checks and failure backoff.
+`invitation_service_test.dart` verifies one rewards read without delivery work,
+coalesced callers, owner isolation and mandatory re-read after a lost delivery
+acknowledgement. See `docs/performance-capacity.md` in the repository root.

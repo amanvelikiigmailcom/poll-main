@@ -9,6 +9,7 @@ import '../../router/app_router.dart';
 import '../../services/api_service.dart';
 import '../../services/contact_sync_service.dart';
 import '../../services/invitation_service.dart';
+import '../../services/invitation_poller.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/common/wait_pass_card.dart';
 
@@ -18,27 +19,47 @@ class InviteFriendScreen extends ConsumerStatefulWidget {
   ConsumerState<InviteFriendScreen> createState() => _InviteFriendScreenState();
 }
 
-class _InviteFriendScreenState extends ConsumerState<InviteFriendScreen> {
+class _InviteFriendScreenState extends ConsumerState<InviteFriendScreen>
+    with WidgetsBindingObserver {
   final List<Map<String, dynamic>> _invites = [];
   String? _cursor, _error;
   bool _busy = false, _checking = false;
-  Timer? _poll;
+  late final InvitationPoller _poll;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _poll = InvitationPoller(
+      check: _check,
+      isVisible: () =>
+          mounted &&
+          !_busy &&
+          (WidgetsBinding.instance.lifecycleState == null ||
+              WidgetsBinding.instance.lifecycleState ==
+                  AppLifecycleState.resumed) &&
+          ModalRoute.of(context)?.isCurrent == true,
+    );
     _check();
-    _poll = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (!_busy &&
-          WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed) {
-        _check();
+    _poll.start();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _poll.start();
+      if (mounted && ModalRoute.of(context)?.isCurrent == true && !_busy) {
+        unawaited(_check());
       }
-    });
+    } else {
+      _poll.pause();
+    }
   }
 
   @override
   void dispose() {
-    _poll?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    _poll.dispose();
     super.dispose();
   }
 
@@ -134,6 +155,7 @@ class _InviteFriendScreenState extends ConsumerState<InviteFriendScreen> {
         _ => 'Couldn’t send the invitation. Please try again.',
       });
       await _check();
+      _poll.start(afterInvitation: true);
     } on ApiException catch (e) {
       _notice(e.message);
     } catch (_) {

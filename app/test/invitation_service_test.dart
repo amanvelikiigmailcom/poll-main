@@ -19,6 +19,7 @@ class InviteApi extends ApiService {
   bool loseRedeemResponse = false, offline = false, claimFails = false;
   ApiException? claimError;
   bool composeFails = false, createFailsOnce = false;
+  bool loseDeliveryResponse = false;
   String accountId = 'account-a';
   Future<void> Function()? duringClaim;
   String? redeemedKey;
@@ -103,6 +104,10 @@ class InviteApi extends ApiService {
         sent++;
         credits++;
       }
+      if (loseDeliveryResponse) {
+        loseDeliveryResponse = false;
+        throw const ApiException('Lost delivery acknowledgement');
+      }
     } else if (path.endsWith('/compose-result')) {
       if (composeFails) throw const ApiException('Connection lost');
     } else if (path == '/api/invites') {
@@ -147,6 +152,50 @@ void main() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(InvitationService.messages, null);
   });
+
+  test(
+    'v2 refresh without pending delivery makes one rewards request and coalesces callers',
+    () async {
+      api.policy = 2;
+      await Future.wait(List.generate(20, (_) => service.refresh()));
+      expect(api.reads, 1);
+      expect(service.balance, 1);
+      expect(api.posts, isEmpty);
+    },
+  );
+
+  test(
+    'v2 re-reads after attempted delivery including lost acknowledgement, but not another owner queue',
+    () async {
+      api.policy = 2;
+      api.credits = 0;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList('invite_delivery_queue_v2', [
+        '{"owner":"account-b","code":"ABC234","launchId":"other","result":"sent"}',
+      ]);
+      await service.refresh();
+      expect(api.reads, 1);
+      expect(api.posts, isEmpty);
+      await prefs.setStringList('invite_delivery_queue_v2', [
+        '{"owner":"account-a","code":"ABC234","launchId":"owned","result":"sent"}',
+      ]);
+      api.loseDeliveryResponse = true;
+      await service.refresh();
+      expect(api.reads, 3);
+      expect(service.balance, 1);
+      expect(prefs.getStringList('invite_delivery_queue_v2'), hasLength(1));
+      await service.refresh();
+      expect(api.reads, 5);
+      expect(service.balance, 1, reason: 'replay cannot grant another round');
+      expect(prefs.getStringList('invite_delivery_queue_v2'), isEmpty);
+      await service.refresh();
+      expect(
+        api.reads,
+        6,
+        reason: 'empty queue no longer needs the second read',
+      );
+    },
+  );
 
   test(
     'ten sent results accumulate ten rounds and survive a new service instance',
