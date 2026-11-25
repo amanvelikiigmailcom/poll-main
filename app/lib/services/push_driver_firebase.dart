@@ -73,10 +73,12 @@ class FirebasePushDriver implements PushDriver {
   @override
   Stream<PushMessage> get onForegroundMessage {
     try {
-      return FirebaseMessaging.onMessage.map((m) => PushMessage(
-            title: m.notification?.title?.trim() ?? '',
-            body: m.notification?.body?.trim() ?? '',
-          ));
+      return FirebaseMessaging.onMessage.map(
+        (m) => PushMessage(
+          title: m.notification?.title?.trim() ?? '',
+          body: m.notification?.body?.trim() ?? '',
+        ),
+      );
     } catch (_) {
       return const Stream.empty();
     }
@@ -90,9 +92,9 @@ class FirebasePushDriver implements PushDriver {
     if (_tapHandlerSet) return;
     _tapHandlerSet = true;
     _tapChannel.setMethodCallHandler((call) async {
-      if (call.method == 'onPushTap' && call.arguments is String) {
-        final type = (call.arguments as String).trim();
-        if (type.isNotEmpty) _taps.add(PushTap(type));
+      if (call.method == 'onPushTap') {
+        final tap = PushTap.fromPayload(call.arguments);
+        if (tap != null) _taps.add(tap);
       }
     });
   }
@@ -110,9 +112,8 @@ class FirebasePushDriver implements PushDriver {
   @override
   Future<PushTap?> getInitialTap() async {
     try {
-      final type = await _tapChannel.invokeMethod<String>('getInitialPush');
-      final trimmed = type?.trim() ?? '';
-      return trimmed.isEmpty ? null : PushTap(trimmed);
+      final payload = await _tapChannel.invokeMethod<Object?>('getInitialPush');
+      return PushTap.fromPayload(payload);
     } catch (_) {
       return null;
     }

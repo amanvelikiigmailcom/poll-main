@@ -73,6 +73,8 @@ class ContentService extends ChangeNotifier {
 
   /// Reads [key]: server override first, baked-in default otherwise.
   String text(String key) {
+    // All support entry points use the address approved for this release.
+    if (key == 'support_email') return 'support@flyprox.com';
     try {
       final override = _overrides[key];
       if (override != null && override.isNotEmpty) return override;

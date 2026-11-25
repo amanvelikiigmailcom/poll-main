@@ -1,6 +1,7 @@
 import Flutter
 import UIKit
 import UserNotifications
+import Foundation
 
 /// Routes taps on plain APNs pushes (Appwrite Messaging, no FCM message id).
 /// FlutterFire only forwards FCM taps to Dart, so this delegate captures the
@@ -10,7 +11,7 @@ final class PushTapBridge: NSObject, UNUserNotificationCenterDelegate {
   static let shared = PushTapBridge()
 
   private var channel: FlutterMethodChannel?
-  private var pendingType: String?
+  private var pendingPayload: [String: String]?
   private var liveArmed = false
   private let lock = NSLock()
 
@@ -19,10 +20,10 @@ final class PushTapBridge: NSObject, UNUserNotificationCenterDelegate {
   static func installEarly(launchOptions: [UIApplication.LaunchOptionsKey: Any]?) {
     UNUserNotificationCenter.current().delegate = shared
     if let remote = launchOptions?[.remoteNotification] as? [AnyHashable: Any],
-      let type = pushType(from: remote)
+      let payload = PushTapPayload.decode(remote)
     {
       shared.lock.lock()
-      shared.pendingType = type
+      shared.pendingPayload = payload
       shared.lock.unlock()
     }
   }
@@ -60,40 +61,60 @@ final class PushTapBridge: NSObject, UNUserNotificationCenterDelegate {
         "[PushTap] tap keys: %@",
         userInfo.keys.map { String(describing: $0) }.sorted().joined(separator: ","))
     #endif
-    if let type = Self.pushType(from: userInfo) {
-      deliver(type: type)
+    if let payload = PushTapPayload.decode(userInfo) {
+      deliver(payload: payload)
     }
     completionHandler()
   }
 
-  /// Reads the backend push type defensively: Appwrite custom data may arrive
-  /// as a top-level key or nested. Unknown shapes stay unrouted (nil).
-  static func pushType(from userInfo: [AnyHashable: Any]) -> String? {
-    if let type = userInfo["type"] as? String, !type.isEmpty { return type }
-    if let data = userInfo["data"] as? [AnyHashable: Any],
-      let type = data["type"] as? String, !type.isEmpty
-    {
-      return type
-    }
-    return nil
-  }
-
-  private func deliver(type: String) {
+  private func deliver(payload: [String: String]) {
     lock.lock()
     let armed = liveArmed
-    if !armed { pendingType = type }
+    if !armed { pendingPayload = payload }
     let channel = self.channel
     lock.unlock()
     if armed {
-      DispatchQueue.main.async { channel?.invokeMethod("onPushTap", arguments: type) }
+      DispatchQueue.main.async { channel?.invokeMethod("onPushTap", arguments: payload) }
     }
   }
 
-  private func takePending() -> String? {
+  private func takePending() -> [String: String]? {
     lock.lock()
     defer { lock.unlock() }
-    let type = pendingType
-    pendingType = nil
-    return type
+    let payload = pendingPayload
+    pendingPayload = nil
+    return payload
+  }
+}
+
+
+// Foundation-only decoder; exercised separately without building the iOS app.
+enum PushTapPayload {
+  static func decode(_ userInfo: [AnyHashable: Any]) -> [String: String]? {
+    let data: [AnyHashable: Any]
+    if userInfo["type"] != nil {
+      data = userInfo
+    } else if let nested = userInfo["data"] as? [AnyHashable: Any] {
+      data = nested
+    } else if let json = userInfo["data"] as? String,
+      let bytes = json.data(using: .utf8),
+      let nested = (try? JSONSerialization.jsonObject(with: bytes)) as? [String: Any] {
+      data = nested
+    } else {
+      return nil
+    }
+    guard let rawType = data["type"] as? String else { return nil }
+    let type = rawType.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !type.isEmpty, type.count <= 64 else { return nil }
+    var payload = ["type": type]
+    for key in ["recipientId", "eventId", "actorId"] {
+      if let value = data[key] {
+        guard let text = value as? String,
+          text.range(of: "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$", options: .regularExpression)?.upperBound == text.endIndex
+        else { return nil }
+        payload[key] = text
+      }
+    }
+    return payload
   }
 }

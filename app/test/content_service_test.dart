@@ -55,6 +55,16 @@ void main() {
     expect(content.text('missing_key'), '');
   });
 
+  test('remote content cannot redirect support emails to another address', () {
+    ContentService.instance.debugSetOverrides({
+      'support_email': 'other@example.com',
+    });
+    expect(
+      ContentService.instance.text('support_email'),
+      'support@flyprox.com',
+    );
+  });
+
   test('flag parses booleans and defaults to enabled', () {
     final content = ContentService.instance;
     expect(content.flag('guest_enabled'), isTrue);

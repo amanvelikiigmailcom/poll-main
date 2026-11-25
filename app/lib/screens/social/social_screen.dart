@@ -1,3 +1,5 @@
+import '../../services/support_email_service.dart';
+import '../../widgets/common/support_email_dialog.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,9 +30,11 @@ class SocialScreen extends ConsumerStatefulWidget {
     super.key,
     required this.page,
     this.initialKind = 'friends',
+    this.focusUserId,
   });
   final SocialPage page;
   final String initialKind;
+  final String? focusUserId;
   @override
   ConsumerState<SocialScreen> createState() => _SocialScreenState();
 }
@@ -171,6 +175,16 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                 for (final card in [..._users, ...users]) card['id']: card,
               }.values.toList()
             : users;
+        // Only reorder authorized rows. A push cannot inject a user into a list.
+        final focused = _users
+            .where((user) => user['id'] == widget.focusUserId)
+            .toList();
+        if (focused.isNotEmpty) {
+          _users = [
+            ...focused,
+            ..._users.where((user) => user['id'] != widget.focusUserId),
+          ];
+        }
         _next = data['nextCursor'] as String?;
         _loading = false;
       });
@@ -207,6 +221,15 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
 
   Future<void> _action(Map<String, dynamic> user, String action) async {
     if (_busy) return;
+    if (action == 'report') {
+      await showSupportEmail(
+        context,
+        kind: SupportEmailKind.account,
+        targetId: user['id'] as String,
+        username: user['username'] as String?,
+      );
+      return;
+    }
     final owner = await _storage.getToken();
     if (!mounted) return;
     if (['block', 'remove', 'unblock'].contains(action)) {
@@ -252,17 +275,9 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
         return;
       }
       ref.invalidate(socialSummaryProvider);
-      if (action == 'report') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Report received. You can also block this account.'),
-          ),
-        );
-      } else {
-        // Relationship changes also invalidate profiles and other mounted lists.
-        ref.read(socialVisibilityRevisionProvider.notifier).changed();
-        if (action == 'block') _showBlockedHint();
-      }
+      // Relationship changes invalidate profiles and other mounted lists.
+      ref.read(socialVisibilityRevisionProvider.notifier).changed();
+      if (action == 'block') _showBlockedHint();
     } catch (error) {
       if (mounted && generation == _generation) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -567,11 +582,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                 color: Color(0xFFEFF1FE),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                icon,
-                color: AppColors.primaryBlueDark,
-                size: 20,
-              ),
+              child: Icon(icon, color: AppColors.primaryBlueDark, size: 20),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -612,9 +623,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: AppColors.border.withValues(alpha: .7),
-              ),
+              border: Border.all(color: AppColors.border.withValues(alpha: .7)),
             ),
             child: Row(
               children: [

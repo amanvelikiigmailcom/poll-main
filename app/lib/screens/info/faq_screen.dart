@@ -89,8 +89,15 @@ class _FaqScreenState extends State<FaqScreen> {
         ),
         _FaqItem(
           'How do I report a bad question?',
-          'Use Report a question while playing and include the question text '
-              'only. Leave participant names and private details out.',
+          'Use Report a question while playing. Send the prepared draft from your email '
+              'app to support@flyprox.com. Leave participant names and private details out.',
+        ),
+        _FaqItem(
+          'How do I contact support or report an account?',
+          'Use Settings → Contact support, Report a problem or Send feedback. '
+              'For an account, open its menu and choose Report account. All open '
+              'email drafts to support@flyprox.com; you must send the email yourself. '
+              'Blocking is a separate action. If email is unavailable, copy the message.',
         ),
         _FaqItem(
           'What can Premium reveal?',

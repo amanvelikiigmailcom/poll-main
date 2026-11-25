@@ -15,6 +15,13 @@ class FakeSocial extends SocialService {
   FakeSocial(super.api, super.storage);
   final results = <String, Completer<Map<String, dynamic>>>{};
   final searches = <String>[];
+  final actions = <String>[];
+  @override
+  Future<Map<String, dynamic>> act(String id, String action) async {
+    actions.add(action);
+    return {};
+  }
+
   Map<String, dynamic> suggestionData = {};
   int suggestionCalls = 0;
   @override
@@ -79,7 +86,6 @@ class UnblockSocial extends FakeSocial {
 
 class BlockHintSocial extends FakeSocial {
   BlockHintSocial(super.api, super.storage);
-  final actions = <String>[];
   @override
   Future<Map<String, dynamic>> act(String id, String action) async {
     actions.add(action);
@@ -125,6 +131,25 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  testWidgets(
+    'report from a friends list opens an email form without server submission',
+    (tester) async {
+      final storage = SessionStorage();
+      final social = FakeSocial(ApiService(storage), storage);
+      await mount(tester, storage, social, page: SocialPage.friends);
+      await tester.tap(find.byTooltip('Account actions'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Report account'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Account reference: one'), findsOneWidget);
+      expect(find.textContaining('support@flyprox.com'), findsOneWidget);
+      expect(social.actions, isEmpty);
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
+      expect(social.actions, isEmpty);
+    },
+  );
 
   for (final scale in [1.0, 2.0]) {
     testWidgets(
@@ -213,29 +238,25 @@ void main() {
       expect(find.text('From your campus'), findsNothing);
     },
   );
-  testWidgets(
-    'recommendation sections show icons and a designed empty state',
-    (tester) async {
-      final storage = SessionStorage();
-      final social = FakeSocial(ApiService(storage), storage)
-        ..suggestionData = {
-          'friendsOfFriends': [
-            {'id': 'via', 'username': 'via_friend', 'relationship': 'none'},
-          ],
-          'campus': [],
-        };
-      await mount(tester, storage, social);
-      expect(find.byIcon(Icons.people_alt_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.school_outlined), findsOneWidget);
-      expect(find.text('1'), findsOneWidget);
-      expect(
-        find.text('No more people from your campus yet.'),
-        findsOneWidget,
-      );
-      expect(find.byIcon(Icons.person_search_outlined), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    },
-  );
+  testWidgets('recommendation sections show icons and a designed empty state', (
+    tester,
+  ) async {
+    final storage = SessionStorage();
+    final social = FakeSocial(ApiService(storage), storage)
+      ..suggestionData = {
+        'friendsOfFriends': [
+          {'id': 'via', 'username': 'via_friend', 'relationship': 'none'},
+        ],
+        'campus': [],
+      };
+    await mount(tester, storage, social);
+    expect(find.byIcon(Icons.people_alt_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.school_outlined), findsOneWidget);
+    expect(find.text('1'), findsOneWidget);
+    expect(find.text('No more people from your campus yet.'), findsOneWidget);
+    expect(find.byIcon(Icons.person_search_outlined), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets(
     'search starts at two characters after 300ms; malformed handles stay local',
     (tester) async {
