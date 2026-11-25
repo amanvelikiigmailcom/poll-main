@@ -1,98 +1,76 @@
-import 'dart:io';
 import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
-/// Where a result screenshot should be shared.
-enum StoryShareTarget { instagram, snapchat }
+enum StoryShareTarget { instagram, snapchat, tiktok }
 
-/// What happened after a share attempt.
-enum StoryShareOutcome { shared, failed }
+enum StoryShareOutcome { opened, shareMenu, dismissed, failed }
 
-/// Shares a result screenshot to stories.
-///
-/// Instagram opens its story composer directly through the native
-/// `instagram-stories://share` handoff (screenshot on the pasteboard).
-/// Snapchat exposes no public direct-story API, so it goes through the
-/// system share sheet with the image attached, where Snapchat is one of
-/// the targets. The share sheet is also the fallback when Instagram is
-/// missing or the native handoff fails.
+/// "Opened" means handed to an editor, never proof of publication.
 class StoryShareService {
   StoryShareService({
     MethodChannel? channel,
-    Future<Directory> Function()? tempDir,
-    Future<void> Function(XFile file, String text, Rect? origin)? shareFiles,
+    Future<ShareResult> Function(ShareParams)? share,
   }) : _channel = channel ?? const MethodChannel('flyprox/story_share'),
-       _tempDir = tempDir ?? _systemTemp,
-       _shareFiles = shareFiles ?? _platformShare;
+       _share = share ?? SharePlus.instance.share;
 
   final MethodChannel _channel;
-  final Future<Directory> Function() _tempDir;
-  final Future<void> Function(XFile file, String text, Rect? origin)
-  _shareFiles;
+  final Future<ShareResult> Function(ShareParams) _share;
 
-  static Future<Directory> _systemTemp() =>
-      Directory.systemTemp.createTemp('flyprox_share');
-
-  static Future<void> _platformShare(
-    XFile file,
-    String text,
-    Rect? origin,
-  ) async {
-    final result = await SharePlus.instance.share(
-      ShareParams(files: [file], text: text, sharePositionOrigin: origin),
-    );
-    if (result.status == ShareResultStatus.unavailable) {
-      throw StateError('Share unavailable');
+  Future<Uint8List?> capture(GlobalKey key) async {
+    final boundary = key.currentContext?.findRenderObject();
+    if (boundary is! RenderRepaintBoundary) {
+      return null;
+    }
+    final image = await boundary.toImage(pixelRatio: 3);
+    try {
+      final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+      return bytes?.buffer.asUint8List();
+    } finally {
+      image.dispose();
     }
   }
 
-  /// Captures the [RepaintBoundary] behind [key] as PNG bytes.
-  /// Returns null when the boundary is not mounted.
-  Future<Uint8List?> capture(GlobalKey key, {double pixelRatio = 2}) async {
-    final boundary =
-        key.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-    if (boundary == null) return null;
-    final image = await boundary.toImage(pixelRatio: pixelRatio.clamp(1, 3));
-    final data = await image.toByteData(format: ui.ImageByteFormat.png);
-    return data?.buffer.asUint8List();
-  }
-
-  /// Shares [png] to [target] with [caption], falling back to the system
-  /// share sheet when the direct handoff is unavailable.
   Future<StoryShareOutcome> share({
     required Uint8List png,
     required StoryShareTarget target,
-    required String caption,
-    Rect? sharePositionOrigin,
+    Rect? origin,
   }) async {
     if (png.isEmpty) return StoryShareOutcome.failed;
-    if (target == StoryShareTarget.instagram) {
+    if (target != StoryShareTarget.tiktok) {
       try {
-        final result = await _channel.invokeMethod<String>(
-          'shareInstagramStory',
-          {'png': png},
-        );
-        if (result == 'shared') return StoryShareOutcome.shared;
-      } catch (_) {
-        // Fall through to the share sheet below.
+        final result = await _channel.invokeMethod<String>('shareStory', {
+          'target': target.name,
+          'png': png,
+        });
+        if (result == 'opened') return StoryShareOutcome.opened;
+      } on PlatformException {
+        // App absent, unconfigured or rejected: use the real image share menu.
+      } on MissingPluginException {
+        // Unsupported platform / native bridge not installed.
       }
     }
     try {
-      final dir = await _tempDir();
-      final file = File(
-        '${dir.path}/flyprox-result-${DateTime.now().millisecondsSinceEpoch}.png',
+      final result = await _share(
+        ShareParams(
+          files: [
+            XFile.fromData(
+              png,
+              mimeType: 'image/png',
+              name: 'flyprox-like.png',
+            ),
+          ],
+          fileNameOverrides: ['flyprox-like.png'],
+          sharePositionOrigin: origin,
+        ),
       );
-      await file.writeAsBytes(png, flush: true);
-      await _shareFiles(
-        XFile(file.path, mimeType: 'image/png', name: 'flyprox-result.png'),
-        caption,
-        sharePositionOrigin,
-      );
-      return StoryShareOutcome.shared;
+      return switch (result.status) {
+        ShareResultStatus.dismissed => StoryShareOutcome.dismissed,
+        ShareResultStatus.unavailable => StoryShareOutcome.failed,
+        ShareResultStatus.success => StoryShareOutcome.shareMenu,
+      };
     } catch (_) {
       return StoryShareOutcome.failed;
     }

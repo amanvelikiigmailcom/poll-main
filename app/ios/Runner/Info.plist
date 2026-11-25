@@ -3,7 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>LSApplicationQueriesSchemes</key>
-	<array><string>whatsapp</string><string>instagram-stories</string><string>instagram</string></array>
+	<array><string>whatsapp</string><string>instagram-stories</string><string>snapchat</string></array>
+	<key>FlyproxMetaAppID</key>
+	<string>$(FLYPROX_META_APP_ID)</string>
+	<key>FlyproxSnapClientID</key>
+	<string>$(FLYPROX_SNAP_CLIENT_ID)</string>
 <key>FlutterDeepLinkingEnabled</key><false/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>

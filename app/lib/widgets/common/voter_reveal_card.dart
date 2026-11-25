@@ -11,8 +11,9 @@ import '../../theme/app_colors.dart';
 import 'premium_badge.dart';
 
 class VoterRevealCard extends ConsumerStatefulWidget {
-  const VoterRevealCard({super.key, required this.voteId});
+  const VoterRevealCard({super.key, required this.voteId, this.onShare});
   final String? voteId;
+  final VoidCallback? onShare;
   @override
   ConsumerState<VoterRevealCard> createState() => _VoterRevealCardState();
 }
@@ -250,6 +251,17 @@ class _VoterRevealCardState extends ConsumerState<VoterRevealCard> {
               ),
             ),
           ),
+          if (widget.onShare != null) ...[
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: widget.onShare,
+                icon: const Icon(Icons.ios_share),
+                label: const Text('Share'),
+              ),
+            ),
+          ],
         ],
       ),
     );
