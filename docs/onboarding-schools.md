@@ -116,3 +116,25 @@ Authenticated server restore confirms the existing campus and graduation year fo
 Permanent regression coverage is in `username_onboarding_test.dart` and
 `school_onboarding_test.dart`, plus `push_prompt_test.dart`. Widget tests do not prove native keyboard/APNs or
 the behavior of an already installed TestFlight binary.
+
+
+## Reviewer-only hidden forms
+
+For the existing Firebase-verified review account, both personal-details and
+campus/year onboarding routes redirect before rendering. OTP and automatic phone
+verification restore backend onboarding first; age remains mandatory. Contacts
+and example names lead to username creation only if the canonical server handle
+is absent. Existing handles are restored without another handle write, while
+invitation completion and optional push handling still run.
+
+Reviewer data may stay empty. Existing enrollment/profile values are preserved;
+no placeholder names, gender or campus are written to the server. Backend permits
+this identity to play contacts rounds without enrollment. Other users retain their
+existing mandatory forms and campus gate. Edit profile allows the reviewer to fill
+an absent gender once and select country before enrollment, in addition to the
+existing editable fields; transaction/replay/campus rules still apply.
+
+Companion backend source commit: `e4c1c13` in `flyprox_backend`.
+This source requires that matching backend change. Source commits do not imply
+production deployment or a new available TestFlight build. Device Firebase,
+Contacts and purchase checks remain separate from fake-provider tests.

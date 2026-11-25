@@ -12,6 +12,7 @@ import '../../router/app_router.dart';
 import '../../services/content_service.dart';
 import '../../services/age_gate_service.dart';
 import '../../services/onboarding_flow.dart';
+import '../../services/local_game_service.dart';
 
 /// Phone login, step 1: the number. Firebase sends the SMS code; our backend
 /// owns the session afterwards. Guests can skip into the local game.
@@ -61,11 +62,21 @@ class _PhoneRegistrationScreenState
     await ref.read(onboardingDetailsProvider).setCountry(_selectedCountry);
     if (!mounted) return;
     FocusManager.instance.primaryFocus?.unfocus();
+    final storage = ref.read(storageServiceProvider);
+    final reviewer =
+        storage.reviewerSkipsAllowed &&
+        (await storage.getToken())?.isNotEmpty == true;
+    if (reviewer) await ref.read(onboardingDetailsProvider).prepareReviewer();
+    final hasNames =
+        reviewer && await LocalGameService.instance.hasEnoughNames();
+    if (!mounted) return;
     OnboardingFlow.instance.completePhoneStep();
     context.go(
-      AgeGateService.instance.status == AgeGateStatus.verified
-          ? AppRoutes.profileDetails
-          : AppRoutes.age,
+      AgeGateService.instance.status != AgeGateStatus.verified
+          ? AppRoutes.age
+          : reviewer
+          ? (hasNames ? AppRoutes.username : AppRoutes.namesEntry)
+          : AppRoutes.profileDetails,
     );
   }
 

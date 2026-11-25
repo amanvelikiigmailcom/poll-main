@@ -25,6 +25,8 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
   final _controller = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _loading = true;
+  bool _resolvingIdentity = true;
+  String? _identityError;
   bool _saving = false;
   CancelToken? _request;
   int _operation = 0;
@@ -37,18 +39,54 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
   }
 
   Future<void> _prefill() async {
-    final game = LocalGameService.instance;
-    final name = await game.ensureUsername();
-    if (!mounted) return;
-    final details = await ref.read(onboardingDetailsProvider).read();
-    if (!mounted) return;
     setState(() {
-      _controller.text = details['usernameDraft'] as String? ?? name;
-      _backRoute = details['stage'] == 'username'
-          ? AppRoutes.schoolSetup
-          : AppRoutes.namesEntry;
-      _loading = false;
+      _resolvingIdentity = true;
+      _identityError = null;
     });
+    final storage = ref.read(storageServiceProvider);
+    final owner = await storage.getToken();
+    try {
+      if (owner?.isNotEmpty == true) {
+        final identity = await ref.read(socialServiceProvider).request('/me');
+        if (!mounted) return;
+        if (owner != await storage.getToken()) {
+          throw const ApiException('Account changed. Please sign in again.');
+        }
+        if (!identity.containsKey('username')) {
+          throw const ApiException('Couldn’t load your username. Try again.');
+        }
+        final existing = identity['username'];
+        if (existing != null &&
+            (existing is! String ||
+                LocalGameService.validateUsername(existing) != null)) {
+          throw const ApiException('Couldn’t load your username. Try again.');
+        }
+        if (existing is String && existing.isNotEmpty) {
+          await _continue(existingUsername: existing, expectedOwner: owner);
+          return;
+        }
+      }
+      final game = LocalGameService.instance;
+      final name = await game.ensureUsername();
+      final details = await ref.read(onboardingDetailsProvider).read();
+      if (!mounted || owner != await storage.getToken()) return;
+      setState(() {
+        _controller.text = details['usernameDraft'] as String? ?? name;
+        _backRoute =
+            !storage.reviewerSkipsAllowed && details['stage'] == 'username'
+            ? AppRoutes.schoolSetup
+            : AppRoutes.namesEntry;
+        _loading = false;
+        _resolvingIdentity = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(
+        () => _identityError = error is ApiException
+            ? error.message
+            : 'Couldn’t load your username. Try again.',
+      );
+    }
   }
 
   @override
@@ -69,8 +107,13 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
     if (mounted) context.go(_backRoute);
   }
 
-  Future<void> _continue() async {
-    if (_loading || _saving || !(_formKey.currentState?.validate() ?? false)) {
+  Future<void> _continue({
+    String? existingUsername,
+    String? expectedOwner,
+  }) async {
+    if (_saving ||
+        (existingUsername == null &&
+            (_loading || !(_formKey.currentState?.validate() ?? false)))) {
       return;
     }
     FocusManager.instance.primaryFocus?.unfocus();
@@ -83,8 +126,11 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
       _submissionError = null;
     });
     try {
-      var name = _controller.text.trim();
-      if (owner?.isNotEmpty == true) {
+      if (existingUsername != null && owner != expectedOwner) {
+        throw const ApiException('Account changed. Please sign in again.');
+      }
+      var name = existingUsername ?? _controller.text.trim();
+      if (existingUsername == null && owner?.isNotEmpty == true) {
         final request = _request = CancelToken();
         name = await ref
             .read(socialServiceProvider)
@@ -151,6 +197,9 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
       if (!mounted || operation != _operation) return;
       setState(() {
         _saving = false;
+        if (existingUsername != null) {
+          _identityError = 'Couldn’t restore your profile. Try again.';
+        }
         _submissionError = error is ApiException
             ? error.message
             : 'Couldn’t save your username. Try again.';
@@ -164,114 +213,136 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: _primaryBlue,
     body: SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: IconButton(
-                  tooltip: _backRoute == AppRoutes.schoolSetup
-                      ? 'Back to campus'
-                      : 'Back to contacts',
-                  onPressed: _back,
-                  icon: const Icon(
-                    Icons.arrow_back_rounded,
-                    color: Colors.white,
-                  ),
-                ),
+      child: _resolvingIdentity
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: _identityError == null
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _identityError!,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _prefill,
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
               ),
-              const SizedBox(height: 24),
-              const Text(
-                'Choose your username',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Choose a username so friends can find you. Your first name is shared with the friend whose invitation you activate. Your name is never added to voting cards.',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  height: 1.45,
-                ),
-              ),
-              const SizedBox(height: 28),
-              if (_loading)
-                const Center(
-                  child: CircularProgressIndicator(color: Colors.white),
-                )
-              else ...[
-                TextFormField(
-                  key: const Key('onboarding-username'),
-                  controller: _controller,
-                  enabled: !_saving,
-                  autocorrect: false,
-                  enableSuggestions: false,
-                  textCapitalization: TextCapitalization.none,
-                  textInputAction: TextInputAction.done,
-                  style: const TextStyle(fontSize: 16),
-                  decoration: InputDecoration(
-                    labelText: 'Username',
-                    floatingLabelBehavior: FloatingLabelBehavior.always,
-                    floatingLabelStyle: const TextStyle(
-                      color: _primaryBlue,
-                      backgroundColor: Colors.white,
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: IconButton(
+                        tooltip: _backRoute == AppRoutes.schoolSetup
+                            ? 'Back to campus'
+                            : 'Back to contacts',
+                        onPressed: _back,
+                        icon: const Icon(
+                          Icons.arrow_back_rounded,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
-                    prefixText: '@',
-                    helperText: '3–32 characters: A–Z, numbers or _',
-                    helperMaxLines: 3,
-                    helperStyle: const TextStyle(color: Colors.white),
-                    errorStyle: const TextStyle(color: Colors.white),
-                    errorText: _submissionError,
-                    errorMaxLines: 4,
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Choose your username',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 30,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  validator: (value) =>
-                      LocalGameService.validateUsername(value ?? ''),
-                  onChanged: (_) {
-                    _formKey.currentState?.validate();
-                    if (_submissionError != null) {
-                      setState(() => _submissionError = null);
-                    }
-                  },
-                  onFieldSubmitted: (_) => _continue(),
-                ),
-              ],
-              const SizedBox(height: 28),
-              ElevatedButton(
-                onPressed: _loading || _saving ? null : _continue,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: _primaryBlue,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                child: Text(
-                  _saving ? 'Saving…' : 'Continue',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Choose a username so friends can find you. Your first name is shared with the friend whose invitation you activate. Your name is never added to voting cards.',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        height: 1.45,
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    if (_loading)
+                      const Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      )
+                    else ...[
+                      TextFormField(
+                        key: const Key('onboarding-username'),
+                        controller: _controller,
+                        enabled: !_saving,
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        textCapitalization: TextCapitalization.none,
+                        textInputAction: TextInputAction.done,
+                        style: const TextStyle(fontSize: 16),
+                        decoration: InputDecoration(
+                          labelText: 'Username',
+                          floatingLabelBehavior: FloatingLabelBehavior.always,
+                          floatingLabelStyle: const TextStyle(
+                            color: _primaryBlue,
+                            backgroundColor: Colors.white,
+                          ),
+                          prefixText: '@',
+                          helperText: '3–32 characters: A–Z, numbers or _',
+                          helperMaxLines: 3,
+                          helperStyle: const TextStyle(color: Colors.white),
+                          errorStyle: const TextStyle(color: Colors.white),
+                          errorText: _submissionError,
+                          errorMaxLines: 4,
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        validator: (value) =>
+                            LocalGameService.validateUsername(value ?? ''),
+                        onChanged: (_) {
+                          _formKey.currentState?.validate();
+                          if (_submissionError != null) {
+                            setState(() => _submissionError = null);
+                          }
+                        },
+                        onFieldSubmitted: (_) => _continue(),
+                      ),
+                    ],
+                    const SizedBox(height: 28),
+                    ElevatedButton(
+                      onPressed: _loading || _saving ? null : () => _continue(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: _primaryBlue,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                      child: Text(
+                        _saving ? 'Saving…' : 'Continue',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
+            ),
     ),
   );
 }

@@ -9,6 +9,7 @@ import '../../providers/auth_provider.dart';
 import '../../router/app_router.dart';
 import '../../services/age_gate_service.dart';
 import '../../services/onboarding_flow.dart';
+import '../../services/local_game_service.dart';
 import '../../services/content_service.dart';
 
 /// Phone login, step 2: the SMS code. On success the backend session is
@@ -105,11 +106,21 @@ class _OTPVerificationScreenState extends ConsumerState<OTPVerificationScreen> {
     }
     if (!mounted) return;
     FocusManager.instance.primaryFocus?.unfocus();
+    final storage = ref.read(storageServiceProvider);
+    final reviewer =
+        storage.reviewerSkipsAllowed &&
+        (await storage.getToken())?.isNotEmpty == true;
+    if (reviewer) await ref.read(onboardingDetailsProvider).prepareReviewer();
+    final hasNames =
+        reviewer && await LocalGameService.instance.hasEnoughNames();
+    if (!mounted) return;
     OnboardingFlow.instance.completePhoneStep();
     context.go(
-      AgeGateService.instance.status == AgeGateStatus.verified
-          ? AppRoutes.profileDetails
-          : AppRoutes.age,
+      AgeGateService.instance.status != AgeGateStatus.verified
+          ? AppRoutes.age
+          : reviewer
+          ? (hasNames ? AppRoutes.username : AppRoutes.namesEntry)
+          : AppRoutes.profileDetails,
     );
   }
 

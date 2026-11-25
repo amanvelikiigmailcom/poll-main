@@ -52,6 +52,12 @@ void main() {
     api.dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (request, handler) {
+          if (request.path == '/api/social/me') {
+            handler.resolve(
+              Response(requestOptions: request, data: {'username': null}),
+            );
+            return;
+          }
           if (stallInvitation && request.path == '/api/invites/claim') return;
           if (request.path == '/api/social/handle') {
             if (handle != null) {
