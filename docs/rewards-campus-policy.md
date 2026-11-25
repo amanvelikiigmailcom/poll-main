@@ -1,7 +1,7 @@
 # Reward collection, campus waiting and country policy
 
 Source implementation only. No backend deployment, native build or TestFlight upload
-is implied. Companion backend source commit: `cafe9a9`. Companion backend contract: `docs/campus-waiting-policy.md` in flyprox_backend.
+is implied. Companion backend source commit: `abb81ad`. Companion backend contract: `docs/campus-waiting-policy.md` in flyprox_backend.
 
 ## Reward receipt
 
