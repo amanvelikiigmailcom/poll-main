@@ -114,8 +114,9 @@ class ReviewFixture {
         },
       ),
     );
-    if (stage != null)
+    if (stage != null) {
       await onboarding.draft({'stage': stage, 'status': 'pending'});
+    }
     final push = FakePushDriver(available: false);
     addTearDown(push.dispose);
     testAppRouter.go(

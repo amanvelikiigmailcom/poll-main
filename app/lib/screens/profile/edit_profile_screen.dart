@@ -638,8 +638,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                               ],
                               onChanged: _editable('country')
                                   ? (value) {
-                                      if (value == null || value == _country)
+                                      if (value == null || value == _country) {
                                         return;
+                                      }
                                       setState(() {
                                         _country = value;
                                         _school = null;

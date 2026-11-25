@@ -244,7 +244,7 @@ class _LikeShareScreenState extends ConsumerState<LikeShareScreen> {
   );
 }
 
-/// The same result as Vote details, without private reveal controls or chrome.
+/// The same result as Quiz result, without private reveal controls or chrome.
 class LikeStoryCard extends StatelessWidget {
   const LikeStoryCard({super.key, required this.vote});
   final ReceivedVote vote;

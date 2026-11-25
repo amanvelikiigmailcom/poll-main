@@ -481,7 +481,7 @@ class _PersonProfileScreenState extends ConsumerState<PersonProfileScreen>
         if (person.graduationYear != null) ...[
           const SizedBox(height: 4),
           Text(
-            'Graduating in ${person.graduationYear}',
+            'Class of ${person.graduationYear}',
             textAlign: TextAlign.center,
             style: const TextStyle(color: AppColors.textSecondary),
           ),

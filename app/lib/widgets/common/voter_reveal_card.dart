@@ -220,7 +220,7 @@ class _VoterRevealCardState extends ConsumerState<VoterRevealCard> {
     final protected = data?['status'] == 'PROTECTED_BY_PREMIUM';
     final label =
         'From ${name == null ? 'a $gender' : '$name ($gender)'}'
-        '${year is int ? ' · Graduating in $year' : ''}';
+        '${year is int ? ' · Class of $year' : ''}';
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(

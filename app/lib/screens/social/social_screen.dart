@@ -792,7 +792,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                           ),
                         if (user['graduationYear'] case final int year)
                           Text(
-                            'Graduating in $year',
+                            'Class of $year',
                             style: const TextStyle(
                               color: AppColors.textSecondary,
                               fontSize: 13,

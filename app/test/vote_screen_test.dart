@@ -347,7 +347,7 @@ void main() {
       for (var i = 0; i < 12; i++) {
         await choose(tester, 'Маша');
       }
-      await choose(tester, 'Submit votes');
+      await choose(tester, 'Submit answers');
       expect(find.text('Refresh participants'), findsOneWidget);
       expect(find.text('Review your answers'), findsOneWidget);
       expect(loads, 1);
@@ -681,9 +681,9 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Tier question 0'), findsOneWidget);
-    expect(find.text('Friend · Graduating in 2026'), findsOneWidget);
-    expect(find.text('Graduating in 2026'), findsOneWidget);
-    expect(find.text('Graduating in 2024'), findsOneWidget);
+    expect(find.text('Friend · Class of 2026'), findsOneWidget);
+    expect(find.text('Class of 2026'), findsOneWidget);
+    expect(find.text('Class of 2024'), findsOneWidget);
     await choose(tester, 'Aibek');
     final saved = await LocalGameService.instance.loadRoundProgress();
     final options = (saved?.draft?['questions'] as List)[0]['options'] as List;

@@ -15,13 +15,6 @@ class FakeSocial extends SocialService {
   FakeSocial(super.api, super.storage);
   final results = <String, Completer<Map<String, dynamic>>>{};
   final searches = <String>[];
-  final actions = <String>[];
-  @override
-  Future<Map<String, dynamic>> act(String id, String action) async {
-    actions.add(action);
-    return {};
-  }
-
   Map<String, dynamic> suggestionData = {};
   int suggestionCalls = 0;
   final hiddenIds = <String>{};
@@ -73,8 +66,11 @@ class FakeSocial extends SocialService {
           }
       else
         {
-          'id': 'one', 'username': 'alex_123', 'relationship': 'friends',
-          'premiumBadge': true, 'premiumBadgeUntil': '2099-01-01T00:00:00Z',
+          'id': 'one',
+          'username': 'alex_123',
+          'relationship': 'friends',
+          'premiumBadge': true,
+          'premiumBadgeUntil': '2099-01-01T00:00:00Z',
         },
     ],
   };

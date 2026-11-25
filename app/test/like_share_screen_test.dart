@@ -96,7 +96,7 @@ void main() {
       await _mount(tester);
       expect(find.text('Participants'), findsOneWidget);
       expect(find.text('Who makes everyone smile?'), findsOneWidget);
-      expect(find.text('From a girl · Graduating in 2029'), findsOneWidget);
+      expect(find.text('From a girl · Class of 2029'), findsOneWidget);
       expect(find.text('Aman'), findsOneWidget);
       expect(find.text('Alina'), findsOneWidget);
       expect(find.textContaining('SECRET'), findsNothing);
@@ -288,7 +288,7 @@ void main() {
     await tester.pumpAndSettle();
     for (var i = 0; i < 12; i++) {
       expect(find.text('Classmate $i'), findsOneWidget);
-      expect(find.text('Graduating in ${2026 + i % 6}'), findsWidgets);
+      expect(find.text('Class of ${2026 + i % 6}'), findsWidgets);
     }
     expect(tester.takeException(), isNull);
   });

@@ -114,13 +114,13 @@ void main() {
       await mount(tester, storage, social);
       await tester.pumpAndSettle();
       expect(
-        find.text('From a non-binary student · Graduating in 2027'),
+        find.text('From a non-binary student · Class of 2027'),
         findsOneWidget,
       );
       await tester.tap(find.text('Who makes everyone smile?'));
       await tester.pumpAndSettle();
       expect(
-        find.text('From a non-binary student · Graduating in 2027'),
+        find.text('From a non-binary student · Class of 2027'),
         findsOneWidget,
       );
     },

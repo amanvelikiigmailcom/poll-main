@@ -40,7 +40,7 @@ class VoteResultContent extends StatelessWidget {
       ),
       const SizedBox(height: 6),
       const Text(
-        'Everyone who was in this vote.',
+        'Everyone who was in this quiz question.',
         style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
       ),
       const SizedBox(height: 14),
@@ -48,7 +48,7 @@ class VoteResultContent extends StatelessWidget {
         const Padding(
           padding: EdgeInsets.all(16),
           child: Text(
-            'Participants are not available for this vote.',
+            'Participants are not available for this quiz result.',
             textAlign: TextAlign.center,
           ),
         )
@@ -87,7 +87,7 @@ class VoteResultContent extends StatelessWidget {
                         if (participant.graduationYear != null) ...[
                           const SizedBox(height: 4),
                           Text(
-                            'Graduating in ${participant.graduationYear}',
+                            'Class of ${participant.graduationYear}',
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontSize: 12,

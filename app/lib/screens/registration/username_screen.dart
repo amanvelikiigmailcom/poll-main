@@ -267,7 +267,7 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'Choose a username so friends can find you. Your first name is shared with the friend whose invitation you activate. Your name is never added to voting cards.',
+                      'Choose a username so friends can find you. Your first name is shared with the friend whose invitation you activate. Your name is never added to quiz cards.',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 16,

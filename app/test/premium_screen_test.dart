@@ -39,7 +39,7 @@ void main() {
       expect(find.textContaining('Full names: 1 left'), findsOneWidget);
       expect(find.textContaining('Full Reveal'), findsNothing);
       expect(find.textContaining('Old badge promise'), findsNothing);
-      expect(find.textContaining('Your votes are protected'), findsOneWidget);
+      expect(find.textContaining('Your answers are protected'), findsOneWidget);
       expect(
         find.textContaining(
           'Protected attempts do not use your weekly reveals.',

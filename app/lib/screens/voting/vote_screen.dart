@@ -1286,7 +1286,7 @@ class _VoteScreenState extends State<VoteScreen>
 String _tierSubtitle(QuizOption option) {
   final parts = [
     if (option.isFriend) 'Friend',
-    if (option.graduationYear != null) 'Graduating in ${option.graduationYear}',
+    if (option.graduationYear != null) 'Class of ${option.graduationYear}',
   ];
   if (parts.isNotEmpty) return parts.join(' · ');
   return option.grade;

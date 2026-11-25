@@ -347,7 +347,7 @@ class _CampusProfileRow extends ConsumerWidget {
                 else
                   'Campus selected',
                 if (location.isNotEmpty) location,
-                if (year != null) 'Graduating in $year',
+                if (year != null) 'Class of $year',
               ].join('\n'),
       ),
       trailing: result.hasError

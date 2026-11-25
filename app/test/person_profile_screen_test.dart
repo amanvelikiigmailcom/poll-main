@@ -177,7 +177,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('@alex_123'), findsOneWidget);
       expect(find.text('Alex Smith'), findsOneWidget);
-      expect(find.text('Graduating in 2027'), findsOneWidget);
+      expect(find.text('Class of 2027'), findsOneWidget);
       expect(find.text('54'), findsOneWidget);
       expect(find.text('12'), findsOneWidget);
       await tester.scrollUntilVisible(find.text('Selected 5 times'), 180);

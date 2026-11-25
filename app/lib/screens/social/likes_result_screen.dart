@@ -44,7 +44,7 @@ class _LikesResultScreenState extends ConsumerState<LikesResultScreen> {
     );
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Vote details')),
+      appBar: AppBar(title: const Text('Quiz result')),
       body: like == null
           ? const Center(child: Text('Like not found.'))
           : SingleChildScrollView(

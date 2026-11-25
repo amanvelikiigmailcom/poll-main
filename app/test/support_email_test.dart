@@ -198,6 +198,8 @@ void main() {
         SupportEmailKind.feedback,
       ]) {
         await tester.scrollUntilVisible(find.text(kind.title), 200);
+        await tester.ensureVisible(find.text(kind.title));
+        await tester.pumpAndSettle();
         await tester.tap(find.text(kind.title));
         await tester.pumpAndSettle();
         expect(

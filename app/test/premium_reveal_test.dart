@@ -68,7 +68,7 @@ void main() {
       await tester.tap(find.text('Reveal full name'));
       await tester.pumpAndSettle();
       expect(
-        find.text('From Maria Rivera (girl) · Graduating in 2028'),
+        find.text('From Maria Rivera (girl) · Class of 2028'),
         findsOneWidget,
       );
     },
@@ -113,7 +113,7 @@ void main() {
           findsOneWidget,
         );
         expect(find.textContaining('Maria'), findsNothing);
-        await tester.tap(find.text('Find out who voted for you'));
+        await tester.tap(find.text('See who picked you'));
         await tester.pumpAndSettle();
         expect(find.text('2 left this week'), findsOneWidget);
         expect(find.text('5 left this week'), findsOneWidget);
@@ -146,7 +146,7 @@ void main() {
       await mount(tester, premium);
       expect(find.textContaining('Maria Rivera'), findsOneWidget);
       premium.protected = true;
-      await tester.tap(find.text('Find out who voted for you'));
+      await tester.tap(find.text('See who picked you'));
       await tester.pumpAndSettle();
       expect(find.textContaining('Maria Rivera'), findsNothing);
       await tester.tap(find.text('Reveal full name'));
@@ -161,7 +161,7 @@ void main() {
       (tester) async {
         final premium = FakePremium()..active = true;
         await mount(tester, premium);
-        await tester.tap(find.text('Find out who voted for you'));
+        await tester.tap(find.text('See who picked you'));
         await tester.pumpAndSettle();
         premium.failure = ApiException(
           code == 429

@@ -93,9 +93,9 @@ void main() {
   }
 
   for (final entry in [
-    ('female', 'From a girl · Graduating in 2029'),
-    ('male', 'From a boy · Graduating in 2029'),
-    ('nonbinary', 'From a non-binary student · Graduating in 2029'),
+    ('female', 'From a girl · Class of 2029'),
+    ('male', 'From a boy · Class of 2029'),
+    ('nonbinary', 'From a non-binary student · Class of 2029'),
   ]) {
     testWidgets('Activity ignores membership badges from an older server', (
       tester,
