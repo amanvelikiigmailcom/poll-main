@@ -28,6 +28,8 @@ class FakeActivity extends ActivityService {
         (i) => {
           'id': '${offset + i}',
           'chosenName': 'Student ${offset + i}',
+          'premiumBadge': true,
+          'premiumBadgeUntil': '2099-01-01T00:00:00Z',
           'question': 'Most likely to become famous',
           'graduationYear': 2028,
           'occurredAt': '2026-11-24T00:00:00Z',
@@ -95,6 +97,14 @@ void main() {
     ('male', 'From a boy · Graduating in 2029'),
     ('nonbinary', 'From a non-binary student · Graduating in 2029'),
   ]) {
+    testWidgets('Activity ignores membership badges from an older server', (
+      tester,
+    ) async {
+      await mount(tester);
+      expect(find.text('Student 0'), findsOneWidget);
+      expect(find.byIcon(Icons.verified), findsNothing);
+    });
+
     testWidgets(
       'Activity renders server ${entry.$1} voter hint, not chosen person gender',
       (tester) async {

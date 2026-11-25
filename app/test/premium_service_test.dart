@@ -109,6 +109,44 @@ void main() {
       await expectLater(service.status(), throwsFormatException);
     },
   );
+  test(
+    'protected GET and POST keep counters and discard mixed identity fields',
+    () async {
+      final storage = SessionStorage();
+      final api = ApiService(storage);
+      api.dio.httpClientAdapter = _Adapter(
+        (_) async => response(200, {
+          ...status(),
+          'status': 'PROTECTED_BY_PREMIUM',
+          'message': 'This user also has Premium. Your reveal was not used.',
+          'revealed': 'full',
+          'name': 'Must not render',
+          'initial': 'M',
+          'voterId': 'private',
+          'gender': 'female',
+          'graduationYear': 2028,
+        }),
+      );
+      final service = PremiumService(api, storage);
+      for (final result in [
+        await service.vote('v1'),
+        await service.reveal('v1', 'full'),
+      ]) {
+        expect(result['status'], 'PROTECTED_BY_PREMIUM');
+        expect(result['remaining'], {'full': 2, 'initial': 5});
+        expect(result['revealed'], isNull);
+        for (final key in [
+          'name',
+          'initial',
+          'voterId',
+          'gender',
+          'graduationYear',
+        ]) {
+          expect(result.containsKey(key), isFalse, reason: key);
+        }
+      }
+    },
+  );
   test('guest never calls network or uses an SDK override', () async {
     final storage = SessionStorage()..token = null;
     final api = ApiService(storage);

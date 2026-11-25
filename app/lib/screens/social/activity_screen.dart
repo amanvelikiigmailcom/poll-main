@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../models/received_vote.dart';
-import '../../widgets/common/premium_badge.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/service_providers.dart';
@@ -274,10 +273,6 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen>
                             color: AppColors.textPrimary,
                           ),
                         ),
-                      ),
-                      PremiumBadge(
-                        active: item['premiumBadge'] == true,
-                        until: item['premiumBadgeUntil'] as String?,
                       ),
                     ],
                   ),

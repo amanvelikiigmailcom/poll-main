@@ -8,7 +8,6 @@ import '../../services/api_service.dart';
 import '../../services/storage_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/common/social_identity.dart';
-import '../../widgets/common/premium_badge.dart';
 import '../../widgets/common/account_report_dialog.dart';
 
 enum SocialPage { search, friends, blocked, hidden }
@@ -772,10 +771,6 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                                   color: AppColors.textPrimary,
                                 ),
                               ),
-                            ),
-                            PremiumBadge(
-                              active: user['premiumBadge'] == true,
-                              until: user['premiumBadgeUntil'] as String?,
                             ),
                           ],
                         ),

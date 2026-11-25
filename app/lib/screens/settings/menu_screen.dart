@@ -283,7 +283,6 @@ class _ProfileHeader extends StatelessWidget {
               avatarUrl: user?.avatarUrl,
               name: name,
               size: AvatarSize.large,
-              showVerifiedBadge: user?.isVerified ?? false,
             ),
             const SizedBox(width: 16),
             Expanded(

@@ -3,7 +3,13 @@
 Premium: `premium_service_test.dart` checks pinned credentials/stale 401 and
 server-only counters; `premium_reveal_test.dart` checks paywall, two independent
 quotas, first initial/full name with backend graduation year, account clearing and
-badge expiry. `premium_screen_test.dart` checks the single weekly offer.
+protected full/initial responses without spending, explicit author-Premium copy,
+and a purchase hiding an old unlock. `premium_service_test.dart` also strips mixed
+identity fields from protected GET/POST responses. `premium_screen_test.dart` checks
+the single weekly offer, 2/5 limits, protection disclaimer and legal controls, and
+ignores old cached badge copy. Activity receives legacy badge fields to verify
+that they cannot render membership icons. Backend tests additionally exercise
+three/five users and auto-fill five users' full rounds with mixed Premium status.
 `round_completion_test.dart` replaces retired round_reveal tests and proves Full
 Reveal is absent and acknowledged server rewards can display 2000.
 These fakes do not prove real purchase/restore, webhooks or production DB uniqueness.

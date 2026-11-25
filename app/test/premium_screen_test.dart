@@ -4,10 +4,13 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flyprox_app/screens/premium/premium_screen.dart';
 import 'package:flyprox_app/services/subscription_service.dart';
 import 'package:flyprox_app/services/api_service.dart';
+import 'package:flyprox_app/services/content_service.dart';
 import 'fakes/premium.dart';
 import 'fakes/fake_gateway.dart';
 
 void main() {
+  setUp(() => ContentService.instance.debugClear());
+  tearDown(() => ContentService.instance.debugClear());
   testWidgets(
     'weekly paywall has real reveals, backend remaining counters and no Max/Full Reveal',
     (tester) async {
@@ -16,6 +19,9 @@ void main() {
       await subscription.resetForTest();
       final gateway = FakeGateway()..configured = false;
       subscription.debugGateway(gateway);
+      ContentService.instance.debugSetOverrides({
+        'paywall_features_v3': '["Old badge promise"]',
+      });
       final premium = FakePremium()
         ..active = true
         ..full = 1
@@ -32,6 +38,21 @@ void main() {
       );
       expect(find.textContaining('Full names: 1 left'), findsOneWidget);
       expect(find.textContaining('Full Reveal'), findsNothing);
+      expect(find.textContaining('Old badge promise'), findsNothing);
+      expect(find.textContaining('Your votes are protected'), findsOneWidget);
+      expect(
+        find.textContaining(
+          'Protected attempts do not use your weekly reveals.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Blue Premium'), findsNothing);
+      expect(find.textContaining('Unlimited'), findsNothing);
+      expect(find.byIcon(Icons.verified_outlined), findsNothing);
+      expect(find.text('Restore purchases'), findsOneWidget);
+      expect(find.text('Terms of Use'), findsOneWidget);
+      expect(find.text('Privacy Policy'), findsOneWidget);
+      expect(find.textContaining('1-week auto-renewing'), findsWidgets);
       expect(find.textContaining('Premium Max'), findsNothing);
       await tester.pumpWidget(const SizedBox());
       await subscription.resetForTest();

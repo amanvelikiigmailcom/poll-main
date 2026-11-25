@@ -65,7 +65,10 @@ class FakeSocial extends SocialService {
             'relationship': 'none',
           }
       else
-        {'id': 'one', 'username': 'alex_123', 'relationship': 'friends'},
+        {
+          'id': 'one', 'username': 'alex_123', 'relationship': 'friends',
+          'premiumBadge': true, 'premiumBadgeUntil': '2099-01-01T00:00:00Z',
+        },
     ],
   };
 }
