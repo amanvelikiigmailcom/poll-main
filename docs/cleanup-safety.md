@@ -19,7 +19,8 @@ An unused import count alone is not permission to delete a feature or SDK.
    their unregistered route constants.
 3. Two unused menu screens, the unused menu sheet/avatar, orphaned models and
    provider barrel; unused AppConstants members only after checking consumers.
-4. The test-only local university picker/catalog and their bundled JSON.
+4. The test-only local university picker/catalog; move its unchanged JSON to
+   `docs/reference/` instead of deleting the source directory data.
    Preserve the active editor's legacy-university non-overwrite regression.
 5. Unconsumed JSON localization copies and the five retired `premiumResult_*`
    ARB keys; regenerate localization output with `flutter gen-l10n`.

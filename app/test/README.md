@@ -8,6 +8,18 @@ badge expiry. `premium_screen_test.dart` checks the single weekly offer.
 Reveal is absent and acknowledged server rewards can display 2000.
 These fakes do not prove real purchase/restore, webhooks or production DB uniqueness.
 
+## Cleanup safety
+
+- `router_registration_test.dart` keeps current onboarding, campus, game, social
+  and settings routes registered, and preserves the retired Premium result URL's
+  redirect to Home.
+- `legacy_university_profile_test.dart` preserves the active editor regression
+  from the retired picker suite: opening/closing the editor must not expose or
+  overwrite a saved local university.
+- `runtime_assets_test.dart` verifies the startup logo/video, native reward sound,
+  navigation fonts and license remain available, while the retired directory is
+  excluded from the bundle. It does not prove native playback.
+
 Эти файлы — постоянная часть Git-репозитория. Они доступны любому агенту/разработчику с доступом к этой версии проекта. Логи `/tmp/flyprox-*.log` временные и не заменяют исходники тестов.
 
 ## Без iPhone, кабеля и Xcode Cloud

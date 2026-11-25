@@ -77,7 +77,6 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/animations/
-    - assets/data/
     - assets/l10n/
     - assets/fonts/phosphor/LICENSE.txt
 
