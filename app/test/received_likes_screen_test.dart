@@ -98,6 +98,33 @@ Future<GoRouter> mount(
 }
 
 void main() {
+  testWidgets(
+    'Likes list and details preserve the same backend gender and graduation year',
+    (tester) async {
+      final storage = SessionStorage();
+      final social = LikesFake(ApiService(storage), storage)
+        ..votes = 1
+        ..page1 = [
+          {
+            ...vote('v1', 'Who makes everyone smile?', DateTime.now()),
+            'voterGender': 'nonbinary',
+            'graduationYear': 2027,
+          },
+        ];
+      await mount(tester, storage, social);
+      await tester.pumpAndSettle();
+      expect(
+        find.text('From a non-binary student · Class of 2027'),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Who makes everyone smile?'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('From a non-binary student · Class of 2027'),
+        findsOneWidget,
+      );
+    },
+  );
   test('like sections split Today, Yesterday and Earlier', () {
     final now = DateTime(2026, 11, 24, 15, 0);
     expect(likeSection(DateTime(2026, 11, 24, 9, 0), now), 'Today');
@@ -260,7 +287,7 @@ void main() {
     expect(find.text('Who makes everyone smile?'), findsOneWidget);
     expect(find.text('Voter identity is hidden'), findsOneWidget);
     expect(find.text('Someone picked you!'), findsNothing);
-    expect(find.text('Share'), findsNothing);
+    expect(find.text('Share'), findsOneWidget);
     expect(find.text('Find out who voted for you'), findsOneWidget);
   });
 }

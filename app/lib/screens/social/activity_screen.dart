@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../models/received_vote.dart';
 import '../../widgets/common/premium_badge.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -313,10 +314,10 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen>
                   color: AppColors.textPrimary,
                 ),
               ),
-              if (item['graduationYear'] is int) ...[
+              ...[
                 const SizedBox(height: 10),
                 Text(
-                  'From a student graduating in ${item['graduationYear']}',
+                  publicVoterLabel(item['voterGender'], item['graduationYear']),
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,

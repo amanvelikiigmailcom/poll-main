@@ -5,6 +5,7 @@ import '../../providers/service_providers.dart';
 import '../../router/app_router.dart';
 import '../../services/storage_service.dart';
 import '../../theme/app_colors.dart';
+import '../../models/received_vote.dart';
 
 /// Received votes only; the API never includes the voter's identity.
 ///
@@ -191,9 +192,7 @@ class _ReceivedLikesScreenState extends ConsumerState<ReceivedLikesScreen> {
                 )
               else ...[
                 for (final section in sections) ...[
-                  SliverToBoxAdapter(
-                    child: _SectionHeader(title: section),
-                  ),
+                  SliverToBoxAdapter(child: _SectionHeader(title: section)),
                   SliverPadding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     sliver: SliverList(
@@ -354,7 +353,11 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _LikeCard extends StatelessWidget {
-  const _LikeCard({required this.item, required this.occurred, required this.now});
+  const _LikeCard({
+    required this.item,
+    required this.occurred,
+    required this.now,
+  });
 
   final Map<String, dynamic> item;
   final DateTime? occurred;
@@ -414,6 +417,18 @@ class _LikeCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 13,
                       color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    publicVoterLabel(
+                      item['voterGender'],
+                      item['graduationYear'],
+                    ),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primaryBlue,
                     ),
                   ),
                   const SizedBox(height: 6),

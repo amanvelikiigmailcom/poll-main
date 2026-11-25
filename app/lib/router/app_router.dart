@@ -41,7 +41,7 @@ import '../screens/profile/collection_screen.dart';
 import '../screens/settings/notifications_settings_screen.dart';
 import '../screens/settings/language_settings_screen.dart';
 import '../screens/settings/settings_quiz_screen.dart';
-import '../screens/social/like_person_screen.dart';
+import '../screens/social/like_share_screen.dart';
 import '../screens/social/likes_result_screen.dart';
 import '../screens/social/received_likes_screen.dart';
 import '../screens/social/room_screen.dart';
@@ -105,7 +105,7 @@ abstract final class AppRoutes {
   static const likesFilled = '/likes';
   static const likesEmpty = '/likes-empty';
   static const likesResult = '/likes-result';
-  static const likesPerson = '/likes-person';
+  static const likesShare = '/likes-share';
   static const room = '/room';
   static const createRoom = '/create-room';
   static const faq = '/faq';
@@ -416,12 +416,10 @@ GoRouter createAppRouter({bool showInvitationIntro = true}) => GoRouter(
               },
             ),
             GoRoute(
-              path: AppRoutes.likesPerson,
+              path: AppRoutes.likesShare,
               builder: (_, state) {
                 final extra = state.extra;
-                return LikePersonScreen(
-                  data: extra is Map ? Map<String, dynamic>.from(extra) : null,
-                );
+                return LikeShareScreen(voteId: extra is String ? extra : null);
               },
             ),
           ],

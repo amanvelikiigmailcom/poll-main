@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flyprox_app/screens/social/like_person_screen.dart';
 import 'package:flyprox_app/screens/social/likes_result_screen.dart';
 import 'package:flyprox_app/services/local_game_service.dart';
 import 'fakes/premium.dart';
+import 'fakes/social_storage.dart';
 
 const _question = 'Who makes everyone smile?';
 const _friends = ['Alex', 'Sam', 'Jordan', 'Taylor'];
@@ -26,12 +26,9 @@ GoRouter _router({Map<String, dynamic>? like}) {
         builder: (_, _) => LikesResultScreen(like: like),
       ),
       GoRoute(
-        path: '/likes-person',
+        path: '/likes-share',
         builder: (_, state) {
-          final extra = state.extra;
-          return LikePersonScreen(
-            data: extra is Map ? Map<String, dynamic>.from(extra) : null,
-          );
+          return Text('Share vote ${state.extra}');
         },
       ),
       GoRoute(path: '/premium', builder: (_, _) => const Text('Premium stub')),
@@ -57,6 +54,26 @@ void main() {
       friends: _friends,
     );
   });
+
+  testWidgets(
+    'account change clears details and Share instead of retaining another account vote',
+    (tester) async {
+      final storage = SessionStorage();
+      await tester.pumpWidget(
+        withPremium(
+          MaterialApp.router(routerConfig: _router(like: _like())),
+          storage: storage,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text(_question), findsOneWidget);
+      await storage.clearToken();
+      await tester.pumpAndSettle();
+      expect(find.text(_question), findsNothing);
+      expect(find.text('Share'), findsNothing);
+      expect(find.text('Like not found.'), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'missing server participants never substitutes local names or picks',
@@ -108,44 +125,43 @@ void main() {
     }
   });
 
-  testWidgets('tapping a participant opens share and reveal actions', (
-    tester,
-  ) async {
-    await LocalGameService.instance.recordAnswer(
-      RoundAnswer(
-        questionId: 'q1',
-        question: _question,
-        voter: 'Me',
-        choice: 'Rival One',
-      ),
-    );
-    await _mount(
-      tester,
-      like: _like(
-        participants: [
-          {'id': 'u1', 'name': 'Rival One', 'graduationYear': 2027},
-        ],
-      ),
-    );
-    await tester.pumpAndSettle();
-    final card = find.text('Rival One');
-    await tester.ensureVisible(card);
-    await tester.pumpAndSettle();
-    await tester.tap(card);
-    await tester.pumpAndSettle();
-    expect(find.text('Participant'), findsOneWidget);
-    expect(find.text('Class of 2027'), findsWidgets);
-    expect(find.text('Your pick'), findsNothing);
-    expect(find.text('Share the result'), findsOneWidget);
-    expect(find.text('Instagram'), findsOneWidget);
-    expect(find.text('Snapchat'), findsOneWidget);
-    final reveal = find.text('Find out who voted for you');
-    await tester.ensureVisible(reveal);
-    await tester.pumpAndSettle();
-    await tester.tap(reveal);
-    await tester.pumpAndSettle();
-    expect(find.text('Premium stub'), findsOneWidget);
-  });
+  testWidgets(
+    'participants are not links; Share opens the received vote, not a participant',
+    (tester) async {
+      await LocalGameService.instance.recordAnswer(
+        RoundAnswer(
+          questionId: 'q1',
+          question: _question,
+          voter: 'Me',
+          choice: 'Rival One',
+        ),
+      );
+      await _mount(
+        tester,
+        like: _like(
+          participants: [
+            {'id': 'u1', 'name': 'Rival One', 'graduationYear': 2027},
+          ],
+        ),
+      );
+      await tester.pumpAndSettle();
+      final card = find.text('Rival One');
+      await tester.ensureVisible(card);
+      await tester.pumpAndSettle();
+      await tester.tap(card);
+      await tester.pumpAndSettle();
+      expect(find.text('Vote details'), findsOneWidget);
+      expect(find.text('Share vote v1'), findsNothing);
+      expect(find.text('Class of 2027'), findsOneWidget);
+      expect(find.text('Your pick'), findsNothing);
+      final share = find.text('Share');
+      await tester.ensureVisible(share);
+      await tester.pumpAndSettle();
+      await tester.tap(share);
+      await tester.pumpAndSettle();
+      expect(find.text('Share vote v1'), findsOneWidget);
+    },
+  );
 
   testWidgets('empty circle state without saved names', (tester) async {
     await LocalGameService.instance.saveNames([]);
@@ -160,7 +176,7 @@ void main() {
 
   testWidgets('missing like shows the not-found state', (tester) async {
     await tester.pumpWidget(
-      MaterialApp.router(routerConfig: _router(like: null)),
+      withPremium(MaterialApp.router(routerConfig: _router(like: null))),
     );
     await tester.pumpAndSettle();
     expect(find.text('Like not found.'), findsOneWidget);

@@ -6,20 +6,47 @@ import '../../theme/app_colors.dart';
 import '../../utils/helpers.dart';
 import 'received_likes_screen.dart';
 import '../../widgets/common/voter_reveal_card.dart';
+import '../../models/received_vote.dart';
+import '../../providers/service_providers.dart';
+import '../../services/storage_service.dart';
 
 /// Details of one received vote, opened from a Like card.
 ///
 /// Matches the voting screen: light background, big question and a
 /// two-column grid of participant cards. Names come from the server
 /// snapshot only. Voter identity requires a separate backend-authorized reveal.
-class LikesResultScreen extends ConsumerWidget {
+class LikesResultScreen extends ConsumerStatefulWidget {
   const LikesResultScreen({super.key, this.like});
 
   final Map<String, dynamic>? like;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final like = this.like;
+  ConsumerState<LikesResultScreen> createState() => _LikesResultScreenState();
+}
+
+class _LikesResultScreenState extends ConsumerState<LikesResultScreen> {
+  late final StorageService _storage;
+  bool _invalidated = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _storage = ref.read(storageServiceProvider)..addListener(_accountChanged);
+  }
+
+  void _accountChanged() {
+    if (mounted) setState(() => _invalidated = true);
+  }
+
+  @override
+  void dispose() {
+    _storage.removeListener(_accountChanged);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final like = _invalidated ? null : widget.like;
     final occurred = like == null
         ? null
         : DateTime.tryParse(
@@ -87,14 +114,31 @@ class LikesResultScreen extends ConsumerWidget {
                               ),
                             ),
                           ],
-                          const SizedBox(height: 20),
-                          _ParticipantsSection(
-                            question: question,
-                            server: participants,
-                            voteId: like['id'] as String?,
+                          const SizedBox(height: 12),
+                          Text(
+                            publicVoterLabel(
+                              like['voterGender'],
+                              like['graduationYear'],
+                            ),
+                            style: const TextStyle(
+                              color: AppColors.primaryBlue,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                           const SizedBox(height: 20),
-                          VoterRevealCard(voteId: like['id'] as String?),
+                          _ParticipantsSection(server: participants),
+                          const SizedBox(height: 20),
+                          VoterRevealCard(
+                            voteId: like['id'] as String?,
+                            onShare:
+                                like['id'] is String &&
+                                    (like['id'] as String).isNotEmpty
+                                ? () => context.push(
+                                    AppRoutes.likesShare,
+                                    extra: like['id'],
+                                  )
+                                : null,
+                          ),
                           const SizedBox(height: 8),
                         ],
                       ),
@@ -141,15 +185,9 @@ class _Participant {
 ///
 /// Missing historical snapshots show an empty state, never on-device guesses.
 class _ParticipantsSection extends StatelessWidget {
-  const _ParticipantsSection({
-    required this.question,
-    required this.server,
-    this.voteId,
-  });
+  const _ParticipantsSection({required this.server});
 
-  final String question;
   final List<_Participant> server;
-  final String? voteId;
 
   @override
   Widget build(BuildContext context) {
@@ -200,17 +238,6 @@ class _ParticipantsSection extends StatelessWidget {
                       child: _ParticipantCard(
                         participant: participant,
                         isPick: false,
-                        onTap: () => context.push(
-                          AppRoutes.likesPerson,
-                          extra: {
-                            'name': participant.name,
-                            'question': question,
-                            'isPick': false,
-                            'voteId': voteId,
-                            if (participant.graduationYear != null)
-                              'graduationYear': participant.graduationYear,
-                          },
-                        ),
                       ),
                     ),
                 ],
@@ -223,15 +250,10 @@ class _ParticipantsSection extends StatelessWidget {
 }
 
 class _ParticipantCard extends StatelessWidget {
-  const _ParticipantCard({
-    required this.participant,
-    required this.isPick,
-    required this.onTap,
-  });
+  const _ParticipantCard({required this.participant, required this.isPick});
 
   final _Participant participant;
   final bool isPick;
-  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -267,10 +289,8 @@ class _ParticipantCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(18),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
-          splashColor: AppColors.primaryBlue.withValues(alpha: 0.08),
+        child: Padding(
+          padding: EdgeInsets.zero,
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Column(

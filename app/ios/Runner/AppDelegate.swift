@@ -40,5 +40,8 @@ import StoreKit
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "InvitationBridge") {
       InvitationBridge.register(with: registrar)
     }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "StoryShareBridge") {
+      StoryShareBridge.register(with: registrar)
+    }
   }
 }
