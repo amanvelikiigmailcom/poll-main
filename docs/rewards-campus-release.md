@@ -1,13 +1,14 @@
 # Rewards and campus release candidate
 
-Prepared for explicit owner release authorization. No push, backend switch, live policy
-write, native build, upload or App Store submission is performed by this document.
+The owner authorized source commit/push only. Backend switching, live policy writes,
+native/cloud builds and uploads are deferred. This is a reviewed future release plan,
+not authorization to execute those deferred stages.
 
 ## Reviewed source
 
 - Client behavior source: 59dc3b6, including current main startup changes and removal of
   Share from the reward receipt. Collect animates first; Continue leads to the timer,
-  whose invitation button follows backend country policy. Source target: 1.0.3+16.
+  whose invitation button follows backend country policy. Source remains 1.0.3+15 because no build is authorized; 1.0.3+16 is a future build candidate requiring a fresh availability check.
 - Backend: abb81ad. Saved waiting state, reviewer identity, country policy, and explicit
   campus-configuration readiness. Missing policy cannot be bypassed by omitting a
   client capability or using ProfileEditor.
