@@ -44,8 +44,6 @@ import '../screens/settings/settings_quiz_screen.dart';
 import '../screens/social/like_person_screen.dart';
 import '../screens/social/likes_result_screen.dart';
 import '../screens/social/received_likes_screen.dart';
-import '../screens/social/room_screen.dart';
-import '../screens/social/create_room_screen.dart';
 import '../screens/premium/premium_screen.dart';
 import '../screens/premium/age_picker_screen.dart';
 import '../screens/premium/age_blocked_screen.dart';
@@ -106,8 +104,6 @@ abstract final class AppRoutes {
   static const likesEmpty = '/likes-empty';
   static const likesResult = '/likes-result';
   static const likesPerson = '/likes-person';
-  static const room = '/room';
-  static const createRoom = '/create-room';
   static const faq = '/faq';
   static const forParents = '/for-parents';
 }
@@ -507,14 +503,6 @@ GoRouter createAppRouter({bool showInvitationIntro = true}) => GoRouter(
             GoRoute(
               path: AppRoutes.settingsQuiz,
               builder: (_, __) => const SettingsQuizScreen(),
-            ),
-            GoRoute(
-              path: AppRoutes.room,
-              builder: (_, __) => const RoomScreen(),
-            ),
-            GoRoute(
-              path: AppRoutes.createRoom,
-              builder: (_, __) => const CreateRoomScreen(),
             ),
           ],
         ),

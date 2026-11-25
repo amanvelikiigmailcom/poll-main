@@ -194,6 +194,32 @@ class _CollectionScreenState extends ConsumerState<CollectionScreen> {
                           ),
                         ),
                         const SizedBox(height: 28),
+                        const _ShopHeading('What is Collection?'),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Stars are in-game points. Spend them on boosts that put your name in more polls.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white60,
+                            fontSize: 15,
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const _BenefitRow(
+                          icon: '⭐',
+                          text: 'Earn stars by finishing 12-question rounds.',
+                        ),
+                        const _BenefitRow(
+                          icon: '🚀',
+                          text:
+                              'Boosts place your name in other players’ campus rounds.',
+                        ),
+                        const _BenefitRow(
+                          icon: '🗳️',
+                          text: 'More placements, more chances to be voted for.',
+                        ),
+                        const SizedBox(height: 28),
                         const _ShopHeading('Promote yourself'),
                         const SizedBox(height: 8),
                         const Text(
@@ -293,6 +319,33 @@ class _ShopHeading extends StatelessWidget {
       color: Colors.white,
       fontSize: 24,
       fontWeight: FontWeight.w700,
+    ),
+  );
+}
+
+class _BenefitRow extends StatelessWidget {
+  const _BenefitRow({required this.icon, required this.text});
+  final String icon;
+  final String text;
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(icon, style: const TextStyle(fontSize: 18)),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+              height: 1.45,
+            ),
+          ),
+        ),
+      ],
     ),
   );
 }

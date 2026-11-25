@@ -366,7 +366,9 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
                   : 'Continue',
             ),
           ),
-          if (!_editing && ContentService.instance.flag('school_skip_enabled'))
+          if (!_editing &&
+              ContentService.instance.flag('school_skip_enabled') &&
+              ref.read(storageServiceProvider).reviewerSkipsAllowed)
             TextButton(
               key: const Key('skip-school'),
               onPressed: saving ? null : () => _next(skip: true),
@@ -376,9 +378,11 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
               ),
             ),
           if (!_editing)
-            const Text(
-              'Voting opens after you choose a campus. Skipping lets you finish setting up your profile.',
-              style: TextStyle(color: Colors.white70, height: 1.4),
+            Text(
+              ref.read(storageServiceProvider).reviewerSkipsAllowed
+                  ? 'Voting opens after you choose a campus. Skipping lets you finish setting up your profile.'
+                  : 'Voting opens after you choose a campus.',
+              style: const TextStyle(color: Colors.white70, height: 1.4),
             ),
         ],
       ],

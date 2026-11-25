@@ -22,9 +22,11 @@ Future<ProviderContainer> mountResetApp(
   String route, {
   ApiService? api,
   bool signedIn = false,
+  bool reviewer = false,
 }) async {
   final storage = StorageService();
   await storage.init();
+  if (reviewer) await storage.markReviewerSeen();
   if (signedIn) {
     await storage.saveToken('signed-in-token');
     await storage.savePhone('+16505551234');
@@ -208,7 +210,11 @@ void main() {
   testWidgets(
     'new setup after reset displays the new profile instead of cached data',
     (tester) async {
-      final container = await mountResetApp(tester, AppRoutes.settings);
+      final container = await mountResetApp(
+        tester,
+        AppRoutes.settings,
+        reviewer: true,
+      );
       await tester.tap(find.text('Reset game'));
       await tester.pumpAndSettle();
       await tester.tap(

@@ -1,7 +1,10 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flyprox_app/screens/social/like_person_screen.dart';
+import 'package:flyprox_app/services/story_share_service.dart';
 import 'fakes/premium.dart';
 
 const _question = 'Who makes everyone smile?';
@@ -17,13 +20,13 @@ Map<String, dynamic> _data({
   if (graduationYear != null) 'graduationYear': graduationYear,
 };
 
-GoRouter _router({Map<String, dynamic>? data}) {
+GoRouter _router({Map<String, dynamic>? data, StoryShareService? storyShare}) {
   final router = GoRouter(
     initialLocation: '/person',
     routes: [
       GoRoute(
         path: '/person',
-        builder: (_, _) => LikePersonScreen(data: data),
+        builder: (_, _) => LikePersonScreen(data: data, storyShare: storyShare),
       ),
       GoRoute(path: '/premium', builder: (_, _) => const Text('Premium stub')),
     ],
@@ -32,10 +35,42 @@ GoRouter _router({Map<String, dynamic>? data}) {
   return router;
 }
 
-Future<void> _mount(WidgetTester tester, {Map<String, dynamic>? data}) async {
+/// Screen tests stub the whole share call: engine capture and file I/O
+/// both wedge the tester here, and both real paths are covered by
+/// story_share_test.dart. This file covers UI wiring only.
+class _StubShare extends StoryShareService {
+  _StubShare(this.png, {this.outcome = StoryShareOutcome.shared});
+
+  final Uint8List png;
+  final StoryShareOutcome outcome;
+  final calls = <({Uint8List png, StoryShareTarget target, String caption})>[];
+
+  @override
+  Future<Uint8List?> capture(GlobalKey key, {double pixelRatio = 2}) async =>
+      png;
+
+  @override
+  Future<StoryShareOutcome> share({
+    required Uint8List png,
+    required StoryShareTarget target,
+    required String caption,
+    Rect? sharePositionOrigin,
+  }) async {
+    calls.add((png: png, target: target, caption: caption));
+    return outcome;
+  }
+}
+
+Future<void> _mount(
+  WidgetTester tester, {
+  Map<String, dynamic>? data,
+  StoryShareService? storyShare,
+}) async {
   await tester.pumpWidget(
     withPremium(
-      MaterialApp.router(routerConfig: _router(data: data ?? _data())),
+      MaterialApp.router(
+        routerConfig: _router(data: data ?? _data(), storyShare: storyShare),
+      ),
     ),
   );
 }
@@ -88,5 +123,57 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Person not found.'), findsOneWidget);
+  });
+
+  testWidgets('instagram shares the result screenshot to stories', (
+    tester,
+  ) async {
+    final shot = Uint8List.fromList([1, 2, 3, 4]);
+    final storyShare = _StubShare(shot);
+    await _mount(tester, storyShare: storyShare);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Instagram'));
+    await tester.tap(find.text('Instagram'));
+    await tester.pumpAndSettle();
+    expect(storyShare.calls, hasLength(1));
+    final call = storyShare.calls.single;
+    expect(call.png, shot);
+    expect(call.target, StoryShareTarget.instagram);
+    expect(call.caption, 'My Flyprox result: $_question');
+    expect(find.text('Couldn’t open Instagram'), findsNothing);
+  });
+
+  testWidgets('snapchat shares the screenshot through the share sheet', (
+    tester,
+  ) async {
+    final shot = Uint8List.fromList([5, 6, 7, 8]);
+    final storyShare = _StubShare(shot);
+    await _mount(tester, storyShare: storyShare);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Snapchat'));
+    await tester.tap(find.text('Snapchat'));
+    await tester.pumpAndSettle();
+    expect(storyShare.calls, hasLength(1));
+    final call = storyShare.calls.single;
+    expect(call.png, shot);
+    expect(call.target, StoryShareTarget.snapchat);
+    expect(call.caption, 'My Flyprox result: $_question');
+    expect(find.text('Couldn’t open Snapchat'), findsNothing);
+  });
+
+  testWidgets('failed share keeps the user on the screen with a notice', (
+    tester,
+  ) async {
+    final storyShare = _StubShare(
+      Uint8List.fromList([9]),
+      outcome: StoryShareOutcome.failed,
+    );
+    await _mount(tester, storyShare: storyShare);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Instagram'));
+    await tester.tap(find.text('Instagram'));
+    await tester.pumpAndSettle();
+    expect(find.text('Couldn’t open Instagram'), findsOneWidget);
+    expect(find.text('Participant'), findsOneWidget);
   });
 }

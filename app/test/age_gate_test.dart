@@ -13,9 +13,14 @@ import 'package:flyprox_app/widgets/common/bottom_nav_bar.dart';
 import 'fakes/fake_age_gate_store.dart';
 import 'package:flyprox_app/services/onboarding_flow.dart';
 
-Future<void> mountAgeRoute(WidgetTester tester, String route) async {
+Future<void> mountAgeRoute(
+  WidgetTester tester,
+  String route, {
+  bool reviewer = false,
+}) async {
   final storage = StorageService();
   await storage.init();
+  if (reviewer) await storage.markReviewerSeen();
   if (route == AppRoutes.age) OnboardingFlow.instance.completePhoneStep();
   testAppRouter.go(route);
   await tester.pumpWidget(
@@ -50,7 +55,7 @@ void main() {
   testWidgets(
     'intro opens phone; guest choice then opens an unselected age question',
     (tester) async {
-      await mountAgeRoute(tester, AppRoutes.onboarding);
+      await mountAgeRoute(tester, AppRoutes.onboarding, reviewer: true);
       await tester.tap(find.text('Skip'));
       await tester.pumpAndSettle();
       expect(find.text('Log in with phone'), findsOneWidget);
@@ -110,7 +115,7 @@ void main() {
       await pickAge(tester, '12 or younger');
       await tester.pumpWidget(const SizedBox());
       await AgeGateService.instance.load();
-      await mountAgeRoute(tester, AppRoutes.splash);
+      await mountAgeRoute(tester, AppRoutes.splash, reviewer: true);
       expect(find.text('Who’s most\nlikely to…?'), findsOneWidget);
       await tester.tap(find.text('Skip'));
       await tester.pumpAndSettle();

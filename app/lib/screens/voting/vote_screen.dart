@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/service_providers.dart';
 import '../../services/server_round_source.dart';
 import '../../services/api_service.dart';
+import '../../services/quiz_service.dart' as quiz;
 
 // ---------------------------------------------------------------------------
 // Data models
@@ -207,38 +208,71 @@ class _VoteScreenState extends State<VoteScreen>
   }
 
   Future<void> _loadRound(String languageCode) async {
-    final ready = await LocalGameService.instance.hasEnoughNames();
-    if (!mounted) return;
     final svc = LocalGameService.instance;
-    final saved = await svc.loadRoundProgress();
+    // Phase A: independent local reads overlap.
+    final cached = await Future.wait([
+      svc.hasEnoughNames(),
+      svc.loadRoundProgress(),
+      svc.getCompletedRounds(),
+    ]);
+    final ready = cached[0] as bool;
+    final saved = cached[1] as RoundProgress?;
+    final completed = cached[2] as int;
     if (!mounted) return;
-    final mode = saved?.draft == null ? await _schoolMode() : null;
+    _source = _resolveSource();
+    final draft = saved?.draft;
+    final useSavedDraft =
+        saved != null && saved.round == completed && draft != null;
+
+    // Local restore stays local: it only decides whether a server fetch
+    // is needed, so it runs before the network waits below.
+    List<GeneratedQuestion>? generated;
+    var startIndex = 0;
+    List<RoundAnswer> previous = [];
+    if (!useSavedDraft &&
+        saved != null &&
+        saved.round == completed &&
+        saved.questionIndex < _totalQuestions) {
+      generated = await svc.restoreRound(
+        ids: saved.questionIds,
+        languageCode: languageCode,
+      );
+      if (generated?.length == _totalQuestions) {
+        startIndex = saved.questionIndex;
+        previous = await svc.getRoundAnswers();
+      } else {
+        generated = null;
+      }
+    }
+    if (!mounted) return;
+
+    // Phase B: the independent network waits overlap instead of queueing.
+    // The waiting period is still read after the invitation refresh, so a
+    // server-confirmed bypass is never missed.
+    final settled = await Future.wait<dynamic>([
+      draft == null ? _schoolMode() : Future<bool?>.value(null),
+      _refreshInvitations(),
+      generated == null && !useSavedDraft && _source != null
+          ? _source!.tryLoadSession()
+          : Future<quiz.QuizSession?>.value(null),
+    ]);
+    final mode = settled[0] as bool?;
+    final serverSession = settled[2] as quiz.QuizSession?;
     if (!mounted) return;
     if (!ready && saved?.draft == null && mode != true) {
       context.go(AppRoutes.namesEntry);
       return;
     }
 
-    try {
-      await ProviderScope.containerOf(context)
-          .read(invitationServiceProvider)
-          .refresh()
-          .timeout(const Duration(seconds: 6));
-    } catch (_) {
-      /* Offline play keeps its locally saved waiting period. */
-    }
-    final remaining = await LocalGameService.instance.secondsUntilNextRound();
+    final remaining = await svc.secondsUntilNextRound();
     if (!mounted) return;
     if (remaining > 0) {
       context.go(AppRoutes.timer);
       return;
     }
 
-    final completed = await svc.getCompletedRounds();
     if (!mounted) return;
-    _source = _resolveSource();
-    final draft = saved?.draft;
-    if (saved != null && saved.round == completed && draft != null) {
+    if (useSavedDraft) {
       final sessionKey = draft['sessionKey'] as String?;
       final sessionId = draft['sessionId'] as String?;
       final ownerId = draft['ownerId'] as String?;
@@ -278,27 +312,8 @@ class _VoteScreenState extends State<VoteScreen>
       return;
     }
 
-    // Resume an older local draft before looking for a new online round.
-    List<GeneratedQuestion>? generated;
-    var startIndex = 0;
-    List<RoundAnswer> previous = [];
-    if (saved != null &&
-        saved.round == completed &&
-        saved.questionIndex < _totalQuestions) {
-      generated = await svc.restoreRound(
-        ids: saved.questionIds,
-        languageCode: languageCode,
-      );
-      if (generated?.length == _totalQuestions) {
-        startIndex = saved.questionIndex;
-        previous = await svc.getRoundAnswers();
-      } else {
-        generated = null;
-      }
-    }
-    final serverSession = generated == null
-        ? await _source?.tryLoadSession()
-        : null;
+    // The local draft (if any) was restored above; the server session (if
+    // needed) was loaded in parallel with the other network waits.
     if (!mounted) return;
     if (serverSession != null &&
         serverSession.supportsRoundSubmission &&
@@ -449,6 +464,17 @@ class _VoteScreenState extends State<VoteScreen>
       return (await details.votingMode())?.school;
     } catch (_) {
       return null;
+    }
+  }
+
+  Future<void> _refreshInvitations() async {
+    try {
+      await ProviderScope.containerOf(context)
+          .read(invitationServiceProvider)
+          .refresh()
+          .timeout(const Duration(seconds: 6));
+    } catch (_) {
+      /* Offline play keeps its locally saved waiting period. */
     }
   }
 

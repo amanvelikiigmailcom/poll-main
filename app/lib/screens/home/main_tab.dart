@@ -218,23 +218,11 @@ class _MainTabState extends ConsumerState<MainTab> with WidgetsBindingObserver {
                 _buildVoteCard(decorative),
               if (!_schoolWaiting)
                 if (_mode case final mode?)
-                  Card(
-                    child: ListTile(
-                      leading: const Icon(Icons.school_outlined),
-                      title: Text(
-                        mode.school
-                            ? (_hasProgress && !_schoolDraft
-                                  ? 'School voting opens next round'
-                                  : 'School voting is open')
-                            : '${mode.joined} of ${mode.threshold} students joined',
-                      ),
-                      subtitle: mode.school
-                          ? null
-                          : TextButton(
-                              onPressed: () => context.push(AppRoutes.invite),
-                              child: const Text('Invite classmates'),
-                            ),
-                    ),
+                  _SchoolBanner(
+                    mode: mode,
+                    hasProgress: _hasProgress,
+                    schoolDraft: _schoolDraft,
+                    onInvite: () => context.push(AppRoutes.invite),
                   ),
               const SizedBox(height: 20),
               IntrinsicHeight(
@@ -397,6 +385,122 @@ class _MainTabState extends ConsumerState<MainTab> with WidgetsBindingObserver {
       ),
     ),
   );
+}
+
+class _SchoolBanner extends StatelessWidget {
+  const _SchoolBanner({
+    required this.mode,
+    required this.hasProgress,
+    required this.schoolDraft,
+    required this.onInvite,
+  });
+  final ({bool school, int joined, int threshold}) mode;
+  final bool hasProgress;
+  final bool schoolDraft;
+  final VoidCallback onInvite;
+
+  @override
+  Widget build(BuildContext context) {
+    final open = mode.school;
+    final title = open
+        ? (hasProgress && !schoolDraft
+              ? 'School voting opens next round'
+              : 'School voting is open')
+        : 'Unlock school voting';
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE9ECF4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEFF1FE),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  open ? Icons.verified_outlined : Icons.school_outlined,
+                  color: AppColors.primaryBlueDark,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (!open) ...[
+            const SizedBox(height: 14),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: mode.threshold == 0
+                    ? 0
+                    : (mode.joined / mode.threshold).clamp(0.0, 1.0),
+                backgroundColor: AppColors.border,
+                color: AppColors.primaryBlue,
+                minHeight: 6,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${mode.joined} of ${mode.threshold} joined',
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Until ${mode.threshold} classmates join, you play with your contacts. Invite classmates to unlock the full school mode.',
+              style: const TextStyle(
+                fontSize: 14,
+                height: 1.5,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: onInvite,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primaryBlue,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(0, 52),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                icon: const Icon(Icons.person_add_alt_1, size: 20),
+                label: const Text(
+                  'Invite classmates',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 class _RoundCards extends StatelessWidget {

@@ -20,9 +20,13 @@ import 'package:flyprox_app/services/local_game_service.dart';
 import 'package:flyprox_app/services/storage_service.dart';
 import 'package:flyprox_app/theme/app_theme.dart';
 
-Future<StorageService> mountApp(WidgetTester tester) async {
+Future<StorageService> mountApp(
+  WidgetTester tester, {
+  bool reviewer = false,
+}) async {
   final storage = StorageService();
   await storage.init();
+  if (reviewer) await storage.markReviewerSeen();
   final api = ApiService(storage);
   api.dio.interceptors.add(
     InterceptorsWrapper(
@@ -110,9 +114,9 @@ void main() {
   }
 
   testWidgets(
-    'first launch opens intro; Skip persists across a fresh app mount',
+    'first launch opens intro; reviewer Skip persists across a fresh app mount',
     (tester) async {
-      final storage = await mountApp(tester);
+      final storage = await mountApp(tester, reviewer: true);
       expect(find.text('Who’s most\nlikely to…?'), findsOneWidget);
       await tester.tap(find.text('Skip'));
       await tester.pumpAndSettle();
@@ -137,6 +141,7 @@ void main() {
     tester,
   ) async {
     final storage = await mountApp(tester);
+    expect(find.text('Skip'), findsNothing);
     await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
     expect(find.text('Make it\nyour circle.'), findsOneWidget);
@@ -168,7 +173,7 @@ void main() {
       playerName: 'Alex',
       friends: ['Sam', 'Jamie', 'Taylor', 'Robin'],
     );
-    await mountApp(tester);
+    await mountApp(tester, reviewer: true);
     expect(
       testAppRouter.routeInformationProvider.value.uri.path,
       AppRoutes.home,
@@ -192,7 +197,7 @@ void main() {
   testWidgets(
     'examples start a normal quiz without login and survive restart',
     (tester) async {
-      await mountApp(tester);
+      await mountApp(tester, reviewer: true);
       await tester.tap(find.text('Skip'));
       await tester.pumpAndSettle();
       expect(find.text('Log in with phone'), findsOneWidget);
@@ -229,7 +234,7 @@ void main() {
   );
 
   Future<void> openContacts(WidgetTester tester) async {
-    await mountApp(tester);
+    await mountApp(tester, reviewer: true);
     await tester.tap(find.text('Skip'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Continue without login'));
@@ -480,6 +485,7 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       final storage = StorageService();
       await storage.init();
+      await storage.markReviewerSeen();
       await tester.pumpWidget(
         ProviderScope(
           overrides: [storageServiceProvider.overrideWithValue(storage)],

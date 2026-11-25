@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>LSApplicationQueriesSchemes</key>
-	<array><string>whatsapp</string></array>
+	<array><string>whatsapp</string><string>instagram-stories</string><string>instagram</string></array>
 <key>FlutterDeepLinkingEnabled</key><false/>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
