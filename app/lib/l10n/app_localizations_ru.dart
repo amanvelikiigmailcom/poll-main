@@ -340,23 +340,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get premium_purchaseError => 'Не удалось завершить покупку';
 
   @override
-  String get premiumResult_remaining => 'У вас осталось:';
-
-  @override
-  String get premiumResult_revealFirstLetter => 'Узнать первую букву имени';
-
-  @override
-  String get premiumResult_revealFullName => 'Узнать полное имя';
-
-  @override
-  String get premiumResult_limitExhausted =>
-      'Лимит исчерпан. Оформите Premium Max для безлимита';
-
-  @override
-  String get premiumResult_tapToReveal =>
-      'Нажмите на карточку кого хотите узнать';
-
-  @override
   String get settings_title => 'Настройки';
 
   @override
