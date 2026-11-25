@@ -4,7 +4,7 @@ All completed client work is integrated: preserved local UI c16018e, campus regi
 ca773f6, launch gate a1edb76, UI polish80c1bc9, push taps545cda0,
 vote metadata/fallback b9d0eec and received-like sharing542a8eb2. Old feature and
 release heads are already ancestors of main; no worktrees or stashes were deleted.
-Backend counterpart: dd475b8 (flyprox_backend).
+Backend counterpart:[dd475b8](https://github.com/amanvelikiigmailcom/flyprox_backend/commit/dd475b8cf6b611486505f12589ad23393ada5a70) (flyprox_backend).
 
 Resolved overlaps retain region filtering, launch validation, selected-campus
 collapse/scroll, bounded controls, exact drafts, push navigation, and contextual
