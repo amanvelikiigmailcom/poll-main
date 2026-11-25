@@ -98,8 +98,14 @@ class _InviteFriendScreenState extends ConsumerState<InviteFriendScreen> {
     try {
       final storage = ref.read(storageServiceProvider);
       final token = await storage.getToken();
+      final whatsapp =
+          ref.read(invitationServiceProvider).preferredChannel == 'whatsapp';
       final selected = await InvitationService.messages
-          .invokeMapMethod<String, dynamic>('pickRecipient');
+          .invokeMapMethod<String, dynamic>('pickRecipient', {
+            'title': whatsapp
+                ? 'Choose a friend for WhatsApp'
+                : 'Choose a friend to message',
+          });
       if (!mounted || selected == null || token != await storage.getToken()) {
         return;
       }
@@ -210,8 +216,18 @@ class _InviteFriendScreenState extends ConsumerState<InviteFriendScreen> {
                       child: const Text('Sign in to invite'),
                     ),
                   ] else if (service.signedIn) ...[
+                    Text(
+                      whatsapp
+                          ? 'Choose a friend, then review your invitation in WhatsApp. Choosing a contact does not send anything.'
+                          : 'Choose a friend, then review your invitation in Messages. iMessage or SMS may be used. Carrier charges may apply. Nothing is sent until you tap Send.',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                     const Text(
-                      'Choose one friend and one phone number. Raw contact numbers and contact names are not uploaded.',
+                      'If your friend has more than one number, choose the one to message. Raw contact numbers and contact names are not uploaded.',
                       style: TextStyle(
                         color: AppColors.textSecondary,
                         height: 1.5,

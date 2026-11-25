@@ -23,11 +23,15 @@ final class InvitationBridge: NSObject, FlutterPlugin, MFMessageComposeViewContr
       result(FlutterError(code: "busy", message: "Close the current sheet first.", details: nil)); return
     }
     if call.method == "pickRecipient" {
+      let args = call.arguments as? [String: Any] ?? [:]
       let picker = CNContactPickerViewController()
       picker.delegate = self
+      picker.title = args["title"] as? String ?? "Choose a friend to message"
       picker.displayedPropertyKeys = [CNContactGivenNameKey, CNContactFamilyNameKey, CNContactPhoneNumbersKey]
       picker.predicateForEnablingContact = NSPredicate(format: "phoneNumbers.@count > 0")
-      picker.predicateForSelectionOfContact = NSPredicate(value: false)
+      // One number needs no detail-card detour; multiple numbers still require
+      // an explicit property selection. Never silently choose the first of many.
+      picker.predicateForSelectionOfContact = NSPredicate(format: "phoneNumbers.@count == 1")
       picker.predicateForSelectionOfProperty = NSPredicate(format: "key == 'phoneNumbers'")
       pending = result
       pickingContact = true
@@ -109,12 +113,23 @@ final class InvitationBridge: NSObject, FlutterPlugin, MFMessageComposeViewContr
   }
 
   func contactPicker(_ picker: CNContactPickerViewController, didSelect contactProperty: CNContactProperty) {
-    let contact = contactProperty.contact
+    finishPicking(picker, contact: contactProperty.contact, phone: contactProperty.value as? CNPhoneNumber)
+  }
+
+  func contactPicker(_ picker: CNContactPickerViewController, didSelect contact: CNContact) {
+    guard contact.phoneNumbers.count == 1 else {
+      contactPickerDidCancel(picker)
+      return
+    }
+    finishPicking(picker, contact: contact, phone: contact.phoneNumbers.first?.value)
+  }
+
+  private func finishPicking(_ picker: CNContactPickerViewController, contact: CNContact, phone: CNPhoneNumber?) {
     let callback = pending
     pending = nil
     let value: [String: String] = [
       "name": CNContactFormatter.string(from: contact, style: .fullName) ?? "Friend",
-      "phone": (contactProperty.value as? CNPhoneNumber)?.stringValue ?? ""
+      "phone": phone?.stringValue ?? ""
     ]
     picker.dismiss(animated: true) { callback?(value) }
   }
