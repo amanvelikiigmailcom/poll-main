@@ -41,6 +41,7 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
   }
 
   Future<void> _loadCampusMode() async {
+    if (ref.read(storageServiceProvider).reviewerSkipsAllowed) return;
     final service = ref.read(onboardingDetailsProvider);
     final mode = await service.votingMode();
     if (!mounted || mode == null) return;
@@ -245,8 +246,15 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: IconButton(
-                    tooltip: 'Back to campus',
-                    onPressed: () => context.go(AppRoutes.schoolSetup),
+                    tooltip:
+                        ref.read(storageServiceProvider).reviewerSkipsAllowed
+                        ? 'Back to login'
+                        : 'Back to campus',
+                    onPressed: () => context.go(
+                      ref.read(storageServiceProvider).reviewerSkipsAllowed
+                          ? AppRoutes.phone
+                          : AppRoutes.schoolSetup,
+                    ),
                     icon: const Icon(
                       Icons.arrow_back_rounded,
                       color: Colors.white,

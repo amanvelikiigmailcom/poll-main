@@ -28,6 +28,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late final ProfileEditNavigationGuard _guard;
   late final Future<bool> Function() _leaveHandler;
   Map<String, dynamic>? _original, _school;
+  String? _gender;
+  String _country = 'US';
   String? _token, _error, _availability, _requestId, _requestSignature;
   Timer? _debounce;
   int _generation = 0;
@@ -59,6 +61,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       _saving = false;
       _original = null;
       _school = null;
+      _gender = null;
       _error = 'Account changed. Close and reopen Edit profile.';
       _loading = false;
       for (final c in [_first, _last, _username, _year]) {
@@ -89,6 +92,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       _last.text = data['lastName'] as String? ?? '';
       _username.text = data['username'] as String? ?? '';
       _year.text = data['graduationYear']?.toString() ?? '';
+      _gender = data['gender'] as String?;
+      _country = data['country'] as String? ?? 'US';
       setState(() {
         _original = data;
         _school = data['school'] == null
@@ -129,6 +134,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final data = _original;
     if (data == null) return {};
     final next = <String, dynamic>{
+      if ((_original?['limits'] as Map?)?['country'] != null)
+        'country': _country,
+      if ((_original?['limits'] as Map?)?['gender'] != null && _gender != null)
+        'gender': _gender,
       'firstName': _first.text.trim(),
       'lastName': _last.text.trim(),
       'username': _username.text.trim().toLowerCase(),
@@ -209,7 +218,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) => _CampusPicker(country: _original!['country'] as String),
+      builder: (_) => _CampusPicker(country: _country),
     );
     if (!mounted || school == null || _invalidSession) return;
     setState(() {
@@ -356,6 +365,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   static String _label(String field) => const {
+    'country': 'Country of study',
+    'gender': 'Gender',
     'firstName': 'First name',
     'lastName': 'Last name',
     'username': 'Username',
@@ -508,14 +519,56 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                                 ),
                               ),
                             ),
-                          ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text('Gender'),
-                            subtitle: Text(
-                              '${const {'male': 'Male', 'female': 'Female', 'nonbinary': 'Non-binary'}[_original!['gender']] ?? 'Not set'}\nGender can’t be changed.',
+                          if ((_original!['limits'] as Map)['gender'] != null)
+                            DropdownButtonFormField<String>(
+                              key: const Key('edit-gender'),
+                              isExpanded: true,
+                              initialValue: _gender,
+                              decoration: const InputDecoration(
+                                labelText: 'Gender',
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'female',
+                                  child: Text(
+                                    'Female',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'male',
+                                  child: Text(
+                                    'Male',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'nonbinary',
+                                  child: Text(
+                                    'Non-binary',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                              onChanged: _editable('gender')
+                                  ? (value) => setState(() {
+                                      _gender = value;
+                                      _error = null;
+                                    })
+                                  : null,
+                            )
+                          else
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Gender'),
+                              subtitle: Text(
+                                '${const {'male': 'Male', 'female': 'Female', 'nonbinary': 'Non-binary'}[_original!['gender']] ?? 'Not set'}\nGender can’t be changed.',
+                              ),
+                              trailing: const Icon(Icons.lock_outline),
                             ),
-                            trailing: const Icon(Icons.lock_outline),
-                          ),
                           const Divider(height: 32),
                           const Text(
                             'CAMPUS',
@@ -524,6 +577,79 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                               fontWeight: FontWeight.w600,
                             ),
                           ),
+                          if ((_original!['limits'] as Map)['country'] !=
+                              null) ...[
+                            DropdownButtonFormField<String>(
+                              key: const Key('edit-country'),
+                              isExpanded: true,
+                              initialValue: _country,
+                              decoration: const InputDecoration(
+                                labelText: 'Country of study',
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'US',
+                                  child: Text(
+                                    'United States',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'CA',
+                                  child: Text(
+                                    'Canada',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'GB',
+                                  child: Text(
+                                    'United Kingdom',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'NZ',
+                                  child: Text(
+                                    'New Zealand',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'SG',
+                                  child: Text(
+                                    'Singapore',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'HK',
+                                  child: Text(
+                                    'Hong Kong',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                              onChanged: _editable('country')
+                                  ? (value) {
+                                      if (value == null || value == _country)
+                                        return;
+                                      setState(() {
+                                        _country = value;
+                                        _school = null;
+                                        _year.clear();
+                                      });
+                                    }
+                                  : null,
+                            ),
+                            const SizedBox(height: 16),
+                          ],
                           ListTile(
                             key: const Key('edit-campus'),
                             contentPadding: EdgeInsets.zero,

@@ -36,7 +36,7 @@ class EditorOnboardingFake extends OnboardingDetailsService {
 class EditorFake extends ProfileEditService {
   EditorFake(super.api, super.storage);
   final writes = <Map<String, dynamic>>[];
-  bool fail = false, loadFailure = false;
+  bool fail = false, loadFailure = false, blankReviewer = false;
   final pending = <String, Completer<Map<String, dynamic>>>{};
   final limits = <String, dynamic>{
     for (final field in [
@@ -79,7 +79,18 @@ class EditorFake extends ProfileEditService {
       'country': 'US',
       'school': {'id': 'campus', 'name': 'Central High'},
       'graduationYear': 2028,
-      'limits': limits,
+      'limits': {
+        ...limits,
+        if (blankReviewer) 'gender': {'editable': true, 'nextAllowedAt': null},
+        if (blankReviewer) 'country': {'editable': true, 'nextAllowedAt': null},
+      },
+      if (blankReviewer) ...{
+        'firstName': '',
+        'lastName': '',
+        'gender': null,
+        'school': null,
+        'graduationYear': null,
+      },
       if (method == 'PUT')
         ...Map<String, dynamic>.from(data!['changes'] as Map),
     };
@@ -90,6 +101,7 @@ Future<({GoRouter router, SessionStorage storage, EditorFake service})> mount(
   WidgetTester tester, {
   void Function(EditorFake)? configure,
   bool shell = false,
+  double scale = 1,
   List<Map<String, dynamic>>? onboardingSchools,
 }) async {
   final storage = SessionStorage();
@@ -130,7 +142,15 @@ Future<({GoRouter router, SessionStorage storage, EditorFake service})> mount(
         profileEditServiceProvider.overrideWithValue(service),
         onboardingDetailsProvider.overrideWith((ref) => onboarding),
       ],
-      child: MaterialApp.router(routerConfig: router),
+      child: MaterialApp.router(
+        routerConfig: router,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(scale)),
+          child: child!,
+        ),
+      ),
     ),
   );
   router.push('/edit-profile');
@@ -148,6 +168,91 @@ Future<void> tap(WidgetTester tester, String text) async {
 }
 
 void main() {
+  for (final scale in [1.0, 2.0]) {
+    testWidgets(
+      'blank reviewer editor and new dropdowns fit 320px at text scale $scale',
+      (tester) async {
+        tester.view.physicalSize = const Size(320, 568);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        await mount(
+          tester,
+          scale: scale,
+          configure: (fake) => fake.blankReviewer = true,
+        );
+        expect(tester.takeException(), isNull);
+        for (final key in ['edit-gender', 'edit-country']) {
+          final dropdown = find.byKey(Key(key));
+          await tester.ensureVisible(dropdown);
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+          await tester.tap(dropdown);
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+          await tester.tapAt(const Offset(5, 5));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+        }
+      },
+    );
+  }
+  testWidgets(
+    'blank reviewer can fill a name without mandatory gender or campus',
+    (tester) async {
+      final f = await mount(
+        tester,
+        configure: (fake) => fake.blankReviewer = true,
+      );
+      expect(find.byKey(const Key('edit-gender')), findsOneWidget);
+      expect(find.textContaining('Gender can’t be changed'), findsNothing);
+      await tester.enterText(field('firstName'), 'Alex');
+      await tap(tester, 'Save');
+      await tap(tester, 'Confirm and save');
+      expect(f.service.writes.single['changes'], {'firstName': 'Alex'});
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('blank reviewer can select and save first gender independently', (
+    tester,
+  ) async {
+    final f = await mount(
+      tester,
+      configure: (fake) => fake.blankReviewer = true,
+    );
+    final gender = find.byKey(const Key('edit-gender'));
+    await tester.ensureVisible(gender);
+    await tester.pumpAndSettle();
+    await tester.tap(gender);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Non-binary').last);
+    await tester.pumpAndSettle();
+    await tap(tester, 'Save');
+    await tap(tester, 'Confirm and save');
+    expect(f.service.writes.single['changes'], {'gender': 'nonbinary'});
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'blank reviewer can choose country later without changing ordinary editor',
+    (tester) async {
+      final f = await mount(
+        tester,
+        configure: (fake) => fake.blankReviewer = true,
+      );
+      final country = find.byKey(const Key('edit-country'));
+      await tester.ensureVisible(country);
+      await tester.pumpAndSettle();
+      await tester.tap(country);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Canada').last);
+      await tester.pumpAndSettle();
+      await tap(tester, 'Save');
+      await tap(tester, 'Confirm and save');
+      expect(f.service.writes.single['changes'], {'country': 'CA'});
+    },
+  );
   testWidgets(
     'server fields, fixed avatar, immutable gender and pristine Save',
     (tester) async {

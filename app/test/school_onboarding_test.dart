@@ -54,7 +54,9 @@ void main() {
           handler.resolve(
             Response(
               requestOptions: req,
-              data: req.path == '/api/quizzes/mode' && schoolMode
+              data: req.path == '/api/social/me'
+                  ? {'username': null}
+                  : req.path == '/api/quizzes/mode' && schoolMode
                   ? {
                       'mode': 'school',
                       'enrolled': true,

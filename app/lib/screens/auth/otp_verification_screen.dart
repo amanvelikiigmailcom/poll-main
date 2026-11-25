@@ -9,6 +9,7 @@ import '../../providers/auth_provider.dart';
 import '../../router/app_router.dart';
 import '../../services/age_gate_service.dart';
 import '../../services/onboarding_flow.dart';
+import '../../services/local_game_service.dart';
 import '../../services/content_service.dart';
 
 /// Phone login, step 2: the SMS code. On success the backend session is
@@ -105,11 +106,21 @@ class _OTPVerificationScreenState extends ConsumerState<OTPVerificationScreen> {
     }
     if (!mounted) return;
     FocusManager.instance.primaryFocus?.unfocus();
+    final storage = ref.read(storageServiceProvider);
+    final reviewer =
+        storage.reviewerSkipsAllowed &&
+        (await storage.getToken())?.isNotEmpty == true;
+    if (reviewer) await ref.read(onboardingDetailsProvider).prepareReviewer();
+    final hasNames =
+        reviewer && await LocalGameService.instance.hasEnoughNames();
+    if (!mounted) return;
     OnboardingFlow.instance.completePhoneStep();
     context.go(
-      AgeGateService.instance.status == AgeGateStatus.verified
-          ? AppRoutes.profileDetails
-          : AppRoutes.age,
+      AgeGateService.instance.status != AgeGateStatus.verified
+          ? AppRoutes.age
+          : reviewer
+          ? (hasNames ? AppRoutes.username : AppRoutes.namesEntry)
+          : AppRoutes.profileDetails,
     );
   }
 
@@ -148,10 +159,29 @@ class _OTPVerificationScreenState extends ConsumerState<OTPVerificationScreen> {
     }
   }
 
-  void _continueAsGuest() {
-    if ((ref.read(storageServiceProvider).reviewerSkipsAllowed &&
-        ContentService.instance.flag('guest_enabled'))) {
-      _next();
+  bool _continuingAsGuest = false;
+
+  Future<void> _continueAsGuest() async {
+    if (_continuingAsGuest ||
+        !ref.read(storageServiceProvider).reviewerSkipsAllowed ||
+        !ContentService.instance.flag('guest_enabled')) {
+      return;
+    }
+    setState(() {
+      _continuingAsGuest = true;
+      _codeError = null;
+    });
+    try {
+      await _next();
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _codeError =
+              'Couldn’t continue. Check your connection and try again.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _continuingAsGuest = false);
     }
   }
 
@@ -297,7 +327,9 @@ class _OTPVerificationScreenState extends ConsumerState<OTPVerificationScreen> {
                           ContentService.instance.flag('guest_enabled'))) ...[
                         const SizedBox(height: 8),
                         OutlinedButton(
-                          onPressed: _verifying ? null : _continueAsGuest,
+                          onPressed: _verifying || _continuingAsGuest
+                              ? null
+                              : _continueAsGuest,
                           style: OutlinedButton.styleFrom(
                             foregroundColor: Colors.white,
                             side: const BorderSide(color: Colors.white70),

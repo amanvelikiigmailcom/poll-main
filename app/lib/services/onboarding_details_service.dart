@@ -84,19 +84,28 @@ class OnboardingDetailsService extends ChangeNotifier {
     if (token?.isNotEmpty != true) return false;
     final key = await _key();
     try {
-      final response = await api.get<Map<String, dynamic>>('/api/onboarding');
+      final response = await api.get<Map<String, dynamic>>(
+        '/api/onboarding',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
       if (token != await storage.getToken() || key != await _key()) {
         return false;
       }
       final data = response.data;
       if (data == null ||
           ![
+            'legacy',
             'pending',
             'selected',
             'skipped',
             'requested',
             'waiting',
           ].contains(data['status'])) {
+        if (requireOnline) {
+          throw const ApiException(
+            'Couldn’t load your registration. Try again.',
+          );
+        }
         return false;
       }
       if (data.containsKey('reviewerSkipsAllowed')) {
@@ -116,7 +125,11 @@ class OnboardingDetailsService extends ChangeNotifier {
         'campusAvailable': data['campusAvailable'],
         'graduationYear': data['graduationYear'],
         'campusChangeUsed': data['campusChangeUsed'],
-        'stage': data['status'] == 'waiting'
+        'reviewerSkipsAllowed': data['reviewerSkipsAllowed'] == true,
+        'votingAllowed': data['votingAllowed'] == true,
+        'stage': storage.reviewerSkipsAllowed
+            ? (prior['stage'] == 'done' ? 'done' : 'contacts')
+            : data['status'] == 'waiting'
             ? 'waiting'
             : prior['stage'] ??
                   (data['profileComplete'] == true ? 'school' : 'profile'),
@@ -126,6 +139,20 @@ class OnboardingDetailsService extends ChangeNotifier {
       return false;
     }
     return true;
+  }
+
+  Future<void> prepareReviewer() async {
+    final token = await storage.getToken();
+    if (token?.isNotEmpty != true || !storage.reviewerSkipsAllowed) return;
+    final restored = await restore(requireOnline: true);
+    if (token != await storage.getToken()) {
+      throw const ApiException('Account changed. Please sign in again.');
+    }
+    if (!restored || !storage.reviewerSkipsAllowed) {
+      throw const ApiException(
+        'Couldn’t confirm your registration. Try again.',
+      );
+    }
   }
 
   Future<String> country() async =>
@@ -370,7 +397,12 @@ class OnboardingDetailsService extends ChangeNotifier {
 
   Future<bool> votingAllowed() async {
     final data = await read();
-    return data['stage'] == null || data['status'] == 'selected';
+    return (storage.reviewerSkipsAllowed &&
+            (await storage.getToken())?.isNotEmpty == true &&
+            data['reviewerSkipsAllowed'] == true &&
+            data['votingAllowed'] == true) ||
+        data['stage'] == null ||
+        data['status'] == 'selected';
   }
 
   Future<({bool school, int joined, int threshold})?> votingMode() async {

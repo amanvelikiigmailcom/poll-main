@@ -152,6 +152,27 @@ Future<String?> _ageRedirect(BuildContext context, GoRouterState state) async {
     context,
     listen: false,
   ).read(onboardingDetailsProvider);
+  final storage = ProviderScope.containerOf(
+    context,
+    listen: false,
+  ).read(storageServiceProvider);
+  if (storage.reviewerSkipsAllowed &&
+      (await storage.getToken())?.isNotEmpty == true) {
+    // These two onboarding forms must never render for the verified reviewer,
+    // including Back, stale stages and deep links. Edit profile is independent.
+    if ({
+      AppRoutes.profileDetails,
+      AppRoutes.schoolSetup,
+      AppRoutes.schoolWaiting,
+      AppRoutes.age,
+      AppRoutes.ageBlocked,
+    }.contains(path)) {
+      return await LocalGameService.instance.hasEnoughNames()
+          ? AppRoutes.username
+          : AppRoutes.namesEntry;
+    }
+    return null;
+  }
   final details = await setup.read();
   const setupExempt = {
     AppRoutes.phone,

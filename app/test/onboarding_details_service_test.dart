@@ -217,4 +217,76 @@ void main() {
       }
     },
   );
+  test(
+    'reviewer server restore removes stale form stages without writing dummy data; normal session stays gated',
+    () async {
+      final (storage, api, service) = await setup();
+      await storage.saveToken('reviewer-session');
+      await storage.saveReviewerAccess(true);
+      await service.draft({'stage': 'school', 'status': 'pending'});
+      final writes = <RequestOptions>[];
+      api.dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (request, handler) {
+            if (request.method != 'GET') writes.add(request);
+            handler.resolve(
+              Response(
+                requestOptions: request,
+                data: {
+                  'status': 'pending',
+                  'country': 'US',
+                  'profileComplete': false,
+                  'school': null,
+                  'reviewerSkipsAllowed': storage.reviewerSkipsAllowed,
+                  'votingAllowed': storage.reviewerSkipsAllowed,
+                },
+              ),
+            );
+          },
+        ),
+      );
+      await service.prepareReviewer();
+      expect((await service.read())['stage'], 'contacts');
+      expect(await service.votingAllowed(), isTrue);
+      expect(writes, isEmpty);
+      await storage.saveToken('ordinary-session');
+      expect(storage.reviewerSkipsAllowed, isFalse);
+      expect(await service.read(), isEmpty);
+      await service.restore(requireOnline: true);
+      expect((await service.read())['stage'], 'profile');
+      expect(await service.votingAllowed(), isFalse);
+    },
+  );
+
+  test(
+    'late reviewer onboarding restore cannot grant permissions to a different account',
+    () async {
+      final (storage, api, service) = await setup();
+      await storage.saveToken('reviewer-session');
+      await storage.saveReviewerAccess(true);
+      final entered = Completer<void>();
+      final pending = Completer<Map<String, dynamic>>();
+      api.dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (request, handler) async {
+            entered.complete();
+            handler.resolve(
+              Response(requestOptions: request, data: await pending.future),
+            );
+          },
+        ),
+      );
+      final restoring = service.restore(requireOnline: true);
+      await entered.future;
+      await storage.saveToken('ordinary-session');
+      pending.complete({
+        'status': 'pending',
+        'reviewerSkipsAllowed': true,
+        'votingAllowed': true,
+      });
+      expect(await restoring, isFalse);
+      expect(storage.reviewerSkipsAllowed, isFalse);
+      expect(await service.read(), isEmpty);
+    },
+  );
 }
