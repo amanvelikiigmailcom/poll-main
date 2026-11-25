@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 import 'push_driver.dart';
 
@@ -77,5 +80,49 @@ class FirebasePushDriver implements PushDriver {
     } catch (_) {
       return const Stream.empty();
     }
+  }
+
+  static const _tapChannel = MethodChannel('flyprox/push_tap');
+  final _taps = StreamController<PushTap>.broadcast();
+  bool _tapHandlerSet = false;
+
+  void _ensureTapHandler() {
+    if (_tapHandlerSet) return;
+    _tapHandlerSet = true;
+    _tapChannel.setMethodCallHandler((call) async {
+      if (call.method == 'onPushTap' && call.arguments is String) {
+        final type = (call.arguments as String).trim();
+        if (type.isNotEmpty) _taps.add(PushTap(type));
+      }
+    });
+  }
+
+  @override
+  Stream<PushTap> get onPushTap {
+    try {
+      _ensureTapHandler();
+      return _taps.stream;
+    } catch (_) {
+      return const Stream.empty();
+    }
+  }
+
+  @override
+  Future<PushTap?> getInitialTap() async {
+    try {
+      final type = await _tapChannel.invokeMethod<String>('getInitialPush');
+      final trimmed = type?.trim() ?? '';
+      return trimmed.isEmpty ? null : PushTap(trimmed);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Future<void> setTapArmed(bool armed) async {
+    try {
+      _ensureTapHandler();
+      await _tapChannel.invokeMethod<void>('setArmed', armed);
+    } catch (_) {}
   }
 }

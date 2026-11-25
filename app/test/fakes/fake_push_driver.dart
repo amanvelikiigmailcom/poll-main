@@ -18,6 +18,9 @@ class FakePushDriver implements PushDriver {
 
   final tokenRefresh = StreamController<String>.broadcast();
   final messages = StreamController<PushMessage>.broadcast();
+  final taps = StreamController<PushTap>.broadcast();
+  PushTap? initialTap;
+  bool tapArmed = false;
   int requestCalls = 0;
 
   @override
@@ -42,8 +45,24 @@ class FakePushDriver implements PushDriver {
   @override
   Stream<PushMessage> get onForegroundMessage => messages.stream;
 
+  @override
+  Stream<PushTap> get onPushTap => taps.stream;
+
+  @override
+  Future<PushTap?> getInitialTap() async {
+    final tap = initialTap;
+    initialTap = null;
+    return tap;
+  }
+
+  @override
+  Future<void> setTapArmed(bool value) async {
+    tapArmed = value;
+  }
+
   void dispose() {
     tokenRefresh.close();
     messages.close();
+    taps.close();
   }
 }

@@ -6,6 +6,13 @@ class PushMessage {
   const PushMessage({required this.title, required this.body});
 }
 
+/// A user tap on a push, mapped to its backend type.
+class PushTap {
+  final String type;
+
+  const PushTap(this.type);
+}
+
 /// Push plumbing behind a seam tests can fake. Tokens go to our backend,
 /// which sends through Appwrite Messaging (APNs provider).
 abstract class PushDriver {
@@ -26,4 +33,15 @@ abstract class PushDriver {
 
   /// Messages arriving while the app is open.
   Stream<PushMessage> get onForegroundMessage;
+
+  /// Taps on pushes delivered while the shell is mounted and taps are armed.
+  /// Plain APNs taps arrive through the native bridge. Never throws.
+  Stream<PushTap> get onPushTap;
+
+  /// Consumes the tap that launched the app (or arrived before the shell
+  /// mounted). Null when none. Never throws.
+  Future<PushTap?> getInitialTap();
+
+  /// Enables live tap delivery once a navigation shell is mounted.
+  Future<void> setTapArmed(bool armed);
 }
