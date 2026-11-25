@@ -11,6 +11,7 @@ import 'package:flyprox_app/services/content_service.dart';
 import 'package:flyprox_app/services/onboarding_details_service.dart';
 import 'package:flyprox_app/services/storage_service.dart';
 import 'package:flyprox_app/services/local_game_service.dart';
+import 'package:flyprox_app/theme/app_theme.dart';
 import 'fakes/eligible_player.dart';
 import 'fakes/test_app.dart';
 
@@ -82,6 +83,7 @@ void main() {
         ],
         child: MaterialApp.router(
           routerConfig: testAppRouter,
+          theme: AppTheme.lightTheme,
           builder: (context, child) => MediaQuery(
             data: MediaQuery.of(
               context,
@@ -244,6 +246,123 @@ void main() {
     expect(find.text('Choose your graduation year.'), findsOneWidget);
   });
   testWidgets(
+    'missing campus restores year and region before building pickers',
+    (tester) async {
+      final service = await mount(tester);
+      await service.draft({
+        'graduationYear': 2030,
+        'missingRegion': 'TEXAS',
+        'missingCity': 'Austin',
+      });
+      await profile(tester);
+      await tester.ensureVisible(find.text('I can’t find my campus'));
+      await tester.tap(find.text('I can’t find my campus'));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<DropdownButtonFormField<int>>(
+              find.byKey(const Key('graduation-year')),
+            )
+            .initialValue,
+        2030,
+      );
+      expect(
+        tester
+            .widget<DropdownButtonFormField<String>>(
+              find.byKey(const Key('missing-region')),
+            )
+            .initialValue,
+        'TEXAS',
+      );
+    },
+  );
+
+  testWidgets('campus back preserves unsaved selection and graduation year', (
+    tester,
+  ) async {
+    await mount(tester);
+    await profile(tester);
+    await tester.enterText(find.byKey(const Key('school-search')), 'Central');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Central High'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const Key('graduation-year')));
+    await tester.tap(find.byKey(const Key('graduation-year')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('2026').last);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byTooltip('Back'));
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+    expect(find.text('About you'), findsOneWidget);
+    await tester.ensureVisible(find.text('Continue'));
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(find.text('Central High'), findsOneWidget);
+    expect(
+      tester
+          .widget<DropdownButtonFormField<int>>(
+            find.byKey(const Key('graduation-year')),
+          )
+          .initialValue,
+      2026,
+    );
+    expect(
+      tester
+          .widget<TextField>(find.byKey(const Key('school-search')))
+          .controller!
+          .text,
+      'Central',
+    );
+  });
+
+  testWidgets(
+    'long selected campus never overlaps its location or Change at 320px x2',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 568);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      const name = 'Central International Academy of Science and Technology';
+      await mount(
+        tester,
+        scale: 2,
+        search: (request, handler) {
+          handler.resolve(
+            Response(
+              requestOptions: request,
+              data: {
+                'schools': [
+                  {...school, 'name': name},
+                ],
+                'available': true,
+              },
+            ),
+          );
+        },
+      );
+      await profile(tester);
+      await tester.enterText(find.byKey(const Key('school-search')), 'Central');
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text(name));
+      await tester.tap(find.text(name));
+      await tester.pumpAndSettle();
+      final title = tester.getRect(find.text(name));
+      final location = tester.getRect(find.text('Austin · Texas'));
+      final change = tester.getRect(find.text('Change'));
+      expect(title.bottom, lessThanOrEqualTo(location.top));
+      expect(location.bottom, lessThanOrEqualTo(change.top));
+      expect(title.width, lessThanOrEqualTo(272));
+      await tester.ensureVisible(find.text('Change'));
+      await tester.tap(find.text('Change'));
+      await tester.pumpAndSettle();
+      expect(find.text('Austin · Texas'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+  testWidgets(
     'two forms precede contacts; school city/region and graduation year persist before continuing',
     (tester) async {
       final service = await mount(tester);
@@ -326,19 +445,18 @@ void main() {
       );
     },
   );
-  testWidgets(
-    'regular users see no school skip and a campus-only hint',
-    (tester) async {
-      await mount(tester);
-      await profile(tester);
-      expect(find.byKey(const Key('skip-school')), findsNothing);
-      expect(
-        find.text('Voting opens after you choose a campus.'),
-        findsOneWidget,
-      );
-      expect(find.textContaining('Skipping lets you finish'), findsNothing);
-    },
-  );
+  testWidgets('regular users see no school skip and a campus-only hint', (
+    tester,
+  ) async {
+    await mount(tester);
+    await profile(tester);
+    expect(find.byKey(const Key('skip-school')), findsNothing);
+    expect(
+      find.text('Voting opens after you choose a campus.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Skipping lets you finish'), findsNothing);
+  });
   testWidgets(
     'search ignores stale responses and empty/error states stay usable',
     (tester) async {

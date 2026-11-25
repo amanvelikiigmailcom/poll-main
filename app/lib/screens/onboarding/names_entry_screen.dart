@@ -238,6 +238,17 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: IconButton(
+                    tooltip: 'Back to campus',
+                    onPressed: () => context.go(AppRoutes.schoolSetup),
+                    icon: const Icon(
+                      Icons.arrow_back_rounded,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
                 Text(
                   _campusMode == null
                       ? 'Add your contacts'

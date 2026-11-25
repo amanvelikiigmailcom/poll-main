@@ -49,6 +49,7 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
     final data =
         widget.profileCampus ??
         await ref.read(onboardingDetailsProvider).read();
+    if (!mounted) return;
     final savedYear = data['graduationYear'] as int?;
     final confirmed =
         !_editing &&
@@ -62,12 +63,37 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
     setState(() {
       _confirmedYear = confirmed || _editing ? savedYear : null;
       country = data['country'] as String? ?? 'US';
-      selected = !_editing && data['school'] is Map
-          ? Map<String, dynamic>.from(data['school'] as Map)
+      final hasDraft = !_editing && data['schoolDraftCountry'] == country;
+      final draftSchool = hasDraft ? data['schoolDraft'] : data['school'];
+      selected = !_editing && draftSchool is Map
+          ? Map<String, dynamic>.from(draftSchool)
           : null;
-      year.text = data['graduationYear']?.toString() ?? '';
+      year.text =
+          (hasDraft ? data['schoolYearDraft'] : data['graduationYear'])
+              ?.toString() ??
+          '';
+      if (hasDraft) {
+        query.text = data['schoolQueryDraft'] as String? ?? '';
+        regionFilter = data['schoolRegionDraft'] as String? ?? '';
+      }
       loading = false;
     });
+  }
+
+  Future<void> _back() async {
+    FocusManager.instance.primaryFocus?.unfocus();
+    if (_editing) {
+      Navigator.of(context).pop();
+      return;
+    }
+    await ref.read(onboardingDetailsProvider).draft({
+      'schoolDraftCountry': country,
+      'schoolDraft': selected,
+      'schoolYearDraft': int.tryParse(year.text),
+      'schoolQueryDraft': query.text,
+      'schoolRegionDraft': regionFilter,
+    });
+    if (mounted) context.go(AppRoutes.profileDetails);
   }
 
   void _changed(String value) {
@@ -266,6 +292,13 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
       } else {
         await service.selectSchool(selected!, int.parse(year.text));
       }
+      await service.draft({
+        'schoolDraftCountry': null,
+        'schoolDraft': null,
+        'schoolYearDraft': null,
+        'schoolQueryDraft': null,
+        'schoolRegionDraft': null,
+      });
       final schoolReady = !skip && await service.skipContactsWhenSchoolReady();
       final hasNames = await LocalGameService.instance.hasEnoughNames();
       final pendingUsername = await LocalGameService.instance
@@ -326,18 +359,14 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
               : country == 'GB'
               ? 'United Kingdom · England directory'
               : country}\nChoose your campus and graduation year.',
-      back: saving
-          ? null
-          : () => _editing
-                ? Navigator.of(context).pop()
-                : context.go(AppRoutes.profileDetails),
+      back: saving ? null : _back,
       children: [
         if (loading)
           const Center(child: CircularProgressIndicator(color: Colors.white))
         else ...[
           if (SchoolRegions.hasRegions(country))
             Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: 20),
               child: DropdownButtonFormField<String>(
                 key: const Key('school-region'),
                 initialValue: regionFilter,
@@ -361,7 +390,9 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
             enabled: !saving,
             onChanged: _changed,
             style: const TextStyle(fontSize: 16),
-            decoration: setupInput('Search campuses by name, city or region'),
+            decoration: setupInput(
+              'Search campuses',
+            ).copyWith(hintText: 'Name, city or region', hintMaxLines: 2),
           ),
           const SizedBox(height: 12),
           if (searching)
@@ -425,30 +456,40 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
           if (selected != null)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
-              child: ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.check_circle, color: Colors.white),
-                title: Text(
-                  selected!['name'] as String,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Icon(Icons.check_circle, color: Colors.white),
                   ),
-                ),
-                subtitle: Text(
-                  [
-                    selected!['city'],
-                    selected!['region'],
-                  ].whereType<String>().where((s) => s.isNotEmpty).join(' · '),
-                  style: const TextStyle(color: Colors.white70),
-                ),
-                trailing: TextButton(
-                  onPressed: saving ? null : () => _changed(query.text),
-                  child: const Text(
-                    'Change',
-                    style: TextStyle(color: Colors.white),
+                  const SizedBox(height: 8),
+                  Text(
+                    selected!['name'] as String,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 4),
+                  Text(
+                    [selected!['city'], selected!['region']]
+                        .whereType<String>()
+                        .where((s) => s.isNotEmpty)
+                        .join(' · '),
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: saving ? null : () => _changed(query.text),
+                      child: const Text(
+                        'Change',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           const SizedBox(height: 16),
@@ -547,7 +588,7 @@ class _MissingSchoolScreenState extends ConsumerState<MissingSchoolScreen> {
       year = TextEditingController();
   final form = GlobalKey<FormState>();
   String? error;
-  bool saving = false;
+  bool saving = false, loading = true;
   @override
   void initState() {
     super.initState();
@@ -562,6 +603,7 @@ class _MissingSchoolScreenState extends ConsumerState<MissingSchoolScreen> {
       city.text = data['missingCity'] as String? ?? '';
       region.text = data['missingRegion'] as String? ?? '';
       year.text = data['graduationYear']?.toString() ?? '';
+      loading = false;
     });
   }
 
@@ -634,90 +676,95 @@ class _MissingSchoolScreenState extends ConsumerState<MissingSchoolScreen> {
         'Send the campus details to our team. Voting will be available after your campus is added and you select it. Opening Mail does not send the request.',
     back: () => Navigator.of(context).pop(),
     children: [
-      Form(
-        key: form,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'Country: ${widget.country}',
-              style: const TextStyle(color: Colors.white),
-            ),
-            const SizedBox(height: 16),
-            for (final field in [
-              (name, 'Campus name', 'Enter the campus name.', 256),
-              (city, 'City', 'Enter the city.', 128),
-            ])
+      if (loading)
+        const Center(child: CircularProgressIndicator(color: Colors.white))
+      else
+        Form(
+          key: form,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Country: ${widget.country}',
+                style: const TextStyle(color: Colors.white),
+              ),
+              const SizedBox(height: 16),
+              for (final field in [
+                (name, 'Campus name', 'Enter the campus name.', 256),
+                (city, 'City', 'Enter the city.', 128),
+              ])
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: TextFormField(
+                    controller: field.$1,
+                    enabled: !saving,
+                    maxLength: field.$4,
+                    style: const TextStyle(fontSize: 16),
+                    decoration: setupInput(field.$2),
+                    validator: (v) {
+                      final value = v?.trim() ?? '';
+                      if (value.isEmpty) return field.$3;
+                      if (value.length > field.$4) {
+                        return 'Use ${field.$4} characters or fewer.';
+                      }
+                      if (RegExp(r'[\x00-\x1f\x7f]').hasMatch(value)) {
+                        return 'Remove line breaks or tabs.';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
-                child: TextFormField(
-                  controller: field.$1,
-                  enabled: !saving,
-                  maxLength: field.$4,
-                  style: const TextStyle(fontSize: 16),
-                  decoration: setupInput(field.$2),
-                  validator: (v) {
-                    final value = v?.trim() ?? '';
-                    if (value.isEmpty) return field.$3;
-                    if (value.length > field.$4) {
-                      return 'Use ${field.$4} characters or fewer.';
-                    }
-                    if (RegExp(r'[\x00-\x1f\x7f]').hasMatch(value)) {
-                      return 'Remove line breaks or tabs.';
-                    }
-                    return null;
-                  },
-                ),
+                child: SchoolRegions.hasRegions(widget.country)
+                    ? _RegionPicker(
+                        country: widget.country,
+                        controller: region,
+                        enabled: !saving,
+                      )
+                    : TextFormField(
+                        controller: region,
+                        enabled: !saving,
+                        maxLength: 128,
+                        style: const TextStyle(fontSize: 16),
+                        decoration: setupInput(
+                          campusRegionLabel(widget.country),
+                        ),
+                        validator: (v) {
+                          final value = v?.trim() ?? '';
+                          if (value.isEmpty) {
+                            return 'Enter the state or region.';
+                          }
+                          if (value.length > 128) {
+                            return 'Use 128 characters or fewer.';
+                          }
+                          if (RegExp(r'[\x00-\x1f\x7f]').hasMatch(value)) {
+                            return 'Remove line breaks or tabs.';
+                          }
+                          return null;
+                        },
+                      ),
               ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: SchoolRegions.hasRegions(widget.country)
-                  ? _RegionPicker(
-                      country: widget.country,
-                      controller: region,
-                      enabled: !saving,
-                    )
-                  : TextFormField(
-                      controller: region,
-                      enabled: !saving,
-                      maxLength: 128,
-                      style: const TextStyle(fontSize: 16),
-                      decoration: setupInput(campusRegionLabel(widget.country)),
-                      validator: (v) {
-                        final value = v?.trim() ?? '';
-                        if (value.isEmpty) {
-                          return 'Enter the state or region.';
-                        }
-                        if (value.length > 128) {
-                          return 'Use 128 characters or fewer.';
-                        }
-                        if (RegExp(r'[\x00-\x1f\x7f]').hasMatch(value)) {
-                          return 'Remove line breaks or tabs.';
-                        }
-                        return null;
-                      },
-                    ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: GraduationYearPicker(controller: year, enabled: !saving),
-            ),
-            if (error != null)
-              Semantics(
-                liveRegion: true,
-                child: Text(
-                  error!,
-                  style: const TextStyle(color: Colors.white),
-                ),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: GraduationYearPicker(controller: year, enabled: !saving),
               ),
-            ElevatedButton(
-              onPressed: saving ? null : _email,
-              style: setupButton(),
-              child: Text(saving ? 'Preparing…' : 'Prepare email'),
-            ),
-          ],
+              if (error != null)
+                Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    error!,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              ElevatedButton(
+                onPressed: saving ? null : _email,
+                style: setupButton(),
+                child: Text(saving ? 'Preparing…' : 'Prepare email'),
+              ),
+            ],
+          ),
         ),
-      ),
     ],
   );
 }

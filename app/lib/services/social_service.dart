@@ -13,6 +13,13 @@ class SocialService {
     String path, {
     String method = 'GET',
     Map<String, dynamic>? data,
+  }) => _request(path, method: method, data: data);
+
+  Future<Map<String, dynamic>> _request(
+    String path, {
+    String method = 'GET',
+    Map<String, dynamic>? data,
+    CancelToken? cancelToken,
   }) async {
     final token = await storage.getToken();
     if (token == null || token.isEmpty) {
@@ -25,6 +32,7 @@ class SocialService {
       final response = await api.dio.request<Map<String, dynamic>>(
         '/api/social$path',
         data: data,
+        cancelToken: cancelToken,
         options: Options(
           method: method,
           headers: {'Authorization': 'Bearer $token'},
@@ -75,11 +83,15 @@ class SocialService {
       );
   Future<Map<String, dynamic>> act(String id, String action) =>
       request('/users/${Uri.encodeComponent(id)}/$action', method: 'POST');
-  Future<String> saveHandle(String username) async =>
-      (await request(
+  Future<String> saveHandle(
+    String username, {
+    CancelToken? cancelToken,
+  }) async =>
+      (await _request(
             '/handle',
             method: 'PUT',
             data: {'username': username},
+            cancelToken: cancelToken,
           ))['username']
           as String;
 }

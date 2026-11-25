@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:dio/dio.dart';
 import '../../services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,11 +23,12 @@ class UsernameScreen extends ConsumerStatefulWidget {
 
 class _UsernameScreenState extends ConsumerState<UsernameScreen> {
   final _controller = TextEditingController();
-  final _firstName = TextEditingController();
-  final _lastName = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _loading = true;
   bool _saving = false;
+  CancelToken? _request;
+  int _operation = 0;
+  String _backRoute = AppRoutes.namesEntry;
 
   @override
   void initState() {
@@ -36,27 +39,34 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
   Future<void> _prefill() async {
     final game = LocalGameService.instance;
     final name = await game.ensureUsername();
-    final fullName = await game.getFullName();
-    final cached = ref.read(storageServiceProvider).getUser();
+    if (!mounted) return;
+    final details = await ref.read(onboardingDetailsProvider).read();
     if (!mounted) return;
     setState(() {
-      _controller.text = name;
-      _firstName.text = fullName.$1.isNotEmpty
-          ? fullName.$1
-          : cached?.firstName ?? '';
-      _lastName.text = fullName.$2.isNotEmpty
-          ? fullName.$2
-          : cached?.lastName ?? '';
+      _controller.text = details['usernameDraft'] as String? ?? name;
+      _backRoute = details['stage'] == 'username'
+          ? AppRoutes.schoolSetup
+          : AppRoutes.namesEntry;
       _loading = false;
     });
   }
 
   @override
   void dispose() {
+    _operation++;
+    _request?.cancel();
     _controller.dispose();
-    _firstName.dispose();
-    _lastName.dispose();
     super.dispose();
+  }
+
+  Future<void> _back() async {
+    _operation++;
+    _request?.cancel();
+    FocusManager.instance.primaryFocus?.unfocus();
+    await ref.read(onboardingDetailsProvider).draft({
+      'usernameDraft': _controller.text,
+    });
+    if (mounted) context.go(_backRoute);
   }
 
   Future<void> _continue() async {
@@ -64,26 +74,49 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
       return;
     }
     FocusManager.instance.primaryFocus?.unfocus();
+    final operation = ++_operation;
+    final storage = ref.read(storageServiceProvider);
+    final owner = await storage.getToken();
+    if (!mounted || operation != _operation) return;
     setState(() {
       _saving = true;
       _submissionError = null;
     });
     try {
       var name = _controller.text.trim();
-      final storage = ref.read(storageServiceProvider);
-      if ((await storage.getToken())?.isNotEmpty == true) {
-        name = await ref.read(socialServiceProvider).saveHandle(name);
+      if (owner?.isNotEmpty == true) {
+        final request = _request = CancelToken();
+        name = await ref
+            .read(socialServiceProvider)
+            .saveHandle(name, cancelToken: request)
+            .timeout(
+              const Duration(seconds: 10),
+              onTimeout: () {
+                request.cancel();
+                throw const ApiException(
+                  'Connection timed out. Please try again.',
+                );
+              },
+            );
+      }
+      if (!mounted || operation != _operation) return;
+      if (owner != await storage.getToken()) {
+        throw const ApiException('Account changed. Please sign in again.');
       }
       final game = LocalGameService.instance;
       await game.saveUsername(name);
-      await game.saveFullName(_firstName.text, _lastName.text);
-      if (!mounted) return;
+      if (!mounted || operation != _operation) return;
       await ref.read(localProfileProvider.notifier).refresh();
+      if (!mounted || operation != _operation) return;
       final loggedIn = await ref.read(authServiceProvider).isLoggedIn();
+      if (!mounted || operation != _operation) return;
       String? invitationNotice;
       if (loggedIn) {
         try {
-          await ref.read(invitationServiceProvider).completeRegistration();
+          await ref
+              .read(invitationServiceProvider)
+              .completeRegistration()
+              .timeout(const Duration(seconds: 3));
         } catch (_) {
           // Keep the pending invitation for a retry after registration. A
           // network error must not discard locally saved profile details.
@@ -93,12 +126,21 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
           }
         }
       }
-      if (!mounted) return;
+      if (!mounted || operation != _operation) return;
       final needsPush =
-          loggedIn && await ref.read(pushServiceProvider).needsPrompt();
+          loggedIn &&
+          await ref
+              .read(pushServiceProvider)
+              .needsPrompt()
+              .timeout(const Duration(seconds: 2), onTimeout: () => true);
+      if (!mounted || operation != _operation) return;
+      if (owner != await storage.getToken()) {
+        throw const ApiException('Account changed. Please sign in again.');
+      }
+      await ref.read(onboardingDetailsProvider).draft({'usernameDraft': null});
       await game.setUsernameSetupPending(false);
       await ref.read(onboardingDetailsProvider).finish();
-      if (!mounted) return;
+      if (!mounted || operation != _operation) return;
       if (invitationNotice != null) {
         ScaffoldMessenger.of(
           context,
@@ -106,7 +148,7 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
       }
       context.go(needsPush ? AppRoutes.pushPrompt : AppRoutes.home);
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted || operation != _operation) return;
       setState(() {
         _saving = false;
         _submissionError = error is ApiException
@@ -133,10 +175,10 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: IconButton(
-                  tooltip: 'Back to contacts',
-                  onPressed: _saving
-                      ? null
-                      : () => context.go(AppRoutes.namesEntry),
+                  tooltip: _backRoute == AppRoutes.schoolSetup
+                      ? 'Back to campus'
+                      : 'Back to contacts',
+                  onPressed: _back,
                   icon: const Icon(
                     Icons.arrow_back_rounded,
                     color: Colors.white,
@@ -178,9 +220,16 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
                   style: const TextStyle(fontSize: 16),
                   decoration: InputDecoration(
                     labelText: 'Username',
+                    floatingLabelBehavior: FloatingLabelBehavior.always,
+                    floatingLabelStyle: const TextStyle(
+                      color: _primaryBlue,
+                      backgroundColor: Colors.white,
+                    ),
                     prefixText: '@',
                     helperText: '3–32 characters: A–Z, numbers or _',
                     helperMaxLines: 3,
+                    helperStyle: const TextStyle(color: Colors.white),
+                    errorStyle: const TextStyle(color: Colors.white),
                     errorText: _submissionError,
                     errorMaxLines: 4,
                     filled: true,
@@ -192,6 +241,7 @@ class _UsernameScreenState extends ConsumerState<UsernameScreen> {
                   validator: (value) =>
                       LocalGameService.validateUsername(value ?? ''),
                   onChanged: (_) {
+                    _formKey.currentState?.validate();
                     if (_submissionError != null) {
                       setState(() => _submissionError = null);
                     }

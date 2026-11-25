@@ -68,3 +68,26 @@ The new owner search standard is recorded in both AGENTS.md: Meilisearch,300ms d
 ## Restored enrollment compatibility
 
 Authenticated server restore confirms the existing campus and graduation year for the current session. Unchanged existing enrollments remain available outside launch regions, and an existing valid older year stays selectable. Local drafts never receive this exception; session changes invalidate it. New enrollments still use launch gates and the offered year range. Region filters include both full US state names and postal codes in the backend without rewriting the catalog.
+
+## Onboarding recovery and form layout
+
+- Username Back returns to campus in the school-ready branch, or to contacts in
+  the contacts branch. Contacts also exposes Back to campus. These routes retain
+  the existing age/enrollment guards.
+- Back remains available while saving a username, cancels that handle request,
+  and preserves the typed nickname in the session-scoped draft. Late responses
+  cannot complete onboarding after leaving the screen.
+- Handle saving has a 10-second deadline with a visible retryable error.
+  Optional invitation completion and push-status lookup have 3/2-second bounds;
+  pending invitation recovery remains in the invitation service. A push lookup
+  timeout opens the optional prompt rather than blocking setup.
+- Campus Back preserves the unsaved selection, year, search and region as drafts,
+  not confirmed enrollment. Missing-campus pickers build after draft restoration.
+- Selected-campus name, location and Change occupy separate rows. Search uses a
+  short label; form error messages wrap and remain readable on the blue surface.
+- The optional notification prompt scrolls on small screens/large text, and Skip
+  remains available while notification permission/token upload is pending.
+
+Permanent regression coverage is in `username_onboarding_test.dart` and
+`school_onboarding_test.dart`, plus `push_prompt_test.dart`. Widget tests do not prove native keyboard/APNs or
+the behavior of an already installed TestFlight binary.

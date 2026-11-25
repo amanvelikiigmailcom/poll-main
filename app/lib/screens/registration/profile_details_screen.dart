@@ -74,6 +74,14 @@ class SetupFormPage extends StatelessWidget {
 
 InputDecoration setupInput(String label) => InputDecoration(
   labelText: label,
+  floatingLabelBehavior: FloatingLabelBehavior.always,
+  floatingLabelStyle: const TextStyle(
+    color: onboardingBlue,
+    backgroundColor: Colors.white,
+  ),
+  errorStyle: const TextStyle(color: Colors.white),
+  errorMaxLines: 4,
+  counterStyle: const TextStyle(color: Colors.white70),
   filled: true,
   fillColor: Colors.white,
   border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
