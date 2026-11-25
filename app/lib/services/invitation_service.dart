@@ -109,13 +109,15 @@ class InvitationService extends ChangeNotifier with WidgetsBindingObserver {
       _owner = data['userId'] as String;
       policyVersion = (data['version'] as num?)?.toInt() ?? 1;
       if (policyVersion == 2) {
-        await _flushDelivery();
+        final attemptedDelivery = await _flushDelivery();
         if (await storage.getToken() != token) return;
-        data = (await api.get<Map<String, dynamic>>(
-          '/api/invites/rewards',
-          options: Options(headers: {'Authorization': 'Bearer $token'}),
-        )).data!;
-        if (await storage.getToken() != token) return;
+        if (attemptedDelivery) {
+          data = (await api.get<Map<String, dynamic>>(
+            '/api/invites/rewards',
+            options: Options(headers: {'Authorization': 'Bearer $token'}),
+          )).data!;
+          if (await storage.getToken() != token) return;
+        }
       }
       final game = LocalGameService.instance;
       final daily = data['daily'] as Map?;
@@ -383,43 +385,50 @@ class InvitationService extends ChangeNotifier with WidgetsBindingObserver {
         await prefs.setStringList(_deliveryKey, pending);
       });
 
-  Future<void> _flushDelivery() => _serializeCompose(() async {
-    final owner = _owner;
-    final token = await storage.getToken();
-    if (owner == null || token == null) return;
-    final prefs = await SharedPreferences.getInstance();
-    final pending = prefs.getStringList(_deliveryKey) ?? [];
-    final remaining = <String>[];
-    for (final item in pending) {
-      final data = Map<String, dynamic>.from(jsonDecode(item) as Map);
-      if (data['owner'] != owner ||
-          await storage.getToken() != token ||
-          _owner != owner) {
-        remaining.add(item);
-        continue;
-      }
-      try {
-        await api.post(
-          '/api/invites/${data['code']}/delivery-result',
-          data: {
-            'launchId': data['launchId'],
-            'result': data['result'],
-            if (data['backgroundMs'] != null)
-              'backgroundMs': data['backgroundMs'],
-          },
-          options: Options(headers: {'Authorization': 'Bearer $token'}),
-        );
-      } on ApiException catch (e) {
-        // Terminal rejection cannot award anything; transport errors stay queued.
-        if (![400, 403, 404, 409, 410].contains(e.statusCode)) {
+  Future<bool> _flushDelivery() async {
+    var attempted = false;
+    await _serializeCompose(() async {
+      final owner = _owner;
+      final token = await storage.getToken();
+      if (owner == null || token == null) return;
+      final prefs = await SharedPreferences.getInstance();
+      final pending = prefs.getStringList(_deliveryKey) ?? [];
+      final remaining = <String>[];
+      for (final item in pending) {
+        final data = Map<String, dynamic>.from(jsonDecode(item) as Map);
+        if (data['owner'] != owner ||
+            await storage.getToken() != token ||
+            _owner != owner) {
+          remaining.add(item);
+          continue;
+        }
+        try {
+          // A lost acknowledgement may still have committed. Re-read rewards
+          // after any attempted delivery, not only a successful HTTP response.
+          attempted = true;
+          await api.post(
+            '/api/invites/${data['code']}/delivery-result',
+            data: {
+              'launchId': data['launchId'],
+              'result': data['result'],
+              if (data['backgroundMs'] != null)
+                'backgroundMs': data['backgroundMs'],
+            },
+            options: Options(headers: {'Authorization': 'Bearer $token'}),
+          );
+        } on ApiException catch (e) {
+          // Terminal rejection cannot award anything; transport errors stay queued.
+          if (![400, 403, 404, 409, 410].contains(e.statusCode)) {
+            remaining.add(item);
+          }
+        } catch (_) {
           remaining.add(item);
         }
-      } catch (_) {
-        remaining.add(item);
       }
-    }
-    await prefs.setStringList(_deliveryKey, remaining);
-  });
+      await prefs.setStringList(_deliveryKey, remaining);
+    });
+    return attempted;
+  }
 
   /// The server selects the country channel and owns all grants and counters.
   Future<String> sendV2(Map<String, dynamic> invite, String phone) async {

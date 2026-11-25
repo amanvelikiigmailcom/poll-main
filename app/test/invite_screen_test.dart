@@ -50,7 +50,7 @@ void main() {
         child: const MaterialApp(home: InviteFriendScreen()),
       ),
     );
-    // A 5-second poll keeps the screen fresh; settle with bounded pumps.
+    // Adaptive polling does not block these bounded initial rendering pumps.
     for (var i = 0; i < 5; i++) {
       await tester.pump(const Duration(milliseconds: 200));
     }
