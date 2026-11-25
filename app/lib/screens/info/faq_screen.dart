@@ -84,7 +84,7 @@ class _FaqScreenState extends State<FaqScreen> {
         ),
         _FaqItem(
           'What do Shuffle and Skip do?',
-          'Shuffle replaces cards when other eligible people are available; otherwise it reorders them. Skip moves to the next question. Each has 2 uses per round. '
+          'Shuffle replaces cards with other eligible people. If nobody else is available, no use is spent. Skip moves to the next question. Each has 2 uses per round. '
               'Skipped questions carry no penalty.',
         ),
         _FaqItem(
@@ -166,12 +166,12 @@ class _FaqScreenState extends State<FaqScreen> {
       id: 'friends',
       icon: Icons.people_outline_rounded,
       title: 'Friends & search',
-      intro: 'Usernames only — no phonebook search.',
+      intro: 'Find people from your selected campus — no phonebook search.',
       items: [
         _FaqItem(
           'How do I find people?',
-          'Search by @username with 2 or more letters — results update as you '
-              'type. There is no phonebook search.',
+          'Search by first name, last name or username with 2 or more characters. '
+              'Use @ for usernames only. Results stay within your selected campus. There is no phonebook search.',
         ),
         _FaqItem(
           'What are the recommended cards?',

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../providers/service_providers.dart';
 import '../../router/app_router.dart';
 import '../../theme/app_colors.dart';
@@ -48,7 +49,7 @@ class _ProfileSocialSectionState extends ConsumerState<ProfileSocialSection> {
     super.dispose();
   }
 
-  Future<void> _share() async {
+  Future<void> _share({bool copyOnly = false, Rect? origin}) async {
     if (_copying) return;
     final storage = ref.read(storageServiceProvider);
     final token = await storage.getToken();
@@ -62,14 +63,21 @@ class _ProfileSocialSectionState extends ConsumerState<ProfileSocialSection> {
         throw StateError('No username');
       }
       if (token != await storage.getToken() || !mounted) return;
-      await Clipboard.setData(
-        ClipboardData(text: 'https://api.flyprox.com/p/@$handle'),
-      );
+      final link = 'https://api.flyprox.com/p/@$handle';
+      if (copyOnly) {
+        await Clipboard.setData(ClipboardData(text: link));
+      } else {
+        await SharePlus.instance.share(
+          ShareParams(uri: Uri.parse(link), sharePositionOrigin: origin),
+        );
+      }
       if (token != await storage.getToken() || !mounted) return;
-      setState(() => _copied = true);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Profile link copied')));
+      setState(() => _copied = copyOnly);
+      if (copyOnly) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Profile link copied')));
+      }
       _timer?.cancel();
       _timer = Timer(const Duration(seconds: 2), () {
         if (mounted) setState(() => _copied = false);
@@ -115,6 +123,35 @@ class _ProfileSocialSectionState extends ConsumerState<ProfileSocialSection> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
+            children: [
+              Expanded(
+                child: Builder(
+                  builder: (buttonContext) => FilledButton.icon(
+                    onPressed: username.isEmpty || _copying
+                        ? null
+                        : () {
+                            final box =
+                                buttonContext.findRenderObject()! as RenderBox;
+                            _share(
+                              origin: box.localToGlobal(Offset.zero) & box.size,
+                            );
+                          },
+                    icon: const Icon(Icons.ios_share_outlined, size: 18),
+                    label: const Text('Share profile'),
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Copy profile link',
+                onPressed: username.isEmpty || _copying
+                    ? null
+                    : () => _share(copyOnly: true),
+                icon: Icon(_copied ? Icons.check : Icons.link),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
@@ -150,12 +187,6 @@ class _ProfileSocialSectionState extends ConsumerState<ProfileSocialSection> {
               },
               child: const Text('Couldn’t load profile stats. Retry'),
             ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: username.isEmpty || _copying ? null : _share,
-            icon: const Icon(Icons.ios_share_outlined, size: 18),
-            label: Text(_copied ? 'Copied' : 'Share profile'),
-          ),
           const SizedBox(height: 20),
           Row(
             children: [

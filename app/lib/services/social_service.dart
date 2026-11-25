@@ -66,7 +66,7 @@ class SocialService {
     String username, {
     String? cursor,
   }) => request(
-    '/search?username=${Uri.encodeComponent(username)}${cursor == null ? '' : '&cursor=${Uri.encodeComponent(cursor)}'}',
+    '/search?q=${Uri.encodeComponent(username)}${cursor == null ? '' : '&cursor=${Uri.encodeComponent(cursor)}'}',
   );
   Future<Map<String, dynamic>> list(String kind, {String? cursor}) => request(
     '/list?kind=$kind${cursor == null ? '' : '&cursor=${Uri.encodeComponent(cursor)}'}',
@@ -83,6 +83,11 @@ class SocialService {
       );
   Future<Map<String, dynamic>> act(String id, String action) =>
       request('/users/${Uri.encodeComponent(id)}/$action', method: 'POST');
+  Future<Map<String, dynamic>> report(String id, String reason) => request(
+    '/users/${Uri.encodeComponent(id)}/report',
+    method: 'POST',
+    data: {'reason': reason},
+  );
   Future<String> saveHandle(
     String username, {
     CancelToken? cancelToken,

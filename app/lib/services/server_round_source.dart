@@ -82,6 +82,7 @@ class ServerRoundSource {
     required String sessionKey,
     String? ownerId,
     required Map<String, String?> answers,
+    Map<String, List<String>>? choices,
   }) async {
     lastStarsAwarded = null;
     final token = await _token();
@@ -92,6 +93,7 @@ class ServerRoundSource {
       sessionId: sessionId,
       answers: answers,
       sessionToken: readToken == null ? null : token,
+      choices: choices,
     );
     if (await _token() != token) {
       throw const ApiException('Sign-in changed during submission.');

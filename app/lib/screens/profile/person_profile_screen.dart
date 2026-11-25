@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../widgets/common/account_report_dialog.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/person_profile.dart';
@@ -231,13 +232,23 @@ class _PersonProfileScreenState extends ConsumerState<PersonProfileScreen>
     final person = _profile!;
     setState(() => _busy = true);
     try {
-      if (['remove', 'block', 'report', 'cancel'].contains(action) &&
+      String? reason;
+      if (action == 'report') {
+        reason = await showAccountReportDialog(context);
+        if (reason == null) return;
+      }
+      if (['remove', 'block', 'cancel'].contains(action) &&
           !await _confirm(action)) {
         return;
       }
       if (!mounted || generation != _generation) return;
       setState(() => _saving = true);
-      await ref.read(socialServiceProvider).act(person.id, action);
+      final social = ref.read(socialServiceProvider);
+      if (reason != null) {
+        await social.report(person.id, reason);
+      } else {
+        await social.act(person.id, action);
+      }
       if (!mounted || generation != _generation) return;
       ref.invalidate(socialSummaryProvider);
       // Refresh every mounted list, not just whichever branch initiated this action.
@@ -474,7 +485,7 @@ class _PersonProfileScreenState extends ConsumerState<PersonProfileScreen>
         if (person.graduationYear != null) ...[
           const SizedBox(height: 4),
           Text(
-            'Class of ${person.graduationYear}',
+            'Graduating in ${person.graduationYear}',
             textAlign: TextAlign.center,
             style: const TextStyle(color: AppColors.textSecondary),
           ),

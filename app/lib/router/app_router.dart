@@ -101,6 +101,7 @@ abstract final class AppRoutes {
   static const notificationsSettings = '/notifications-settings';
   static const languageSettings = '/language-settings';
   static const blockedUsers = '/blocked-users';
+  static const hiddenSuggestions = '/hidden-suggestions';
   static const settingsQuiz = '/settings-quiz';
   static const likesFilled = '/likes';
   static const likesEmpty = '/likes-empty';
@@ -272,7 +273,9 @@ class _SplashRedirectState extends ConsumerState<_SplashRedirect> {
     tap ??= await _drainTap();
     if (!mounted) return;
     context.go(
-      tap == null ? AppRoutes.home : (PushRouting.routeFor(tap.type) ?? AppRoutes.home),
+      tap == null
+          ? AppRoutes.home
+          : (PushRouting.routeFor(tap.type) ?? AppRoutes.home),
     );
   }
 
@@ -565,6 +568,10 @@ GoRouter createAppRouter({bool showInvitationIntro = true}) => GoRouter(
             GoRoute(
               path: AppRoutes.blockedUsers,
               builder: (_, __) => const SocialScreen(page: SocialPage.blocked),
+            ),
+            GoRoute(
+              path: AppRoutes.hiddenSuggestions,
+              builder: (_, __) => const SocialScreen(page: SocialPage.hidden),
             ),
             GoRoute(
               path: AppRoutes.settingsQuiz,

@@ -25,7 +25,7 @@ class PersonFake extends SocialService {
   final cursors = <String?>[];
   Map<String, dynamic> get person => {
     'id': 'alex', 'username': 'alex_123', 'relationship': relationship,
-    // Deliberately present even for strangers: UI must never render these names.
+    // Explicit same-campus public projection, independent of relationship.
     'firstName': 'Alex', 'lastName': 'Smith',
     'campus': {
       'name': 'A very long campus name that must wrap safely on phones',
@@ -50,6 +50,12 @@ class PersonFake extends SocialService {
     if (path.startsWith('/handles/')) return profile('alex');
     if (path == '/summary') return {'friendsCount': 1, 'incomingCount': 0};
     return {};
+  }
+
+  @override
+  Future<Map<String, dynamic>> report(String id, String reason) {
+    expect(reason, 'safety_concern');
+    return act(id, 'report');
   }
 
   @override
@@ -170,8 +176,8 @@ void main() {
       final router = await mount(tester, storage, social);
       await tester.pumpAndSettle();
       expect(find.text('@alex_123'), findsOneWidget);
-      expect(find.text('Alex Smith'), findsNothing);
-      expect(find.text('Class of 2027'), findsOneWidget);
+      expect(find.text('Alex Smith'), findsOneWidget);
+      expect(find.text('Graduating in 2027'), findsOneWidget);
       expect(find.text('54'), findsOneWidget);
       expect(find.text('12'), findsOneWidget);
       await tester.scrollUntilVisible(find.text('Selected 5 times'), 180);
@@ -236,7 +242,7 @@ void main() {
       await tester.tap(find.text('Remove'));
       await tester.pumpAndSettle();
       expect(social.actions, ['accept', 'remove']);
-      expect(find.text('Alex Smith'), findsNothing);
+      expect(find.text('Alex Smith'), findsOneWidget);
       expect(find.text('Add friend'), findsOneWidget);
     },
   );
@@ -255,7 +261,9 @@ void main() {
         await tester.pumpAndSettle();
         expect(social.actions, isEmpty);
         await tester.tap(
-          find.text(action == 'Block account' ? 'Block' : 'Send report'),
+          find.text(
+            action == 'Block account' ? 'Block' : 'Other safety concern',
+          ),
         );
         await tester.pumpAndSettle();
         expect(social.actions, [
@@ -351,7 +359,7 @@ void main() {
             find.text(switch (action) {
               'remove' => 'Remove',
               'block' => 'Block',
-              _ => 'Send report',
+              _ => 'Other safety concern',
             }),
           );
           await tester.pumpAndSettle();
@@ -529,30 +537,29 @@ void main() {
     });
   }
 
-  testWidgets(
-    'blocking shows a hint with a shortcut to the blocked list',
-    (tester) async {
-      final storage = SessionStorage();
-      final social = PersonFake(ApiService(storage), storage);
-      await mount(tester, storage, social);
-      await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Account actions'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Block account'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Block'));
-      await tester.pumpAndSettle();
-      expect(social.actions, ['block']);
-      expect(find.text('Profile unavailable.'), findsOneWidget);
-      expect(
-        find.text(
-          'Account blocked. Manage the list in Settings → Blocked users.',
-        ),
-        findsOneWidget,
-      );
-      await tester.tap(find.text('View list'));
-      await tester.pumpAndSettle();
-      expect(find.text('Blocked list destination'), findsOneWidget);
-    },
-  );
+  testWidgets('blocking shows a hint with a shortcut to the blocked list', (
+    tester,
+  ) async {
+    final storage = SessionStorage();
+    final social = PersonFake(ApiService(storage), storage);
+    await mount(tester, storage, social);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Account actions'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Block account'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Block'));
+    await tester.pumpAndSettle();
+    expect(social.actions, ['block']);
+    expect(find.text('Profile unavailable.'), findsOneWidget);
+    expect(
+      find.text(
+        'Account blocked. Manage the list in Settings → Blocked users.',
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('View list'));
+    await tester.pumpAndSettle();
+    expect(find.text('Blocked list destination'), findsOneWidget);
+  });
 }

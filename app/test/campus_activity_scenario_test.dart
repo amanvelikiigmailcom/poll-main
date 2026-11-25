@@ -191,7 +191,7 @@ class FakeCampusServer {
       return json(200, {'campus': campus, 'friendsOfFriends': []});
     }
     if (req.method == 'GET' && path == '/api/social/search') {
-      final q = (req.uri.queryParameters['username'] ?? '').toLowerCase();
+      final q = (req.uri.queryParameters['q'] ?? req.uri.queryParameters['username'] ?? '').toLowerCase();
       if (q.length < 2) return json(200, {'users': []});
       final found = users.keys
           .where(

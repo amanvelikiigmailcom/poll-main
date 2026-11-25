@@ -54,6 +54,35 @@ class _QuizApi extends ApiService {
 
 void main() {
   test(
+    'batch sends the exact shown IDs, including replacement cards, under the pinned session',
+    () async {
+      final api = _QuizApi(SessionStorage());
+      await QuizService(api).submitRound(
+        sessionId: 'round',
+        sessionToken: 'pinned',
+        answers: {'q1': 'replacement', 'q2': null},
+        choices: {
+          'q1': ['replacement', 'b', 'c', 'd'],
+          'q2': ['e', 'f', 'g', 'h'],
+        },
+      );
+      expect(api.submitted['choicePolicyVersion'], 1);
+      expect(api.submitted['answers'], [
+        {
+          'quizId': 'q1',
+          'winnerId': 'replacement',
+          'choiceIds': ['replacement', 'b', 'c', 'd'],
+        },
+        {
+          'quizId': 'q2',
+          'winnerId': null,
+          'choiceIds': ['e', 'f', 'g', 'h'],
+        },
+      ]);
+      expect(api.session?.headers?['Authorization'], 'Bearer pinned');
+    },
+  );
+  test(
     'batch submission acknowledges the voter notice and uses the confirmed reward',
     () async {
       final api = _QuizApi(SessionStorage());
@@ -85,6 +114,7 @@ void main() {
         'schoolVoting': '1',
         'quizPreferences': '1',
         'revealPolicyVersion': '1',
+        'choicePolicyVersion': '1',
       });
       expect(api.session?.headers?['Authorization'], 'Bearer pinned');
       expect(session.schoolVoting, isTrue);

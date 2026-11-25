@@ -135,6 +135,7 @@ class _VoteScreenState extends State<VoteScreen>
   bool _sealed = false;
   bool _submitting = false;
   String? _submitError;
+  bool _canRefreshParticipants = false;
   String? _loadError;
   bool _canDiscardDraft = false;
   final Map<String, RoundAnswer> _answers = {};
@@ -527,6 +528,8 @@ class _VoteScreenState extends State<VoteScreen>
     _roundNumber = round;
     _editingFromReview = false;
     _sealed = false;
+    _canRefreshParticipants = false;
+    _submitError = null;
     _skipUses = 0;
     _shuffleUses = 0;
     _visibleOptions.clear();
@@ -709,6 +712,7 @@ class _VoteScreenState extends State<VoteScreen>
     setState(() {
       _submitting = true;
       _submitError = null;
+      _canRefreshParticipants = false;
     });
     final wasSealed = _sealed;
     var sent = false;
@@ -726,6 +730,18 @@ class _VoteScreenState extends State<VoteScreen>
           sessionId: sessionId,
           sessionKey: _sessionKey!,
           ownerId: _ownerId,
+          choices: !_schoolVoting
+              ? null
+              : {
+                  for (final q in _questions)
+                    q.id: [
+                      for (final id in _visibleOptions[q.id] ?? <String>[])
+                        ...q.options
+                            .where((o) => o.id == id)
+                            .map((o) => o.serverUserId)
+                            .whereType<String>(),
+                    ],
+                },
           answers: {
             for (final q in _questions)
               q.id: q.options
@@ -775,6 +791,7 @@ class _VoteScreenState extends State<VoteScreen>
         _sealed = false;
         try {
           await _saveDraft(_totalQuestions);
+          _canRefreshParticipants = _schoolVoting;
         } catch (_) {
           _sealed = true;
         }
@@ -802,10 +819,20 @@ class _VoteScreenState extends State<VoteScreen>
     GameSettings.instance.feedback(selection: true);
     final question = _currentQuestion;
     final previous = List<QuizOption>.of(_shuffledOptions);
+    final previousAnswer = _answers[question.id];
+    final previousSelected = _selectedOptionId;
     final currentIds = previous.map((o) => o.id).toSet();
     final alternatives =
         question.options.where((o) => !currentIds.contains(o.id)).toList()
           ..shuffle();
+    if (alternatives.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No other eligible people for this question.'),
+        ),
+      );
+      return;
+    }
     final remaining = List<QuizOption>.of(previous)..shuffle();
     final next = [...alternatives, ...remaining].take(4).toList()..shuffle();
     if (next.map((o) => o.id).join(',') ==
@@ -816,18 +843,49 @@ class _VoteScreenState extends State<VoteScreen>
       _isAdvancing = true;
       _shuffleUses++;
       _shuffledOptions = next;
+      // Changing the shown people invalidates an earlier answer to this question.
+      _answers.remove(question.id);
+      _selectedOptionId = null;
       _visibleOptions[question.id] = next.map((o) => o.id).toList();
     });
     try {
       await _saveDraft(_currentIndex);
     } catch (_) {
       _shuffleUses--;
+      if (previousAnswer != null) _answers[question.id] = previousAnswer;
+      _selectedOptionId = previousSelected;
       _shuffledOptions = previous;
       _visibleOptions[question.id] = previous.map((o) => o.id).toList();
       if (mounted) _showSaveError();
     } finally {
       if (mounted) setState(() => _isAdvancing = false);
     }
+  }
+
+  Future<void> _refreshRejectedParticipants() async {
+    if (!_canRefreshParticipants || _sealed || _submitting) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        title: const Text('Refresh participants?'),
+        content: const Text(
+          'The server confirmed that no votes were saved. This clears your answers for this round and reloads currently eligible people.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialog, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialog, true),
+            child: const Text('Refresh round'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    _canRefreshParticipants = false;
+    await _startLoading(discard: true);
   }
 
   Future<void> _reportQuestion() async {
@@ -1013,6 +1071,11 @@ class _VoteScreenState extends State<VoteScreen>
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                 child: Semantics(liveRegion: true, child: Text(error)),
               ),
+            if (_canRefreshParticipants && !_sealed)
+              TextButton(
+                onPressed: _submitting ? null : _refreshRejectedParticipants,
+                child: const Text('Refresh participants'),
+              ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: FilledButton(
@@ -1177,7 +1240,7 @@ class _VoteScreenState extends State<VoteScreen>
                   ),
             child: Text(_editingFromReview ? 'Back to review' : 'Next'),
           ),
-        TextButton.icon(
+        OutlinedButton.icon(
           onPressed:
               _isAdvancing ||
                   _shuffleUses >= _actionLimit ||
@@ -1186,7 +1249,12 @@ class _VoteScreenState extends State<VoteScreen>
               : _shuffleOptions,
           icon: const Icon(Icons.shuffle_rounded, size: 18),
           label: Text('Shuffle (${_actionLimit - _shuffleUses})'),
-          style: TextButton.styleFrom(
+          style: OutlinedButton.styleFrom(
+            side: const BorderSide(color: AppColors.border),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
             foregroundColor: AppColors.textSecondary,
             textStyle: const TextStyle(
               fontSize: 14,
@@ -1233,7 +1301,7 @@ class _VoteScreenState extends State<VoteScreen>
 String _tierSubtitle(QuizOption option) {
   final parts = [
     if (option.isFriend) 'Friend',
-    if (option.graduationYear != null) 'Class of ${option.graduationYear}',
+    if (option.graduationYear != null) 'Graduating in ${option.graduationYear}',
   ];
   if (parts.isNotEmpty) return parts.join(' · ');
   return option.grade;

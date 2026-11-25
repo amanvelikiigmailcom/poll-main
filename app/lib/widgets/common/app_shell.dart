@@ -28,6 +28,7 @@ class AppShell extends ConsumerWidget {
     if (path.startsWith('/settings') ||
         path.startsWith('/friend') ||
         path.startsWith('/blocked') ||
+        path.startsWith('/hidden-suggestions') ||
         path.startsWith('/faq') ||
         path.startsWith('/for-parents') ||
         path.startsWith('/privacy') ||

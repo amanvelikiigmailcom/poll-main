@@ -91,9 +91,9 @@ void main() {
   }
 
   for (final entry in [
-    ('female', 'From a girl · Class of 2029'),
-    ('male', 'From a boy · Class of 2029'),
-    ('nonbinary', 'From a non-binary student · Class of 2029'),
+    ('female', 'From a girl · Graduating in 2029'),
+    ('male', 'From a boy · Graduating in 2029'),
+    ('nonbinary', 'From a non-binary student · Graduating in 2029'),
   ]) {
     testWidgets(
       'Activity renders server ${entry.$1} voter hint, not chosen person gender',
@@ -127,7 +127,7 @@ void main() {
       expect(find.text('Activity'), findsOneWidget);
       expect(find.text('Student 0'), findsOneWidget);
       expect(find.text('Was chosen in a poll'), findsWidgets);
-      expect(find.text('From a student · Class of 2028'), findsWidgets);
+      expect(find.text('From a student · Graduating in 2028'), findsWidgets);
       await tester.pump(const Duration(seconds: 2));
       expect(service.calls.length, 1);
       for (var i = 1; i < 10; i++) {

@@ -5,6 +5,7 @@ import '../../providers/service_providers.dart';
 import '../../services/storage_service.dart';
 import '../../services/story_share_service.dart';
 import '../../theme/app_colors.dart';
+import '../../widgets/common/vote_result_content.dart';
 
 /// Only an owned, freshly authorized received vote can be shared.
 class LikeShareScreen extends ConsumerStatefulWidget {
@@ -230,9 +231,7 @@ class _LikeShareScreenState extends ConsumerState<LikeShareScreen> {
                     ),
                   ),
                 const Text(
-                  'Instagram and Snapchat open their editor when configured. '
-                  'Otherwise, including TikTok, choose an available app in the share menu. '
-                  'You decide where to post and confirm publication.',
+                  'Choose where to share. You confirm the post in that app.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: AppColors.textSecondary,
@@ -245,8 +244,7 @@ class _LikeShareScreenState extends ConsumerState<LikeShareScreen> {
   );
 }
 
-/// The capture boundary contains ONLY this explicit public projection.
-/// Participant names are candidates, NOT identities of the people who voted.
+/// The same result as Vote details, without private reveal controls or chrome.
 class LikeStoryCard extends StatelessWidget {
   const LikeStoryCard({super.key, required this.vote});
   final ReceivedVote vote;
@@ -257,101 +255,30 @@ class LikeStoryCard extends StatelessWidget {
     child: Container(
       width: 360,
       height: 640,
-      padding: const EdgeInsets.all(26),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1A2E6C), AppColors.primaryBlue],
-        ),
-      ),
-      child: DefaultTextStyle(
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 15,
-          fontFamily: 'sans-serif',
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'FLYPROX',
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 3,
-              ),
-            ),
-            const SizedBox(height: 28),
-            const Icon(Icons.favorite, color: Colors.white, size: 46),
-            const SizedBox(height: 12),
-            const Text(
-              'Someone picked me',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: Center(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: SizedBox(
-                    width: 308,
-                    child: Text(
-                      vote.question,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 28,
-                        height: 1.2,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              vote.voterLabel,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            if (vote.participants.isNotEmpty) ...[
+      padding: const EdgeInsets.all(20),
+      color: AppColors.background,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.topCenter,
+        child: SizedBox(
+          width: 320,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              VoteResultContent(vote: vote),
               const SizedBox(height: 24),
               const Text(
-                'In this poll',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
+                'FLYPROX',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.primaryBlue,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 3,
+                ),
               ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 6,
-                children: [
-                  for (final participant in vote.participants.take(12))
-                    SizedBox(
-                      width: 150,
-                      child: Text(
-                        '${participant.name}${participant.graduationYear == null ? '' : ' · ${participant.graduationYear}'}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 13),
-                      ),
-                    ),
-                ],
-              ),
-              if (vote.participants.length > 12)
-                Text('+${vote.participants.length - 12} more participants'),
             ],
-            const SizedBox(height: 24),
-            const Text(
-              'A little kindness goes a long way.',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white70, fontSize: 12),
-            ),
-          ],
+          ),
         ),
       ),
     ),

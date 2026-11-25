@@ -17,10 +17,25 @@ class FakeSocial extends SocialService {
   final searches = <String>[];
   Map<String, dynamic> suggestionData = {};
   int suggestionCalls = 0;
+  final hiddenIds = <String>{};
+  final actions = <String>[];
+  @override
+  Future<Map<String, dynamic>> act(String id, String action) async {
+    actions.add('$id:$action');
+    if (action == 'hide') hiddenIds.add(id);
+    if (action == 'show') hiddenIds.remove(id);
+    return {'hidden': action == 'hide'};
+  }
+
   @override
   Future<Map<String, dynamic>> suggestions() async {
     suggestionCalls++;
-    return suggestionData;
+    return {
+      for (final entry in suggestionData.entries)
+        entry.key: (entry.value as List)
+            .where((card) => !hiddenIds.contains(card['id']))
+            .toList(),
+    };
   }
 
   @override
@@ -40,7 +55,17 @@ class FakeSocial extends SocialService {
   @override
   Future<Map<String, dynamic>> list(String kind, {String? cursor}) async => {
     'users': [
-      {'id': 'one', 'username': 'alex_123', 'relationship': 'friends'},
+      if (kind == 'hidden')
+        for (final id in hiddenIds)
+          {
+            'id': id,
+            'username': 'hidden_$id',
+            'firstName': 'Hidden',
+            'lastName': 'Person',
+            'relationship': 'none',
+          }
+      else
+        {'id': 'one', 'username': 'alex_123', 'relationship': 'friends'},
     ],
   };
 }
@@ -79,7 +104,6 @@ class UnblockSocial extends FakeSocial {
 
 class BlockHintSocial extends FakeSocial {
   BlockHintSocial(super.api, super.storage);
-  final actions = <String>[];
   @override
   Future<Map<String, dynamic>> act(String id, String action) async {
     actions.add(action);
@@ -138,11 +162,11 @@ void main() {
         final social = FakeSocial(ApiService(storage), storage);
         await mount(tester, storage, social, scale: scale);
         await tester.scrollUntilVisible(
-          find.text('Friends of friends'),
+          find.textContaining('Friends of friends'),
           180,
           scrollable: find.byType(Scrollable).first,
         );
-        expect(find.text('Friends of friends'), findsOneWidget);
+        expect(find.textContaining('Friends of friends'), findsOneWidget);
         await tester.scrollUntilVisible(
           find.text('From your campus'),
           180,
@@ -202,40 +226,45 @@ void main() {
       await tester.ensureVisible(find.text('@campus_5'));
       expect(social.suggestionCalls, before);
       final row = find.byKey(const ValueKey('suggestion-campus5'));
-      final hide = find.descendant(of: row, matching: find.text('Hide'));
+      final hide = find.descendant(
+        of: row,
+        matching: find.byType(PopupMenuButton<String>),
+      );
       await tester.ensureVisible(hide);
       await tester.pumpAndSettle();
       await tester.tap(hide);
       await tester.pumpAndSettle();
+      await tester.tap(find.text('Hide suggestion'));
+      await tester.pumpAndSettle();
       expect(find.text('@campus_5'), findsNothing);
+      expect(social.actions, contains('campus5:hide'));
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+      expect(social.actions, contains('campus5:show'));
       await storage.clearToken();
       await tester.pumpAndSettle();
       expect(find.text('From your campus'), findsNothing);
     },
   );
-  testWidgets(
-    'recommendation sections show icons and a designed empty state',
-    (tester) async {
-      final storage = SessionStorage();
-      final social = FakeSocial(ApiService(storage), storage)
-        ..suggestionData = {
-          'friendsOfFriends': [
-            {'id': 'via', 'username': 'via_friend', 'relationship': 'none'},
-          ],
-          'campus': [],
-        };
-      await mount(tester, storage, social);
-      expect(find.byIcon(Icons.people_alt_outlined), findsOneWidget);
-      expect(find.byIcon(Icons.school_outlined), findsOneWidget);
-      expect(find.text('1'), findsOneWidget);
-      expect(
-        find.text('No more people from your campus yet.'),
-        findsOneWidget,
-      );
-      expect(find.byIcon(Icons.person_search_outlined), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    },
-  );
+  testWidgets('recommendation sections show icons and a designed empty state', (
+    tester,
+  ) async {
+    final storage = SessionStorage();
+    final social = FakeSocial(ApiService(storage), storage)
+      ..suggestionData = {
+        'friendsOfFriends': [
+          {'id': 'via', 'username': 'via_friend', 'relationship': 'none'},
+        ],
+        'campus': [],
+      };
+    await mount(tester, storage, social);
+    expect(find.byIcon(Icons.people_alt_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.school_outlined), findsOneWidget);
+    expect(find.text('1'), findsOneWidget);
+    expect(find.text('No more people from your campus yet.'), findsOneWidget);
+    expect(find.byIcon(Icons.person_search_outlined), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets(
     'search starts at two characters after 300ms; malformed handles stay local',
     (tester) async {
@@ -256,20 +285,14 @@ void main() {
       await tester.enterText(field, '@bad name');
       await tester.pump(const Duration(milliseconds: 350));
       await tester.pumpAndSettle();
-      expect(
-        find.textContaining('Enter 2–32 username characters'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('Enter 2–80 characters'), findsOneWidget);
       expect(social.searches, ['ab']);
       await tester.enterText(field, '@good_name');
       await tester.pump(const Duration(milliseconds: 350));
       social.results['@good_name']!.complete({'users': []});
       await tester.pumpAndSettle();
       expect(social.searches, ['ab', '@good_name']);
-      expect(
-        find.textContaining('Enter 2–32 username characters'),
-        findsNothing,
-      );
+      expect(find.textContaining('Enter 2–80 characters'), findsNothing);
     },
   );
   testWidgets(

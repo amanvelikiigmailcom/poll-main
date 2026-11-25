@@ -54,7 +54,7 @@ void main() {
     (tester) async {
       final premium = FakePremium()..active = true;
       await mount(tester, premium);
-      expect(find.text('From a girl · Class of 2028'), findsOneWidget);
+      expect(find.text('From a girl · Graduating in 2028'), findsOneWidget);
       await tester.tap(find.text('Find out who voted for you'));
       await tester.pumpAndSettle();
       expect(find.text('2 left this week'), findsOneWidget);
@@ -62,14 +62,14 @@ void main() {
       expect(find.textContaining('Max'), findsNothing);
       await tester.tap(find.text('Reveal first initial'));
       await tester.pumpAndSettle();
-      expect(find.text('From M. (girl) · Class of 2028'), findsOneWidget);
+      expect(find.text('From M. (girl) · Graduating in 2028'), findsOneWidget);
       await tester.tap(find.text('Find out who voted for you'));
       await tester.pumpAndSettle();
       expect(find.text('4 left this week'), findsOneWidget);
       await tester.tap(find.text('Reveal full name'));
       await tester.pumpAndSettle();
       expect(
-        find.text('From Maria Rivera (girl) · Class of 2028'),
+        find.text('From Maria Rivera (girl) · Graduating in 2028'),
         findsOneWidget,
       );
     },

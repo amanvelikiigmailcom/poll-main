@@ -205,7 +205,7 @@ class _VoterRevealCardState extends ConsumerState<VoterRevealCard> {
         : null;
     final label =
         'From ${name == null ? 'a $gender' : '$name ($gender)'}'
-        '${year is int ? ' · Class of $year' : ''}';
+        '${year is int ? ' · Graduating in $year' : ''}';
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(

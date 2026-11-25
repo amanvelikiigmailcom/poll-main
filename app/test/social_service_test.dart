@@ -118,7 +118,7 @@ void main() {
     final release = Completer<void>();
     api.dio.httpClientAdapter = SocialHttpAdapter((request) async {
       expect(request.headers['Authorization'], 'Bearer first-account');
-      expect(request.uri.queryParameters['username'], '@alex_123');
+      expect(request.uri.queryParameters['q'], '@alex_123');
       started.complete();
       await release.future;
       return jsonResponse(200, {

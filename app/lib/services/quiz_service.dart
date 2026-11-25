@@ -184,6 +184,7 @@ class QuizService {
         'schoolVoting': '1',
         'quizPreferences': '1',
         'revealPolicyVersion': '1',
+        'choicePolicyVersion': '1',
       },
       options: _sessionOptions(sessionToken),
     );
@@ -206,6 +207,7 @@ class QuizService {
     required String sessionId,
     required Map<String, String?> answers,
     String? sessionToken,
+    Map<String, List<String>>? choices,
   }) async {
     final response = await _api.post<Map<String, dynamic>>(
       '/api/quizzes/submit',
@@ -213,9 +215,15 @@ class QuizService {
       data: {
         'sessionId': sessionId,
         'revealPolicyVersion': 1,
+        if (choices != null) 'choicePolicyVersion': 1,
         'answers': [
           for (final answer in answers.entries)
-            {'quizId': answer.key, 'winnerId': answer.value},
+            {
+              'quizId': answer.key,
+              'winnerId': answer.value,
+              if (choices != null)
+                'choiceIds': choices[answer.key] ?? <String>[],
+            },
         ],
       },
     );
