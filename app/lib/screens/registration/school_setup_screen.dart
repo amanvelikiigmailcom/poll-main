@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../config/school_regions.dart';
+import '../../config/school_launch.dart';
 import '../../providers/service_providers.dart';
 import '../../router/app_router.dart';
 import '../../services/content_service.dart';
@@ -135,10 +136,33 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
     }
   }
 
+  void _select(Map<String, dynamic> school) {
+    if (!SchoolLaunch.isOpen(school, fallbackCountry: country)) {
+      _unavailable(school);
+      return;
+    }
+    setState(() => selected = school);
+  }
+
+  Future<void> _unavailable(Map<String, dynamic> school) {
+    return SchoolLaunch.showUnavailableDialog(
+      context,
+      country: school['country'] as String? ?? country,
+      schoolName: school['name'] as String? ?? 'This campus',
+      email: ContentService.instance.text('support_email'),
+    );
+  }
+
   Future<void> _next({bool skip = false}) async {
     if (saving) return;
     if (!skip &&
         (selected == null || !(form.currentState?.validate() ?? false))) {
+      return;
+    }
+    // Restored selections (reinstall, re-login) bypass _select: re-check here
+    // so a closed region always sees the same dialog instead of proceeding.
+    if (!skip && !SchoolLaunch.isOpen(selected!, fallbackCountry: country)) {
+      await _unavailable(selected!);
       return;
     }
     FocusManager.instance.primaryFocus?.unfocus();
@@ -326,7 +350,7 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
               child: OutlinedButton(
                 onPressed: saving
                     ? null
-                    : () => setState(() => selected = school),
+                    : () => _select(school),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: selected?['id'] == school['id']
                       ? onboardingBlue
