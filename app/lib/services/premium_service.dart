@@ -76,6 +76,20 @@ class PremiumService {
         (remaining['initial'] as int) > 5) {
       throw const FormatException('Incomplete Premium status');
     }
+    if (data['status'] == 'PROTECTED_BY_PREMIUM') {
+      // Never retain identity from an earlier unlock or a mixed cached response.
+      return {...data, 'revealed': null}..removeWhere(
+        (key, _) => const {
+          'name',
+          'initial',
+          'voterId',
+          'gender',
+          'graduationYear',
+          'voterPremiumBadge',
+          'voterPremiumBadgeUntil',
+        }.contains(key),
+      );
+    }
     return data;
   }
 

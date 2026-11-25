@@ -8,7 +8,6 @@ import '../../services/api_service.dart';
 import '../../services/storage_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/common/social_identity.dart';
-import '../../widgets/common/premium_badge.dart';
 
 enum SocialPage { search, friends, blocked }
 
@@ -567,11 +566,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                 color: Color(0xFFEFF1FE),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                icon,
-                color: AppColors.primaryBlueDark,
-                size: 20,
-              ),
+              child: Icon(icon, color: AppColors.primaryBlueDark, size: 20),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -612,9 +607,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: AppColors.border.withValues(alpha: .7),
-              ),
+              border: Border.all(color: AppColors.border.withValues(alpha: .7)),
             ),
             child: Row(
               children: [
@@ -733,10 +726,6 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                                   color: AppColors.textPrimary,
                                 ),
                               ),
-                            ),
-                            PremiumBadge(
-                              active: user['premiumBadge'] == true,
-                              until: user['premiumBadgeUntil'] as String?,
                             ),
                           ],
                         ),

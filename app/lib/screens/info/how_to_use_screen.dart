@@ -154,7 +154,7 @@ class _HowToUseScreenState extends State<HowToUseScreen> {
         'Profile tabs: Friends, Likes, Requests. Collection lives on its own card.',
         'Activity shows who was picked, the question, graduation year and time.',
         'Newest 20 first, 20 more on scroll, 200 per query at most.',
-        'Premium can reveal the first initial or full name behind eligible new votes, with weekly limits. Older votes stay hidden.',
+        'Premium can reveal the first initial or full name behind eligible new votes, with weekly limits. Older votes stay hidden. Votes from users who also have active Premium are protected, and attempts do not use your weekly reveals.',
       ],
     ),
     _GuideSection(
@@ -192,7 +192,7 @@ class _HowToUseScreenState extends State<HowToUseScreen> {
       bullets: [
         'Purchases run through Superwall and are verified on the server.',
         'Premium includes 2 full-name reveals and 5 first-initial reveals per subscription week.',
-        'Earn 2000 stars per completed online round instead of 1000, plus a blue membership badge while active.',
+        'Earn 2000 stars per completed online round instead of 1000. While your Premium is active, other Premium users cannot reveal your name or first initial.',
         'Premium never skips the 60-minute wait.',
         'A local or debug Premium flag grants no server rights.',
         'Check Settings → Subscription status if access looks wrong.',

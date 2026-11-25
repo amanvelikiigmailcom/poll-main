@@ -15,7 +15,7 @@ import '../../utils/constants.dart';
 ///
 /// Our own paywall UI; billing runs through Superwall (see
 /// [SubscriptionService]). Benefits are authorized by the backend:
-/// limited real-voter reveals, double online stars and a membership badge.
+/// limited voter reveals, double online stars and protection from identity reveals.
 /// Title, subtitle, product card and CTA come from [ContentService]; the legal
 /// block stays in code so review-required wording cannot drift.
 class PremiumScreen extends ConsumerStatefulWidget {
@@ -252,7 +252,7 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
   }
 
   Widget _buildProCard(String priceLabel) {
-    final features = ContentService.instance.stringList('paywall_features_v3');
+    final features = ContentService.instance.stringList('paywall_features_v4');
     return Container(
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.08),
@@ -312,14 +312,21 @@ class _PremiumScreenState extends ConsumerState<PremiumScreen> {
             _buildFeature(
               icon: switch (index) {
                 0 => Icons.visibility_outlined,
-                1 => Icons.star_outline,
-                _ => Icons.verified_outlined,
+                1 => Icons.lightbulb_outline,
+                2 => Icons.star_outline,
+                _ => Icons.shield_outlined,
               },
               text: feature,
             ),
           const Text(
             'The 60-minute wait also applies to Premium. Earn wait passes by inviting new friends.',
             style: TextStyle(color: Colors.white70, fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Users who also have Premium are protected from name and first-initial reveals. '
+            'Protected attempts do not use your weekly reveals. Protection lasts while Premium is active.',
+            style: TextStyle(color: Colors.white70, fontSize: 12),
           ),
           const SizedBox(height: 20),
           SizedBox(

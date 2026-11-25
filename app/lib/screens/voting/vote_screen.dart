@@ -2,7 +2,6 @@ import '../../services/contact_sync_service.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../settings/settings_quiz_screen.dart';
-import '../../widgets/common/premium_badge.dart';
 import '../../services/game_settings.dart';
 import 'package:go_router/go_router.dart';
 import '../../theme/app_colors.dart';
@@ -26,8 +25,6 @@ class QuizOption {
   final String grade;
   final String? avatarUrl;
   final String? serverUserId;
-  final bool premiumBadge;
-  final String? premiumBadgeUntil;
   final int? graduationYear;
   final bool isFriend;
 
@@ -37,8 +34,6 @@ class QuizOption {
     required this.grade,
     this.avatarUrl,
     this.serverUserId,
-    this.premiumBadge = false,
-    this.premiumBadgeUntil,
     this.graduationYear,
     this.isFriend = false,
   });
@@ -70,8 +65,6 @@ class QuizQuestion {
           'id': option.id,
           'name': option.name,
           'winnerId': option.serverUserId,
-          'premiumBadge': option.premiumBadge,
-          'premiumBadgeUntil': option.premiumBadgeUntil,
           'graduationYear': option.graduationYear,
           'isFriend': option.isFriend,
         },
@@ -87,8 +80,6 @@ class QuizQuestion {
       for (final option in data['options'] as List)
         QuizOption(
           id: option['id'] as String,
-          premiumBadge: option['premiumBadge'] == true,
-          premiumBadgeUntil: option['premiumBadgeUntil'] as String?,
           name: option['name'] as String,
           grade: '',
           serverUserId: option['winnerId'] as String?,
@@ -382,8 +373,6 @@ class _VoteScreenState extends State<VoteScreen>
                     : candidate.firstName,
                 grade: '',
                 serverUserId: candidate.id,
-                premiumBadge: candidate.premiumBadge,
-                premiumBadgeUntil: candidate.premiumBadgeUntil,
                 graduationYear: candidate.graduationYear,
                 isFriend: candidate.isFriend,
               ),
@@ -412,10 +401,6 @@ class _VoteScreenState extends State<VoteScreen>
               name: name,
               grade: '',
               serverUserId: userId,
-              premiumBadge: matches.length == 1 && matches.single.premiumBadge,
-              premiumBadgeUntil: matches.length == 1
-                  ? matches.single.premiumBadgeUntil
-                  : null,
             ),
           );
         }
@@ -915,7 +900,7 @@ class _VoteScreenState extends State<VoteScreen>
                           const Padding(
                             padding: EdgeInsets.only(top: 12),
                             child: Text(
-                              'Premium recipients can reveal your first initial or full name using limited weekly reveals.',
+                              'Premium recipients can reveal your first initial or full name using limited weekly reveals. If you also have active Premium, your name and first initial are protected.',
                             ),
                           ),
                         const SizedBox(height: 20),
@@ -1005,7 +990,7 @@ class _VoteScreenState extends State<VoteScreen>
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Text(
-                  'By submitting, you acknowledge that Premium recipients can reveal your first initial or full name using limited weekly reveals.',
+                  'By submitting, you acknowledge that Premium recipients can reveal your first initial or full name using limited weekly reveals. If you also have active Premium, your name and first initial are protected.',
                 ),
               ),
             if (_submitError case final error?)
@@ -1364,10 +1349,6 @@ class _OptionCard extends StatelessWidget {
                         : AppColors.textPrimary,
                     height: 1.3,
                   ),
-                ),
-                PremiumBadge(
-                  active: option.premiumBadge,
-                  until: option.premiumBadgeUntil,
                 ),
                 const SizedBox(height: 3),
                 Text(

@@ -8,7 +8,6 @@ import '../../router/app_router.dart';
 import '../../services/api_service.dart';
 import '../../services/storage_service.dart';
 import '../../theme/app_colors.dart';
-import 'premium_badge.dart';
 
 class VoterRevealCard extends ConsumerStatefulWidget {
   const VoterRevealCard({super.key, required this.voteId, this.onShare});
@@ -174,7 +173,18 @@ class _VoterRevealCardState extends ConsumerState<VoterRevealCard> {
       );
       if (kind == null || !mounted || generation != _generation) return;
       final result = await ref.read(premiumServiceProvider).reveal(id, kind);
-      if (mounted && generation == _generation) _accept(result);
+      if (mounted && generation == _generation) {
+        _accept(result);
+        if (result['status'] == 'PROTECTED_BY_PREMIUM') {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'This user also has Premium. Their votes are protected. Your reveal was not used.',
+              ),
+            ),
+          );
+        }
+      }
     } catch (error) {
       if (mounted && generation == _generation) {
         // Do not retain previously displayed private data after a failed recheck.
@@ -182,6 +192,10 @@ class _VoterRevealCardState extends ConsumerState<VoterRevealCard> {
           _data = null;
           _error = _message(error);
         });
+        if (error is ApiException && error.statusCode == 403) {
+          await context.push(AppRoutes.premium);
+          if (mounted && generation == _generation) await _load();
+        }
       }
     } finally {
       if (mounted && generation == _generation) setState(() => _busy = false);
@@ -203,6 +217,7 @@ class _VoterRevealCardState extends ConsumerState<VoterRevealCard> {
         : data?['revealed'] == 'initial'
         ? '${data?['initial'] ?? ''}.'
         : null;
+    final protected = data?['status'] == 'PROTECTED_BY_PREMIUM';
     final label =
         'From ${name == null ? 'a $gender' : '$name ($gender)'}'
         '${year is int ? ' · Class of $year' : ''}';
@@ -222,19 +237,27 @@ class _VoterRevealCardState extends ConsumerState<VoterRevealCard> {
             children: [
               Expanded(
                 child: Text(
-                  data == null ? 'Voter identity is hidden' : label,
+                  protected
+                      ? 'This user also has Premium'
+                      : data == null
+                      ? 'Voter identity is hidden'
+                      : label,
                   style: const TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
-              PremiumBadge(
-                active: data?['voterPremiumBadge'] == true,
-                until: data?['voterPremiumBadgeUntil'] as String?,
-              ),
             ],
           ),
+          if (protected)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text(
+                'Their votes are protected from name and first-initial reveals. Your reveal was not used.',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+            ),
           if (_error != null)
             Padding(
               padding: const EdgeInsets.only(top: 8),

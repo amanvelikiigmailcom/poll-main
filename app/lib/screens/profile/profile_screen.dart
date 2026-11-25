@@ -1,6 +1,5 @@
 import 'profile_social_section.dart';
 import 'package:flutter/material.dart';
-import '../../widgets/common/premium_badge.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -133,7 +132,7 @@ class _ProfileHeaderCard extends ConsumerWidget {
             child: Text('🙂', style: TextStyle(fontSize: 56)),
           ),
           const SizedBox(height: 14),
-          // Name + verified badge (Premium members only)
+          // Display name
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -147,10 +146,6 @@ class _ProfileHeaderCard extends ConsumerWidget {
                     color: AppColors.textPrimary,
                   ),
                 ),
-              ),
-              PremiumBadge(
-                active: identity?['premiumBadge'] == true,
-                until: identity?['premiumBadgeUntil'] as String?,
               ),
             ],
           ),

@@ -209,7 +209,7 @@ class _FaqScreenState extends State<FaqScreen> {
         _FaqItem(
           'Can I see who voted for me?',
           'Premium can reveal the first initial or full name behind eligible new '
-              'votes using limited weekly reveals. Older votes stay hidden. '
+              'votes using limited weekly reveals. Older votes stay hidden. Users who also have active Premium are protected from name and first-initial reveals. Protected attempts do not use your weekly reveals. '
               'Ordinary Likes and Activity do not show voter identities.',
         ),
       ],
@@ -283,7 +283,7 @@ class _FaqScreenState extends State<FaqScreen> {
         _FaqItem(
           'How do Premium purchases work?',
           'Premium Weekly includes 2 full-name reveals, 5 first-initial reveals, '
-              'double online stars and a blue membership badge. Limits reset each '
+              'double online stars and protection from name and first-initial reveals while active. Limits reset each '
               'subscription week; reopening an unlocked vote is free while active. '
               'Purchases run through Superwall and require server confirmation.',
         ),

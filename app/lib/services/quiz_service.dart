@@ -39,8 +39,6 @@ class QuizCandidate {
   final int grade;
   final String? gradeClass;
   final bool isSelf;
-  final bool premiumBadge;
-  final String? premiumBadgeUntil;
   final int? graduationYear;
   final bool isFriend;
 
@@ -53,8 +51,6 @@ class QuizCandidate {
     required this.grade,
     this.gradeClass,
     this.isSelf = false,
-    this.premiumBadge = false,
-    this.premiumBadgeUntil,
     this.graduationYear,
     this.isFriend = false,
   });
@@ -72,8 +68,6 @@ class QuizCandidate {
       grade: json['grade'] as int? ?? 8,
       gradeClass: json['gradeClass'] as String?,
       isSelf: json['isSelf'] == true,
-      premiumBadge: json['premiumBadge'] == true,
-      premiumBadgeUntil: json['premiumBadgeUntil'] as String?,
       graduationYear: year is int ? year : null,
       isFriend: json['isFriend'] == true,
     );
