@@ -409,6 +409,18 @@ class _TimerScreenState extends State<TimerScreen>
     );
   }
 
+  Widget _invitationLabel() {
+    try {
+      ProviderScope.containerOf(context, listen: false);
+      return Consumer(
+        builder: (context, ref, _) =>
+            Text(ref.watch(invitationServiceProvider).inviteButtonText),
+      );
+    } on StateError {
+      return const Text('Invite a friend');
+    }
+  }
+
   Widget _buildInviteSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -430,9 +442,23 @@ class _TimerScreenState extends State<TimerScreen>
         ),
         const SizedBox(height: 16),
         ElevatedButton.icon(
-          onPressed: _openInvite,
+          onPressed: () async {
+            try {
+              final service = ProviderScope.containerOf(
+                context,
+                listen: false,
+              ).read(invitationServiceProvider);
+              await service.refresh();
+              if (!mounted) return;
+              if (service.invitationsEnabled && service.error == null) {
+                _openInvite();
+              }
+            } on StateError {
+              _openInvite();
+            }
+          },
           icon: const Icon(Icons.person_add_alt_1_rounded),
-          label: const Text('Invite a friend'),
+          label: _invitationLabel(),
           style: ElevatedButton.styleFrom(
             backgroundColor: _accentRed,
             foregroundColor: Colors.white,

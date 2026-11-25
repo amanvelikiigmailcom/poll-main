@@ -1,3 +1,4 @@
+import 'fakes/reviewer_storage.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flyprox_app/widgets/common/age_gated_startup.dart';
@@ -18,9 +19,9 @@ Future<void> mountAgeRoute(
   String route, {
   bool reviewer = false,
 }) async {
-  final storage = StorageService();
+  final storage = reviewer ? ReviewerStorageService() : StorageService();
   await storage.init();
-  if (reviewer) await storage.markReviewerSeen();
+
   if (route == AppRoutes.age) OnboardingFlow.instance.completePhoneStep();
   testAppRouter.go(route);
   await tester.pumpWidget(

@@ -37,6 +37,23 @@ class GameSettings extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> rewardFeedback() async {
+    if (haptics) await HapticFeedback.lightImpact();
+    if (!sound) return;
+    try {
+      final played = await const MethodChannel(
+        'flyprox/app_info',
+      ).invokeMethod<bool>('playRewardSound');
+      if (played != true) await SystemSound.play(SystemSoundType.click);
+    } catch (_) {
+      await SystemSound.play(SystemSoundType.click);
+    }
+  }
+
+  void rewardComplete() {
+    if (haptics) HapticFeedback.mediumImpact();
+  }
+
   void feedback({bool strong = false, bool selection = false}) {
     if (haptics) {
       if (strong) {

@@ -1,3 +1,4 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +14,7 @@ void main() {
   testWidgets('invite screen shows hero, actions and invitations', (
     tester,
   ) async {
+    SharedPreferences.setMockInitialValues({});
     final storage = SessionStorage();
     final api = ApiService(storage);
     api.dio.interceptors.add(
@@ -30,7 +32,20 @@ void main() {
                       },
                     ],
                   }
-                : <String, dynamic>{},
+                : {
+                    'userId': 'owner',
+                    'version': 2,
+                    'balance': 0,
+                    'earned': 0,
+                    'used': 0,
+                    'rewards': [],
+                    'redemptions': [],
+                    'preferredChannel': 'messages',
+                    'policy': {
+                      'enabled': true,
+                      'buttonText': 'Invite via Messages',
+                    },
+                  },
           ),
         ),
       ),
@@ -55,7 +70,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
     }
     expect(find.text('One friend. One more round.'), findsOneWidget);
-    expect(find.text('Invite through Messages'), findsOneWidget);
+    expect(find.text('Invite via Messages'), findsOneWidget);
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -500));
     await tester.pump(const Duration(milliseconds: 200));
     expect(find.text('My invitations'), findsOneWidget);

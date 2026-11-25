@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../config/school_regions.dart';
-import '../../config/school_launch.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/service_providers.dart';
 import '../../router/app_router.dart';
 import '../../services/content_service.dart';
@@ -132,10 +132,6 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
   }
 
   void _select(Map<String, dynamic> school) {
-    if (!SchoolLaunch.isOpen(school, fallbackCountry: country)) {
-      _unavailable(school);
-      return;
-    }
     FocusManager.instance.primaryFocus?.unfocus();
     debounce?.cancel();
     generation++;
@@ -201,37 +197,10 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
     }
   }
 
-  Future<void> _unavailable(Map<String, dynamic> school) {
-    return SchoolLaunch.showUnavailableDialog(
-      context,
-      country: school['country'] as String? ?? country,
-      schoolName: school['name'] as String? ?? 'This campus',
-      email: ContentService.instance.text('support_email'),
-    );
-  }
-
   Future<void> _next({bool skip = false}) async {
     if (saving) return;
     if (!skip &&
         (selected == null || !(form.currentState?.validate() ?? false))) {
-      return;
-    }
-    // A server-confirmed unchanged enrollment survives launch restrictions.
-    // An arbitrary local draft never grants this exception.
-    final confirmed =
-        !skip &&
-        !_editing &&
-        await ref
-            .read(onboardingDetailsProvider)
-            .isConfirmedCampus(
-              selected?['id'] as String?,
-              year: int.tryParse(year.text),
-            );
-    if (!mounted) return;
-    if (!skip &&
-        !confirmed &&
-        !SchoolLaunch.isOpen(selected!, fallbackCountry: country)) {
-      await _unavailable(selected!);
       return;
     }
     FocusManager.instance.primaryFocus?.unfocus();
@@ -291,6 +260,10 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
         await service.skipSchool();
       } else {
         await service.selectSchool(selected!, int.parse(year.text));
+      }
+      if ((await service.read())['status'] == 'waiting') {
+        if (mounted) context.go(AppRoutes.schoolWaiting);
+        return;
       }
       await service.draft({
         'schoolDraftCountry': null,
@@ -432,6 +405,8 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(school['name'] as String),
+                    if (school['enrollmentAvailable'] == false)
+                      const Text('Not available yet · Register your interest'),
                     Text(
                       [
                         school['city'],
@@ -808,28 +783,143 @@ class _RegionPicker extends StatelessWidget {
   }
 }
 
-class SchoolWaitingScreen extends StatelessWidget {
+class SchoolWaitingScreen extends ConsumerStatefulWidget {
   const SchoolWaitingScreen({super.key});
   @override
-  Widget build(BuildContext context) => SetupFormPage(
-    title: 'Choose your campus to play',
-    subtitle:
-        'Voting will be available after you select your campus. If it is missing, send its details to our team.',
-    children: [
-      ElevatedButton(
-        style: setupButton(),
-        onPressed: () => context.go(AppRoutes.schoolSetup),
-        child: const Text('Choose your campus'),
-      ),
-      TextButton(
-        onPressed: () => context.go(AppRoutes.home),
-        child: const Text(
-          'Back to Home',
-          style: TextStyle(color: Colors.white),
-        ),
-      ),
-    ],
-  );
+  ConsumerState<SchoolWaitingScreen> createState() =>
+      _SchoolWaitingScreenState();
+}
+
+class _SchoolWaitingScreenState extends ConsumerState<SchoolWaitingScreen> {
+  Map<String, dynamic> data = {};
+  String? error;
+  bool busy = false;
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load({bool online = false}) async {
+    if (busy) return;
+    setState(() {
+      busy = true;
+      error = null;
+    });
+    final service = ref.read(onboardingDetailsProvider);
+    try {
+      if (online && !await service.restore(requireOnline: true)) {
+        throw const ApiException('Sign in again to check availability.');
+      }
+      final next = await service.read();
+      if (mounted) setState(() => data = next);
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => error =
+              'Couldn’t check availability. Your request is still saved. Try again.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> _support() async {
+    final email = ContentService.instance.text('support_email');
+    final uri = Uri(
+      scheme: 'mailto',
+      path: email,
+      queryParameters: {
+        'subject': 'Flyprox campus launch request',
+        'body':
+            'Hello Flyprox,\n\nI would like Flyprox to open at my campus.\nCampus: ${(data['school'] as Map?)?['name'] ?? data['requestedSchool'] ?? ''}\nRegion: ${data['requestedRegion'] ?? ''}\nCountry: ${data['country'] ?? ''}\n\nThank you!',
+      },
+    );
+    try {
+      if (email.isNotEmpty && await launchUrl(uri)) return;
+    } catch (_) {
+      /* Show the address without claiming the email was sent. */
+    }
+    if (mounted) {
+      setState(
+        () => error = email.isEmpty
+            ? 'Support is temporarily unavailable. Please try again.'
+            : 'Email our team at $email.',
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final waiting = data['status'] == 'waiting';
+    final campus =
+        (data['school'] as Map?)?['name'] ??
+        data['requestedSchool'] ??
+        'your campus';
+    return SetupFormPage(
+      title: waiting
+          ? 'Your campus isn’t available yet'
+          : 'Choose your campus to play',
+      subtitle: waiting
+          ? 'Flyprox hasn’t launched at $campus yet. We’ve saved your request. Contact our support team to register your interest. Demand helps us decide which regions to open next.'
+          : 'Voting will be available after you select your campus. If it is missing, send its details to our team.',
+      children: [
+        if (error != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Text(error!, style: const TextStyle(color: Colors.white)),
+          ),
+        if (waiting) ...[
+          ElevatedButton(
+            style: setupButton(),
+            onPressed: _support,
+            child: const Text('Contact support'),
+          ),
+          const SizedBox(height: 12),
+          if (data['campusAvailable'] == true)
+            ElevatedButton(
+              style: setupButton(),
+              onPressed: () => context.go(AppRoutes.schoolSetup),
+              child: const Text('Continue with your campus'),
+            )
+          else
+            TextButton(
+              onPressed: busy ? null : () => _load(online: true),
+              child: Text(
+                busy ? 'Checking…' : 'Check availability',
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          TextButton(
+            onPressed: busy
+                ? null
+                : () async {
+                    await ref.read(authNotifierProvider.notifier).logout();
+                    if (context.mounted) context.go(AppRoutes.phone);
+                  },
+            child: const Text(
+              'Sign out',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ] else ...[
+          ElevatedButton(
+            style: setupButton(),
+            onPressed: () => context.go(AppRoutes.schoolSetup),
+            child: const Text('Choose your campus'),
+          ),
+          TextButton(
+            onPressed: () => context.go(AppRoutes.home),
+            child: const Text(
+              'Back to Home',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
 }
 
 /// Graduation cohorts offered during campus setup, in ascending order.

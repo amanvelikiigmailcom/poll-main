@@ -96,7 +96,11 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
   }
 
   Future<void> _tryExamples() async {
-    if (_busy || !ContentService.instance.flag('example_names_enabled')) return;
+    if (_busy ||
+        !ref.read(storageServiceProvider).reviewerSkipsAllowed ||
+        !ContentService.instance.flag('example_names_enabled')) {
+      return;
+    }
     setState(() {
       _friends
         ..clear()
@@ -356,7 +360,8 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
                     height: 1.45,
                   ),
                 ),
-                if (content.flag('example_names_enabled')) ...[
+                if (ref.read(storageServiceProvider).reviewerSkipsAllowed &&
+                    content.flag('example_names_enabled')) ...[
                   const SizedBox(height: 28),
                   Text(
                     content.text('example_names_description'),

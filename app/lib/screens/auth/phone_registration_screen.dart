@@ -130,7 +130,10 @@ class _PhoneRegistrationScreenState
   }
 
   void _continueAsGuest() {
-    if (ContentService.instance.flag('guest_enabled')) _next();
+    if ((ref.read(storageServiceProvider).reviewerSkipsAllowed &&
+        ContentService.instance.flag('guest_enabled'))) {
+      _next();
+    }
   }
 
   @override
@@ -252,7 +255,7 @@ class _PhoneRegistrationScreenState
                           ),
                           child: const Text(
                             'Phone login isn’t available in this build yet. '
-                            'Play as a guest for now.',
+                            'Please try again later.',
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 14,
@@ -287,7 +290,10 @@ class _PhoneRegistrationScreenState
                           ),
                         ),
                       ),
-                      if (ContentService.instance.flag('guest_enabled')) ...[
+                      if ((ref
+                              .read(storageServiceProvider)
+                              .reviewerSkipsAllowed &&
+                          ContentService.instance.flag('guest_enabled'))) ...[
                         const SizedBox(height: 8),
                         OutlinedButton(
                           onPressed: _continueAsGuest,

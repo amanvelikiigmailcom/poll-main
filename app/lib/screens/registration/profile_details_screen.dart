@@ -1,3 +1,4 @@
+import '../../services/storefront_service.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -103,6 +104,8 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
   final first = TextEditingController(), last = TextEditingController();
   final form = GlobalKey<FormState>();
   String? gender;
+  String country = 'US';
+  bool countryConfirmed = true;
   bool loading = true, saving = false;
   String? error;
   bool genderRequired = false;
@@ -115,6 +118,12 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
   Future<void> _load() async {
     final service = ref.read(onboardingDetailsProvider);
     await service.restore();
+    if (!mounted) return;
+    if ((await service.read())['status'] == 'waiting') {
+      if (mounted) context.go(AppRoutes.schoolWaiting);
+      return;
+    }
+    await service.suggestStorefrontCountry();
     final data = await service.read();
     if (data['stage'] == null) await service.draft({'stage': 'profile'});
     if (!mounted) return;
@@ -122,6 +131,10 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
       first.text = data['firstName'] as String? ?? '';
       last.text = data['lastName'] as String? ?? '';
       gender = data['gender'] as String?;
+      country = data['country'] as String? ?? 'US';
+      countryConfirmed =
+          data['unsupportedStorefront'] != true ||
+          data['countryConfirmed'] == true;
       loading = false;
     });
     first.addListener(_draft);
@@ -144,7 +157,15 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
     if (saving) return;
     final validNames = form.currentState?.validate() ?? false;
     setState(() => genderRequired = gender == null);
-    if (!validNames || gender == null) return;
+    if (!validNames || gender == null || !countryConfirmed) {
+      if (!countryConfirmed) {
+        setState(
+          () => error =
+              'Choose the country where you study. Flyprox is not available in your App Store region yet.',
+        );
+      }
+      return;
+    }
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() {
       saving = true;
@@ -187,6 +208,46 @@ class _ProfileDetailsScreenState extends ConsumerState<ProfileDetailsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              DropdownButtonFormField<String>(
+                key: const Key('study-country'),
+                isExpanded: true,
+                initialValue: countryConfirmed ? country : null,
+                decoration: setupInput('Country where you study'),
+                items: StorefrontService.countries.entries
+                    .map(
+                      (e) => DropdownMenuItem(
+                        value: e.key,
+                        child: Text(e.value, overflow: TextOverflow.ellipsis),
+                      ),
+                    )
+                    .toList(),
+                onChanged: saving
+                    ? null
+                    : (value) async {
+                        if (value == null) return;
+                        final service = ref.read(onboardingDetailsProvider);
+                        await service.setCountry(value);
+                        await service.draft({
+                          'countrySource': 'confirmed',
+                          'countryConfirmed': true,
+                        });
+                        if (mounted) {
+                          setState(() {
+                            country = value;
+                            countryConfirmed = true;
+                          });
+                        }
+                      },
+              ),
+              if (!countryConfirmed)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    'Flyprox is not available in your App Store region yet. If you study in a supported country, choose it above.',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              const SizedBox(height: 16),
               TextFormField(
                 key: const Key('onboarding-first-name'),
                 controller: first,

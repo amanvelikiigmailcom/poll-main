@@ -1,3 +1,4 @@
+import 'package:crypto/crypto.dart';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'dart:convert';
@@ -13,6 +14,7 @@ class StorageService extends ChangeNotifier {
 
   final FlutterSecureStorage _secureStorage;
   late SharedPreferences _prefs;
+  String? _activeToken;
 
   StorageService()
     : _secureStorage = const FlutterSecureStorage(
@@ -26,12 +28,18 @@ class StorageService extends ChangeNotifier {
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
+    try {
+      _activeToken = await getToken();
+    } catch (_) {
+      _activeToken = null;
+    }
   }
 
   // ── Auth token (secure) ───────────────────────────────────────────────────
 
   Future<void> saveToken(String token) async {
     await _secureStorage.write(key: _tokenKey, value: token);
+    _activeToken = token;
     notifyListeners();
   }
 
@@ -41,6 +49,7 @@ class StorageService extends ChangeNotifier {
 
   Future<void> clearToken() async {
     await _secureStorage.delete(key: _tokenKey);
+    _activeToken = null;
     notifyListeners();
   }
 
@@ -88,32 +97,22 @@ class StorageService extends ChangeNotifier {
 
   // ── Reviewer ──────────────────────────────────────────────────────────────
 
-  static const String _reviewerKey = 'reviewer_seen_v1';
+  String? get _reviewerSessionKey => _activeToken == null
+      ? null
+      : 'reviewer_access_v2_${sha256.convert(utf8.encode(_activeToken!))}';
 
-  /// Firebase test numbers used by the App Store reviewer (OTP 123456).
-  static const Set<String> reviewerTestPhones = {'+16505551234'};
-
-  static bool isReviewerPhone(String? phone) =>
-      phone != null && reviewerTestPhones.contains(phone.trim());
-
-  /// Remembers that the reviewer signed in on this install.
-  /// [clearAll] wipes it together with the rest of local state.
-  Future<void> markReviewerSeen() async {
-    await _prefs.setBool(_reviewerKey, true);
+  /// Capability from a verified backend response, scoped to this exact session.
+  Future<void> saveReviewerAccess(bool allowed) async {
+    final key = _reviewerSessionKey;
+    if (key == null) return;
+    await _prefs.setBool(key, allowed);
+    notifyListeners();
   }
 
-  bool isReviewerSeen() {
-    try {
-      return _prefs.getBool(_reviewerKey) ?? false;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  /// Skip buttons stay visible only for the reviewer session.
   bool get reviewerSkipsAllowed {
     try {
-      return isReviewerPhone(getPhone()) || isReviewerSeen();
+      final key = _reviewerSessionKey;
+      return key != null && (_prefs.getBool(key) ?? false);
     } catch (_) {
       return false;
     }
@@ -138,6 +137,7 @@ class StorageService extends ChangeNotifier {
   // ── Clear all ─────────────────────────────────────────────────────────────
 
   Future<void> clearAll() async {
+    _activeToken = null;
     await _secureStorage.deleteAll();
     await _prefs.clear();
     notifyListeners();

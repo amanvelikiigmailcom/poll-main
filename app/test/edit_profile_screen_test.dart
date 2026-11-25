@@ -13,7 +13,7 @@ import 'fakes/social_storage.dart';
 
 class EditorOnboardingFake extends OnboardingDetailsService {
   EditorOnboardingFake(super.api, super.storage);
-  List<Map<String, String>> results = [
+  List<Map<String, dynamic>> results = [
     {
       'id': 'new-campus',
       'name': 'West Campus',
@@ -23,17 +23,14 @@ class EditorOnboardingFake extends OnboardingDetailsService {
     },
   ];
   @override
-  Future<void> restore() async {}
+  Future<bool> restore({bool requireOnline = false}) async => true;
   @override
   Future<Map<String, dynamic>> search(
     String q, {
     String cursor = '',
     String? countryOverride,
     String region = '',
-  }) async => {
-    'schools': results,
-    'available': true,
-  };
+  }) async => {'schools': results, 'available': true};
 }
 
 class EditorFake extends ProfileEditService {
@@ -93,7 +90,7 @@ Future<({GoRouter router, SessionStorage storage, EditorFake service})> mount(
   WidgetTester tester, {
   void Function(EditorFake)? configure,
   bool shell = false,
-  List<Map<String, String>>? onboardingSchools,
+  List<Map<String, dynamic>>? onboardingSchools,
 }) async {
   final storage = SessionStorage();
   final service = EditorFake(ApiService(storage), storage);
@@ -343,39 +340,42 @@ void main() {
     expect(f.service.writes.single['changes'], {'schoolId': 'new-campus'});
   });
 
-  testWidgets('closed-region campus in picker shows the support dialog', (
+  testWidgets(
+    'server-open campus replaces the retired client region restriction',
+    (tester) async {
+      await mount(
+        tester,
+        onboardingSchools: [
+          {
+            'id': 'ca-campus',
+            'name': 'West High',
+            'enrollmentAvailable': true,
+            'city': 'Fresno',
+            'region': 'CALIFORNIA',
+            'country': 'US',
+          },
+        ],
+      );
+      await tester.ensureVisible(find.byKey(const Key('edit-campus')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('edit-campus')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Search campuses'),
+        'West',
+      );
+      await tester.pump(const Duration(milliseconds: 301));
+      await tester.pumpAndSettle();
+      await tap(tester, 'West High');
+      expect(find.text('Campus not available yet'), findsNothing);
+      expect(find.widgetWithText(TextField, 'Search campuses'), findsNothing);
+      expect(find.text('West High'), findsOneWidget);
+    },
+  );
+
+  testWidgets('profile campus picker offers the US region filter', (
     tester,
   ) async {
-    await mount(
-      tester,
-      onboardingSchools: [
-        {
-          'id': 'ca-campus',
-          'name': 'West High',
-          'city': 'Fresno',
-          'region': 'CALIFORNIA',
-          'country': 'US',
-        },
-      ],
-    );
-    await tester.ensureVisible(find.byKey(const Key('edit-campus')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('edit-campus')));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.widgetWithText(TextField, 'Search campuses'),
-      'West',
-    );
-    await tester.pump(const Duration(milliseconds: 301));
-    await tester.pumpAndSettle();
-    await tap(tester, 'West High');
-    expect(find.text('Campus not available yet'), findsOneWidget);
-    expect(find.textContaining('support@flyprox.com'), findsOneWidget);
-    await tap(tester, 'OK');
-    expect(find.widgetWithText(TextField, 'Search campuses'), findsOneWidget);
-  });
-
-  testWidgets('profile campus picker offers the US region filter', (tester) async {
     await mount(tester);
     await tester.ensureVisible(find.byKey(const Key('edit-campus')));
     await tester.pumpAndSettle();

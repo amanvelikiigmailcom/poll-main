@@ -5,6 +5,7 @@ import 'package:mocktail/mocktail.dart';
 class MockStorageService extends Mock implements StorageService {
   MockStorageService() {
     when(() => saveToken(any())).thenAnswer((_) async {});
+    when(() => saveReviewerAccess(any())).thenAnswer((_) async {});
     when(() => savePhone(any())).thenAnswer((_) async {});
   }
 }

@@ -4,6 +4,7 @@ import 'storage_service.dart';
 class OtpResult {
   final bool success;
   final String? message;
+
   /// Some backends return a verification token on send-otp to be echoed back.
   final String? verificationToken;
 
@@ -18,6 +19,7 @@ class AuthResult {
   final bool success;
   final String? token;
   final String? message;
+
   /// True when the user exists but has not completed onboarding yet.
   final bool isNewUser;
 
@@ -89,6 +91,7 @@ class AuthService {
     } catch (_) {}
     await _storage.clearToken();
     await _storage.clearUser();
+    await _storage.clearPhone();
   }
 
   /// Returns true when a non-empty auth token is stored locally.

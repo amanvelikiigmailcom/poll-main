@@ -30,6 +30,8 @@ class InvitationService extends ChangeNotifier with WidgetsBindingObserver {
       whatsappAdvancesToday = 0;
   int whatsappAdvanceLimit = 5;
   String preferredChannel = 'messages';
+  bool invitationsEnabled = true;
+  String inviteButtonText = 'Invite friends';
   int? dailyRemaining;
   DateTime? dailyResetsAt;
   bool signedIn = false;
@@ -86,6 +88,9 @@ class InvitationService extends ChangeNotifier with WidgetsBindingObserver {
       used = 0;
       _owner = null;
       error = null;
+      invitationsEnabled = true;
+      inviteButtonText = 'Invite friends';
+      preferredChannel = 'messages';
       policyVersion = 1;
       messagesSent = whatsappAttempts = whatsappAdvancesToday = 0;
       dailyRemaining = null;
@@ -156,6 +161,13 @@ class InvitationService extends ChangeNotifier with WidgetsBindingObserver {
       whatsappAdvanceLimit =
           (data['whatsappAdvanceLimit'] as num?)?.toInt() ?? 5;
       preferredChannel = data['preferredChannel'] as String? ?? 'messages';
+      final policy = data['policy'] as Map?;
+      invitationsEnabled = policy?['enabled'] != false;
+      inviteButtonText =
+          policy?['buttonText'] as String? ??
+          (preferredChannel == 'whatsapp'
+              ? 'Invite via WhatsApp'
+              : 'Invite via Messages');
       error = null;
       await _flushCompose();
     } catch (_) {
@@ -294,8 +306,15 @@ class InvitationService extends ChangeNotifier with WidgetsBindingObserver {
     return result;
   }
 
-  static String message(Map<String, dynamic> invite) =>
-      'I just played Flyprox. Join me: ${invite['url']}\nInvitation code: ${invite['code']}';
+  static String message(Map<String, dynamic> invite) {
+    final policy = invite['policy'] as Map?;
+    final template =
+        policy?['message'] as String? ??
+        'I just played Flyprox. Join me: {url}\nInvitation code: {code}';
+    return template
+        .replaceAll('{url}', '${invite['url']}')
+        .replaceAll('{code}', '${invite['code']}');
+  }
 
   Map<String, dynamic>? _whatsapp;
   bool _finishingWhatsApp = false;
@@ -500,6 +519,9 @@ class InvitationService extends ChangeNotifier with WidgetsBindingObserver {
     Map<String, dynamic> invite,
     String token,
   ) async {
+    if ((invite['policy'] as Map?)?['fallback'] == 'none') {
+      throw const ApiException('Messaging is unavailable on this device.');
+    }
     await api.post(
       '/api/invites/${invite['code']}/launch',
       data: {'launchId': _newId(), 'fallback': true},

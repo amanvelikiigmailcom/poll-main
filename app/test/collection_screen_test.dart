@@ -270,8 +270,7 @@ void main() {
     expect(find.text('IN-GAME POINTS'), findsOneWidget);
     await tester.tap(find.byTooltip('Close'));
     await tester.pump();
-    expect(find.text('stars received!'), findsOneWidget);
-    // Dispose the reward's repeating sparkle/count timers before ending.
+    expect(find.text('Your round is complete.'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 

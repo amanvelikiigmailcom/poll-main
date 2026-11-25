@@ -163,6 +163,12 @@ Future<String?> _ageRedirect(BuildContext context, GoRouterState state) async {
     AppRoutes.forParents,
   };
   if (!setupExempt.contains(path)) {
+    if (details['status'] == 'waiting' &&
+        path != AppRoutes.schoolWaiting &&
+        !(path == AppRoutes.schoolSetup &&
+            details['campusAvailable'] == true)) {
+      return AppRoutes.schoolWaiting;
+    }
     final stage = details['stage'];
     if (stage == null &&
         {AppRoutes.schoolSetup, AppRoutes.schoolWaiting}.contains(path)) {
@@ -272,7 +278,9 @@ class _SplashRedirectState extends ConsumerState<_SplashRedirect> {
     tap ??= await _drainTap();
     if (!mounted) return;
     context.go(
-      tap == null ? AppRoutes.home : (PushRouting.routeFor(tap.type) ?? AppRoutes.home),
+      tap == null
+          ? AppRoutes.home
+          : (PushRouting.routeFor(tap.type) ?? AppRoutes.home),
     );
   }
 

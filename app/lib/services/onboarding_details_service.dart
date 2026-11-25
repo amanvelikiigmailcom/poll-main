@@ -1,3 +1,4 @@
+import 'storefront_service.dart';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
@@ -78,13 +79,15 @@ class OnboardingDetailsService extends ChangeNotifier {
     await next;
   }
 
-  Future<void> restore() async {
+  Future<bool> restore({bool requireOnline = false}) async {
     final token = await storage.getToken();
-    if (token?.isNotEmpty != true) return;
+    if (token?.isNotEmpty != true) return false;
     final key = await _key();
     try {
       final response = await api.get<Map<String, dynamic>>('/api/onboarding');
-      if (token != await storage.getToken() || key != await _key()) return;
+      if (token != await storage.getToken() || key != await _key()) {
+        return false;
+      }
       final data = response.data;
       if (data == null ||
           ![
@@ -92,8 +95,12 @@ class OnboardingDetailsService extends ChangeNotifier {
             'selected',
             'skipped',
             'requested',
+            'waiting',
           ].contains(data['status'])) {
-        return;
+        return false;
+      }
+      if (data.containsKey('reviewerSkipsAllowed')) {
+        await storage.saveReviewerAccess(data['reviewerSkipsAllowed'] == true);
       }
       _confirmEnrollment(data, key);
       final prior = await read();
@@ -103,22 +110,29 @@ class OnboardingDetailsService extends ChangeNotifier {
         ...prior,
         'school': data['school'],
         'status': data['status'],
-        'country': data['country'],
+        'country': data['status'] == 'pending' && prior['countrySource'] != null
+            ? prior['country'] ?? data['country']
+            : data['country'],
+        'campusAvailable': data['campusAvailable'],
         'graduationYear': data['graduationYear'],
         'campusChangeUsed': data['campusChangeUsed'],
-        'stage':
-            prior['stage'] ??
-            (data['profileComplete'] == true ? 'school' : 'profile'),
+        'stage': data['status'] == 'waiting'
+            ? 'waiting'
+            : prior['stage'] ??
+                  (data['profileComplete'] == true ? 'school' : 'profile'),
       }, key);
     } catch (_) {
-      /* Saved drafts remain usable offline; saves still require server acknowledgement. */
+      if (requireOnline) rethrow;
+      return false;
     }
+    return true;
   }
 
   Future<String> country() async =>
       (await read())['country'] as String? ?? 'US';
   Future<void> setCountry(String country) async {
     final data = await read();
+    if (data['status'] == 'waiting' || data['status'] == 'selected') return;
     if (data['country'] == country) return;
     await draft({
       'country': country,
@@ -126,6 +140,29 @@ class OnboardingDetailsService extends ChangeNotifier {
       'graduationYear': null,
       'status': 'pending',
     });
+  }
+
+  Future<void> suggestStorefrontCountry() async {
+    final key = await _key();
+    final data = await read();
+    if (data['status'] == 'selected' ||
+        data['status'] == 'waiting' ||
+        data['countrySource'] != null) {
+      return;
+    }
+    final raw = await StorefrontService.current();
+    if (key != await _key()) return;
+    final country = StorefrontService.normalize(raw);
+    if (raw != null && country == null) {
+      await draft({
+        'unsupportedStorefront': true,
+        'countrySource': 'storefront',
+        'countryConfirmed': false,
+      });
+    } else {
+      if (country != null) await setCountry(country);
+      await draft({'countrySource': country == null ? 'phone' : 'storefront'});
+    }
   }
 
   Future<void> _save(
@@ -145,6 +182,7 @@ class OnboardingDetailsService extends ChangeNotifier {
       }
       _confirmEnrollment(response.data, key);
       local = {...local, ...?response.data};
+      if (response.data?['status'] == 'waiting') local['stage'] = 'waiting';
     }
     if (key != await _key()) {
       throw const ApiException('Account changed. Please try again.');
@@ -197,6 +235,7 @@ class OnboardingDetailsService extends ChangeNotifier {
     await _save(
       {
         'step': 'school',
+        'countryScope': 'exact',
         'country': countryCode,
         'schoolId': school['id'],
         'graduationYear': year,
@@ -204,8 +243,12 @@ class OnboardingDetailsService extends ChangeNotifier {
       {
         'school': school,
         'graduationYear': year,
-        'status': 'selected',
-        'stage': 'contacts',
+        'status': school['enrollmentAvailable'] == false
+            ? 'waiting'
+            : 'selected',
+        'stage': school['enrollmentAvailable'] == false
+            ? 'waiting'
+            : 'contacts',
       },
     );
   }
@@ -277,7 +320,8 @@ class OnboardingDetailsService extends ChangeNotifier {
   }
 
   Future<void> skipSchool() async {
-    if (!ContentService.instance.flag('school_skip_enabled')) {
+    if (!storage.reviewerSkipsAllowed ||
+        !ContentService.instance.flag('school_skip_enabled')) {
       throw const ApiException('Skipping school is disabled.');
     }
     await _save(
@@ -380,6 +424,7 @@ class OnboardingDetailsService extends ChangeNotifier {
       queryParameters: {
         'country': countryCode,
         'q': q,
+        'includeUnavailable': 'true',
         'cursor': cursor,
         if (region.isNotEmpty) 'region': region,
       },

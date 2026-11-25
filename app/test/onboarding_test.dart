@@ -1,3 +1,4 @@
+import 'fakes/reviewer_storage.dart';
 import 'package:dio/dio.dart';
 import 'package:flyprox_app/services/api_service.dart';
 import 'fakes/eligible_player.dart';
@@ -24,9 +25,9 @@ Future<StorageService> mountApp(
   WidgetTester tester, {
   bool reviewer = false,
 }) async {
-  final storage = StorageService();
+  final storage = reviewer ? ReviewerStorageService() : StorageService();
   await storage.init();
-  if (reviewer) await storage.markReviewerSeen();
+
   final api = ApiService(storage);
   api.dio.interceptors.add(
     InterceptorsWrapper(
@@ -444,7 +445,7 @@ void main() {
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
-        final storage = StorageService();
+        final storage = ReviewerStorageService();
         await storage.init();
         testAppRouter.go(AppRoutes.namesEntry);
         await tester.pumpWidget(
@@ -483,9 +484,8 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
-      final storage = StorageService();
+      final storage = ReviewerStorageService();
       await storage.init();
-      await storage.markReviewerSeen();
       await tester.pumpWidget(
         ProviderScope(
           overrides: [storageServiceProvider.overrideWithValue(storage)],

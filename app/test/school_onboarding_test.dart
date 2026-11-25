@@ -1,3 +1,4 @@
+import 'fakes/reviewer_storage.dart';
 import 'package:flyprox_app/screens/registration/school_setup_screen.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -38,9 +39,9 @@ void main() {
     bool reviewer = false,
     void Function(RequestOptions, RequestInterceptorHandler)? search,
   }) async {
-    final storage = StorageService();
+    final storage = reviewer ? ReviewerStorageService() : StorageService();
     await storage.init();
-    if (reviewer) await storage.markReviewerSeen();
+
     if (schoolMode) await storage.saveToken('fixture-session');
     final api = ApiService(storage);
     api.dio.interceptors.add(

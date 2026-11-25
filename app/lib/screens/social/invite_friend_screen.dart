@@ -219,14 +219,16 @@ class _InviteFriendScreenState extends ConsumerState<InviteFriendScreen> {
                     ),
                     const SizedBox(height: 12),
                     FilledButton.icon(
-                      onPressed: _busy ? null : _invite,
+                      onPressed: _busy || !service.invitationsEnabled
+                          ? null
+                          : _invite,
                       icon: const Icon(Icons.person_add_alt_1),
                       label: Text(
                         _busy
                             ? 'Opening…'
-                            : whatsapp
-                            ? 'Invite through WhatsApp'
-                            : 'Invite through Messages',
+                            : service.invitationsEnabled
+                            ? service.inviteButtonText
+                            : 'Invitations unavailable',
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -260,10 +262,7 @@ class _InviteFriendScreenState extends ConsumerState<InviteFriendScreen> {
             if (_error != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  _error!,
-                  style: const TextStyle(color: Colors.red),
-                ),
+                child: Text(_error!, style: const TextStyle(color: Colors.red)),
               ),
             const SizedBox(height: 24),
             const Text(

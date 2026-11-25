@@ -1,3 +1,8 @@
+> Current source update: [campus waiting, reviewer sessions and storefront country](rewards-campus-policy.md).
+> New clients use exact-country discovery and the backend campus policy. The historical
+> US/CA shared search below remains only for compatible older requests. Closed campus
+> requests now persist as waiting; the fixed client launch-region list has been removed.
+
 # Profile and campus onboarding — deployed backend, 2026-11-24
 
 ## Current client behavior

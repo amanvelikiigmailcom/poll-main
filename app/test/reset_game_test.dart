@@ -1,3 +1,4 @@
+import 'fakes/reviewer_storage.dart';
 import 'fakes/eligible_player.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
@@ -24,9 +25,9 @@ Future<ProviderContainer> mountResetApp(
   bool signedIn = false,
   bool reviewer = false,
 }) async {
-  final storage = StorageService();
+  final storage = reviewer ? ReviewerStorageService() : StorageService();
   await storage.init();
-  if (reviewer) await storage.markReviewerSeen();
+
   if (signedIn) {
     await storage.saveToken('signed-in-token');
     await storage.savePhone('+16505551234');

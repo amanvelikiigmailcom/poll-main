@@ -106,7 +106,11 @@
 - US/CA — одна выдача; Canada dataset отсутствует, GB-каталог покрывает England.
 - Missing campus request сохраняется перед mailto; письмо отправляет сам пользователь.
 - Skip/requested campus не открывает игру новым enrollment; server gate обязателен.
+- Reviewer skips, guest exit и examples доступны только текущей подтверждённой reviewer-сессии; старый install-wide reviewer flag не даёт прав.
 - Remote skip/guest/example flags — UI controls, не серверная авторизация.
+- Доступность кампуса определяется backend policy; waiting восстанавливается с сервера и не обходится сменой страны, Reset game или Edit profile.
+- StoreKit storefront — подсказка страны; страна учёбы подтверждается отдельно. Новая выдача кампусов разделяет US/CA; старые запросы совместимы.
+- Collect stars показывает уже начисленную сервером награду; анимация не меняет баланс.
 - Возрастной gate, ожидание и school gate не обходятся Reset game/deep link.
 - Подробный контракт форм: [onboarding](docs/onboarding-schools.md); release sections там исторические.
 

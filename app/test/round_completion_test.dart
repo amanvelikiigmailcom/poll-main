@@ -240,6 +240,9 @@ void main() {
         const MaterialApp(home: StarReceivedScreen(starsAwarded: 2000)),
       );
       await tester.pumpAndSettle();
+      expect(find.text('Collect 2000 stars'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('collect-stars')));
+      await tester.pumpAndSettle();
       expect(find.text('+2000'), findsWidgets);
       expect(find.text('Collection'), findsOneWidget);
       expect(find.text('Reveal'), findsNothing);
@@ -267,6 +270,8 @@ void main() {
     );
     addTearDown(router.dispose);
     await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('collect-stars')));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Collection'));
     await tester.tap(find.text('Collection'));

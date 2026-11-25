@@ -1,3 +1,4 @@
+import 'fakes/reviewer_storage.dart';
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,8 +16,10 @@ void main() {
     ContentService.instance.debugClear();
   });
   tearDown(() => ContentService.instance.debugClear());
-  Future<(StorageService, ApiService, OnboardingDetailsService)> setup() async {
-    final storage = StorageService();
+  Future<(StorageService, ApiService, OnboardingDetailsService)> setup({
+    bool reviewer = false,
+  }) async {
+    final storage = reviewer ? ReviewerStorageService() : StorageService();
     await storage.init();
     final api = ApiService(storage);
     final service = OnboardingDetailsService(api, storage);
@@ -27,7 +30,7 @@ void main() {
   test(
     'guest profile, school and graduation year survive restart; skipped and requested schools do not unlock play',
     () async {
-      final (storage, api, service) = await setup();
+      final (storage, api, service) = await setup(reviewer: true);
       await service.setCountry('GB');
       await service.draft({'stage': 'profile'});
       await service.saveProfile('  Aman ', 'Smith', 'nonbinary');

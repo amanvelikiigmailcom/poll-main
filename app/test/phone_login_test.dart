@@ -1,3 +1,4 @@
+import 'fakes/reviewer_storage.dart';
 import 'fakes/mock_storage_service.dart';
 import 'fakes/eligible_player.dart';
 import 'package:flyprox_app/services/content_service.dart';
@@ -43,8 +44,9 @@ Future<void> pumpRoute(WidgetTester tester) async {
 Future<void> mountNames(
   WidgetTester tester, {
   PhoneAuthService? phoneAuth,
+  bool reviewer = true,
 }) async {
-  final storage = StorageService();
+  final storage = reviewer ? ReviewerStorageService() : StorageService();
   await storage.init();
   testAppRouter.go(AppRoutes.phone);
   await tester.pumpWidget(
@@ -75,6 +77,16 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     ContentService.instance.debugClear();
   });
+
+  testWidgets(
+    'ordinary users never get guest bypass even when its remote switch is enabled',
+    (tester) async {
+      ContentService.instance.debugSetOverrides({'guest_enabled': 'true'});
+      await mountNames(tester, reviewer: false);
+      expect(find.text('Continue without login'), findsNothing);
+      expect(find.text('Send code'), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'phone privacy and terms open their URLs directly without an intermediate screen',

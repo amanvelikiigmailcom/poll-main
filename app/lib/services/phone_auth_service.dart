@@ -133,6 +133,7 @@ class PhoneAuthService {
         );
       }
       await _storage.saveToken(token);
+      await _storage.saveReviewerAccess(data['reviewerSkipsAllowed'] == true);
       if (phone != null && phone.trim().isNotEmpty) {
         await _storage.savePhone(phone.trim());
       }
