@@ -56,7 +56,6 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
         }
       };
       storage.addListener(_storageListener!);
-      unawaited(_scope!.read(invitationServiceProvider).refresh());
       final balance = await _scope!.read(starBalanceProvider.future);
       if (mounted && await storage.getToken() == _ownerToken) {
         setState(
@@ -150,6 +149,9 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                             (_earned * progress).round();
                         return Container(
                           key: _wallet,
+                          constraints: BoxConstraints(
+                            maxWidth: MediaQuery.sizeOf(context).width * .48,
+                          ),
                           padding: const EdgeInsets.symmetric(
                             horizontal: 14,
                             vertical: 10,
@@ -167,13 +169,20 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                                 size: 22,
                               ),
                               const SizedBox(width: 6),
-                              Text(
-                                _balance == null ? 'Stars' : '$count',
-                                key: const Key('reward-balance'),
-                                style: const TextStyle(
-                                  color: AppColors.primaryBlue,
-                                  fontWeight: FontWeight.w800,
-                                  fontFeatures: [FontFeature.tabularFigures()],
+                              Flexible(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    _balance == null ? 'Stars' : '$count',
+                                    key: const Key('reward-balance'),
+                                    style: const TextStyle(
+                                      color: AppColors.primaryBlue,
+                                      fontWeight: FontWeight.w800,
+                                      fontFeatures: [
+                                        FontFeature.tabularFigures(),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
@@ -309,7 +318,7 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                     ),
                     if (_collected ||
                         widget.starsAwarded == null ||
-                        _sessionChanged) ...[
+                        _sessionChanged)
                       TextButton(
                         onPressed: () => context.push(AppRoutes.collection),
                         child: const Text(
@@ -317,31 +326,6 @@ class _StarReceivedScreenState extends State<StarReceivedScreen>
                           style: TextStyle(color: Colors.white, fontSize: 16),
                         ),
                       ),
-                      if (_scope != null && !_sessionChanged)
-                        Consumer(
-                          builder: (context, ref, _) {
-                            final service = ref.watch(
-                              invitationServiceProvider,
-                            );
-                            if (!service.signedIn ||
-                                !service.invitationsEnabled ||
-                                service.error != null) {
-                              return const SizedBox.shrink();
-                            }
-                            return TextButton.icon(
-                              onPressed: () => context.push(AppRoutes.invite),
-                              icon: const Icon(
-                                Icons.person_add_alt_1_rounded,
-                                color: Colors.white,
-                              ),
-                              label: Text(
-                                service.inviteButtonText,
-                                style: const TextStyle(color: Colors.white),
-                              ),
-                            );
-                          },
-                        ),
-                    ],
                   ],
                 ),
               ),

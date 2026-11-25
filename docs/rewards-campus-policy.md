@@ -47,7 +47,7 @@ retain the established compatibility behavior.
 
 ## Invitations
 
-Rewards, the timer and invitation composer use server policy. Default: US/CA Messages,
+After Collect, Continue opens the timer. The timer and invitation composer use server policy; the reward receipt has no Share/invitation action. Default: US/CA Messages,
 GB/NZ/SG/HK WhatsApp. `invitation_channel_policy` in backend content configuration can
 select channel, enabled, buttonText, fallback (share/none), and a message template with
 {url}/{code}. New channels still need native/client support. Existing invitation IDs
