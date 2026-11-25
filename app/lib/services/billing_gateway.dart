@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:superwallkit_flutter/superwallkit_flutter.dart';
 
 enum BuyOutcome { purchased, cancelled, pending, failed }
@@ -10,7 +9,7 @@ class BuyResult {
 }
 
 /// Thin seam over the billing backend so tests can script purchases.
-/// Production uses [SuperwallGateway]; every method degrades gracefully.
+/// Production uses [SuperwallGateway]; identity failures must remain visible.
 abstract class BillingGateway {
   Future<bool> isConfigured();
   Future<void> identify(String installId);
@@ -34,11 +33,7 @@ class SuperwallGateway implements BillingGateway {
 
   @override
   Future<void> identify(String installId) async {
-    try {
-      await Superwall.shared.identify(installId);
-    } catch (e) {
-      debugPrint('Superwall identify failed: $e');
-    }
+    await Superwall.shared.identify(installId);
   }
 
   @override
@@ -100,10 +95,6 @@ class SuperwallGateway implements BillingGateway {
 
   @override
   Future<void> reset() async {
-    try {
-      await Superwall.shared.reset();
-    } catch (e) {
-      debugPrint('Superwall reset failed: $e');
-    }
+    await Superwall.shared.reset();
   }
 }

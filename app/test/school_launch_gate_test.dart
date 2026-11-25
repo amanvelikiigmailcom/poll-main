@@ -43,9 +43,18 @@ void main() {
         SchoolLaunch.isOpen(school(region: 'West Midlands', country: 'GB')),
         isTrue,
       );
-      expect(SchoolLaunch.isOpen(school(region: 'ONTARIO', country: 'CA')), isTrue);
-      expect(SchoolLaunch.isOpen(school(region: 'Auckland', country: 'NZ')), isTrue);
-      expect(SchoolLaunch.isOpen(school(region: 'Central', country: 'SG')), isTrue);
+      expect(
+        SchoolLaunch.isOpen(school(region: 'ONTARIO', country: 'CA')),
+        isTrue,
+      );
+      expect(
+        SchoolLaunch.isOpen(school(region: 'Auckland', country: 'NZ')),
+        isTrue,
+      );
+      expect(
+        SchoolLaunch.isOpen(school(region: 'Central', country: 'SG')),
+        isTrue,
+      );
       expect(
         SchoolLaunch.isOpen(school(region: 'Hong Kong Island', country: 'HK')),
         isTrue,
@@ -65,8 +74,14 @@ void main() {
     test('closes every other region', () {
       expect(SchoolLaunch.isOpen(school(region: 'CALIFORNIA')), isFalse);
       expect(SchoolLaunch.isOpen(school(region: 'CA')), isFalse);
-      expect(SchoolLaunch.isOpen(school(region: 'Manchester', country: 'GB')), isFalse);
-      expect(SchoolLaunch.isOpen(school(region: 'Quebec', country: 'CA')), isFalse);
+      expect(
+        SchoolLaunch.isOpen(school(region: 'Manchester', country: 'GB')),
+        isFalse,
+      );
+      expect(
+        SchoolLaunch.isOpen(school(region: 'Quebec', country: 'CA')),
+        isFalse,
+      );
       expect(SchoolLaunch.isOpen(school(region: '', country: 'GB')), isFalse);
     });
 
@@ -76,7 +91,10 @@ void main() {
         isTrue,
       );
       expect(SchoolLaunch.isOpen(school(region: 'ONTARIO')), isFalse);
-      expect(SchoolLaunch.isOpen(school(region: 'Anywhere', country: 'XX')), isTrue);
+      expect(
+        SchoolLaunch.isOpen(school(region: 'Anywhere', country: 'XX')),
+        isTrue,
+      );
     });
 
     test('team test campus stays open outside launch regions', () {
@@ -220,7 +238,7 @@ void main() {
     await tester.tap(find.text('Central High'));
     await tester.pumpAndSettle();
     expect(find.text('Campus not available yet'), findsNothing);
-    expect(find.textContaining('Selected: Central High'), findsOneWidget);
+    expect(find.text('Central High'), findsOneWidget);
   });
 
   testWidgets('team test campus selects normally outside launch regions', (
@@ -243,10 +261,7 @@ void main() {
     await tester.tap(find.text('New Horizon Alternative School'));
     await tester.pumpAndSettle();
     expect(find.text('Campus not available yet'), findsNothing);
-    expect(
-      find.textContaining('Selected: New Horizon Alternative School'),
-      findsOneWidget,
-    );
+    expect(find.text('New Horizon Alternative School'), findsOneWidget);
   });
 
   testWidgets(
@@ -259,7 +274,7 @@ void main() {
         preseed: {'school': closed, 'graduationYear': 2030, 'country': 'US'},
       );
       await profile(tester);
-      expect(find.textContaining('Selected: West High'), findsOneWidget);
+      expect(find.text('West High'), findsOneWidget);
       await tester.ensureVisible(find.text('Continue'));
       await tester.tap(find.text('Continue'));
       await tester.pumpAndSettle();

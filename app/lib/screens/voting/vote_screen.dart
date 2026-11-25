@@ -15,7 +15,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/service_providers.dart';
 import '../../services/server_round_source.dart';
 import '../../services/api_service.dart';
-import '../../services/quiz_service.dart' as quiz;
 
 // ---------------------------------------------------------------------------
 // Data models
@@ -260,18 +259,13 @@ class _VoteScreenState extends State<VoteScreen>
     }
     if (!mounted) return;
 
-    // Phase B: the independent network waits overlap instead of queueing.
-    // The waiting period is still read after the invitation refresh, so a
-    // server-confirmed bypass is never missed.
+    // Mode and invitation refresh are independent. Loading the next quiz is
+    // dependent on redemption and the resulting waiting period.
     final settled = await Future.wait<dynamic>([
       draft == null ? _schoolMode() : Future<bool?>.value(null),
       _refreshInvitations(),
-      generated == null && !useSavedDraft && _source != null
-          ? _source!.tryLoadSession()
-          : Future<quiz.QuizSession?>.value(null),
     ]);
     final mode = settled[0] as bool?;
-    final serverSession = settled[2] as quiz.QuizSession?;
     if (!mounted) return;
     if (!ready && saved?.draft == null && mode != true) {
       context.go(AppRoutes.namesEntry);
@@ -343,8 +337,9 @@ class _VoteScreenState extends State<VoteScreen>
       return;
     }
 
-    // The local draft (if any) was restored above; the server session (if
-    // needed) was loaded in parallel with the other network waits.
+    final serverSession = generated == null
+        ? await _source?.tryLoadSession()
+        : null;
     if (!mounted) return;
     if (serverSession != null &&
         serverSession.supportsRoundSubmission &&

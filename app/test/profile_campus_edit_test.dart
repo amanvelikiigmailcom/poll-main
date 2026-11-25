@@ -186,4 +186,45 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+  testWidgets(
+    'account B does not display account A local username when identity fetch fails',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'local_username': 'account_a_private',
+      });
+      final storage = SessionStorage()..token = 'account-b';
+      await storage.init();
+      final api = ApiService(storage);
+      api.dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (request, handler) {
+            if (request.path == '/api/social/me') {
+              handler.reject(
+                DioException(
+                  requestOptions: request,
+                  type: DioExceptionType.connectionError,
+                ),
+              );
+            } else {
+              handler.resolve(
+                Response(requestOptions: request, data: <String, dynamic>{}),
+              );
+            }
+          },
+        ),
+      );
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            storageServiceProvider.overrideWithValue(storage),
+            apiServiceProvider.overrideWithValue(api),
+          ],
+          child: const MaterialApp(home: ProfileScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.textContaining('account_a_private'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

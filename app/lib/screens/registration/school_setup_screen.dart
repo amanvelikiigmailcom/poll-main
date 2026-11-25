@@ -36,6 +36,7 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
   List<Map<String, dynamic>> schools = [];
   Map<String, dynamic>? selected;
   final _yearAnchor = GlobalKey();
+  int? _confirmedYear;
   Map? get _previous => widget.profileCampus?['school'] as Map?;
   bool get _editing => widget.profileCampus != null;
   @override
@@ -48,8 +49,18 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
     final data =
         widget.profileCampus ??
         await ref.read(onboardingDetailsProvider).read();
+    final savedYear = data['graduationYear'] as int?;
+    final confirmed =
+        !_editing &&
+        await ref
+            .read(onboardingDetailsProvider)
+            .isConfirmedCampus(
+              (data['school'] as Map?)?['id'] as String?,
+              year: savedYear,
+            );
     if (!mounted) return;
     setState(() {
+      _confirmedYear = confirmed || _editing ? savedYear : null;
       country = data['country'] as String? ?? 'US';
       selected = !_editing && data['school'] is Map
           ? Map<String, dynamic>.from(data['school'] as Map)
@@ -179,9 +190,21 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
         (selected == null || !(form.currentState?.validate() ?? false))) {
       return;
     }
-    // Restored selections (reinstall, re-login) bypass _select: re-check here
-    // so a closed region always sees the same dialog instead of proceeding.
-    if (!skip && !SchoolLaunch.isOpen(selected!, fallbackCountry: country)) {
+    // A server-confirmed unchanged enrollment survives launch restrictions.
+    // An arbitrary local draft never grants this exception.
+    final confirmed =
+        !skip &&
+        !_editing &&
+        await ref
+            .read(onboardingDetailsProvider)
+            .isConfirmedCampus(
+              selected?['id'] as String?,
+              year: int.tryParse(year.text),
+            );
+    if (!mounted) return;
+    if (!skip &&
+        !confirmed &&
+        !SchoolLaunch.isOpen(selected!, fallbackCountry: country)) {
       await _unavailable(selected!);
       return;
     }
@@ -322,17 +345,11 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
                 menuMaxHeight: 320,
                 decoration: setupInput('State / region (optional)'),
                 items: [
-                  const DropdownMenuItem(
-                    value: '',
-                    child: Text('All regions'),
-                  ),
+                  const DropdownMenuItem(value: '', child: Text('All regions')),
                   for (final entry in SchoolRegions.forCountry(country))
                     DropdownMenuItem(
                       value: entry.value,
-                      child: Text(
-                        entry.label,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      child: Text(entry.label, overflow: TextOverflow.ellipsis),
                     ),
                 ],
                 onChanged: saving ? null : _regionChanged,
@@ -439,7 +456,11 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
             key: form,
             child: SizedBox(
               key: _yearAnchor,
-              child: GraduationYearPicker(controller: year, enabled: !saving),
+              child: GraduationYearPicker(
+                controller: year,
+                enabled: !saving,
+                existingYear: _confirmedYear,
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -724,7 +745,7 @@ class _RegionPicker extends StatelessWidget {
       initialValue: entries.any((e) => e.value == current) ? current : null,
       isExpanded: true,
       menuMaxHeight: 320,
-      decoration: setupInput(campusRegionLabel(widget.country)),
+      decoration: setupInput(campusRegionLabel(country)),
       items: [
         for (final entry in entries)
           DropdownMenuItem(
@@ -732,11 +753,10 @@ class _RegionPicker extends StatelessWidget {
             child: Text(entry.label, overflow: TextOverflow.ellipsis),
           ),
       ],
-      onChanged: enabled
-          ? (value) => controller.text = value ?? ''
+      onChanged: enabled ? (value) => controller.text = value ?? '' : null,
+      validator: (value) => value == null
+          ? 'Enter the ${campusRegionLabel(country).toLowerCase()}.'
           : null,
-      validator: (value) =>
-          value == null ? 'Enter the state or region.' : null,
     );
   }
 }
@@ -771,9 +791,11 @@ class GraduationYearPicker extends StatelessWidget {
     super.key,
     required this.controller,
     this.enabled = true,
+    this.existingYear,
   });
   final TextEditingController controller;
   final bool enabled;
+  final int? existingYear;
   static List<int> choices([int? current]) {
     return List.generate(16, (index) => 2026 + index);
   }
@@ -781,14 +803,21 @@ class GraduationYearPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final selected = int.tryParse(controller.text);
+    final years = choices();
+    if (existingYear != null &&
+        OnboardingDetailsService.validYear(existingYear!) &&
+        !years.contains(existingYear)) {
+      years.add(existingYear!);
+      years.sort();
+    }
     return DropdownButtonFormField<int>(
       key: const Key('graduation-year'),
-      initialValue: choices().contains(selected) ? selected : null,
+      initialValue: years.contains(selected) ? selected : null,
       isExpanded: true,
       menuMaxHeight: 320,
       decoration: setupInput('Graduation year'),
       items: [
-        for (final value in choices())
+        for (final value in years)
           DropdownMenuItem(value: value, child: Text('$value')),
       ],
       onChanged: enabled

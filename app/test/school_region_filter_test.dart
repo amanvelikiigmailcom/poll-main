@@ -106,15 +106,8 @@ void main() {
     if (up) {
       // The menu opens on the selected item; earlier entries need an
       // upward scroll, which scrollUntilVisible cannot do.
-      for (
-        var i = 0;
-        i < 30 && find.text(label).evaluate().isEmpty;
-        i++
-      ) {
-        await tester.drag(
-          find.byType(Scrollable).last,
-          const Offset(0, 500),
-        );
+      for (var i = 0; i < 30 && find.text(label).evaluate().isEmpty; i++) {
+        await tester.drag(find.byType(Scrollable).last, const Offset(0, 500));
         await tester.pumpAndSettle();
       }
     } else {
@@ -131,9 +124,7 @@ void main() {
   group('SchoolRegions catalog', () {
     test('US has 56 states/territories with exact CCD server values', () {
       expect(SchoolRegions.usStates.length, 56);
-      final texas = SchoolRegions.usStates.singleWhere(
-        (s) => s.code == 'TX',
-      );
+      final texas = SchoolRegions.usStates.singleWhere((s) => s.code == 'TX');
       expect(texas.label, 'Texas');
       expect(texas.server, 'TEXAS');
       final servers = SchoolRegions.usStates.map((s) => s.server);
@@ -320,7 +311,7 @@ void main() {
     await tester.tap(find.text('Prepare email'));
     await tester.pumpAndSettle();
     // Same required-field message as the former free-text field.
-    expect(find.text('Enter the state or region.'), findsOneWidget);
+    expect(find.text('Enter the state / territory.'), findsOneWidget);
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Campus name'),
       'Westfield High',
@@ -357,9 +348,6 @@ void main() {
     await tester.tap(find.text('I can’t find my campus'));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('missing-region')), findsNothing);
-    expect(
-      find.widgetWithText(TextFormField, 'State / region'),
-      findsOneWidget,
-    );
+    expect(find.widgetWithText(TextFormField, 'District'), findsOneWidget);
   });
 }

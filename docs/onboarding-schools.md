@@ -64,3 +64,7 @@ Full ingestion completed with stable-ID100-row bulk upserts. A separate exhausti
 UI wording is campus throughout the enrollment flow. Graduation year offers96 calendar choices (current year minus80 through current year plus15), with no preselected value; on2026-11-24 this is1946–2041. The dropdown is exercised in widget tests. Native Mail and a new client build still require a separately authorized device/release step.
 
 The new owner search standard is recorded in both AGENTS.md: Meilisearch,300ms debounce, minima users2/cities2/campuses3, configurable typo thresholds. This standard is recorded for the next migration; production search currently remains Appwrite fulltext. Meilisearch has NOT been installed or enabled by this rollout.
+
+## Restored enrollment compatibility
+
+Authenticated server restore confirms the existing campus and graduation year for the current session. Unchanged existing enrollments remain available outside launch regions, and an existing valid older year stays selectable. Local drafts never receive this exception; session changes invalidate it. New enrollments still use launch gates and the offered year range. Region filters include both full US state names and postal codes in the backend without rewriting the catalog.

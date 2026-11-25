@@ -110,9 +110,11 @@ class _ProfileHeaderCard extends ConsumerWidget {
         : (user?.firstName ?? '');
     final login =
         identity?['username'] as String? ??
-        (local.username.isNotEmpty
-            ? local.username
-            : (!guest ? '' : (user?.username ?? '')));
+        (guest
+            ? (local.username.isNotEmpty
+                  ? local.username
+                  : (user?.username ?? ''))
+            : '');
     final username = login.isNotEmpty ? '@$login' : '';
 
     return Container(

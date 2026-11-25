@@ -16,6 +16,22 @@ class OnboardingDetailsService extends ChangeNotifier {
   final StorageService storage;
   Future<void> _writes = Future.value();
   bool _disposed = false;
+  String? _confirmedEnrollmentKey;
+  Map<String, dynamic>? _confirmedEnrollment;
+
+  void _confirmEnrollment(Map<String, dynamic>? data, String key) {
+    _confirmedEnrollmentKey = key;
+    _confirmedEnrollment = data?['status'] == 'selected' ? data : null;
+  }
+
+  Future<bool> isConfirmedCampus(String? id, {int? year}) async {
+    if (id == null || _confirmedEnrollmentKey != await _key()) return false;
+    final data = _confirmedEnrollment;
+    return data?['status'] == 'selected' &&
+        (data?['school'] as Map?)?['id'] == id &&
+        (year == null || data?['graduationYear'] == year);
+  }
+
   void _changed() {
     if (!_disposed) notifyListeners();
   }
@@ -79,6 +95,7 @@ class OnboardingDetailsService extends ChangeNotifier {
           ].contains(data['status'])) {
         return;
       }
+      _confirmEnrollment(data, key);
       final prior = await read();
       // Retain unsaved input after errors and account-scoped progress locally.
       await _persist({
@@ -121,10 +138,12 @@ class OnboardingDetailsService extends ChangeNotifier {
       final response = await api.put<Map<String, dynamic>>(
         '/api/onboarding',
         data: request,
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
       if (await storage.getToken() != token || key != await _key()) {
         throw const ApiException('Account changed. Please try again.');
       }
+      _confirmEnrollment(response.data, key);
       local = {...local, ...?response.data};
     }
     if (key != await _key()) {
