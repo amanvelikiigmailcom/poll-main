@@ -81,16 +81,6 @@ abstract final class AppRoutes {
   static const otp = '/otp';
   static const pushPrompt = '/push-prompt';
 
-  // Kept so leftover screens still compile. Not registered on the router.
-  static const register = '/register';
-  static const location = '/location';
-  static const school = '/school';
-  static const classSelect = '/class';
-  static const contacts = '/contacts';
-  static const photo = '/photo';
-  static const beforeVote = '/before-vote';
-  static const beforeVote2 = '/before-vote-2';
-  static const starTaking = '/star-taking';
   static const activity = '/home/activity';
   static const search = '/home/search';
   static const collection = '/collection';
