@@ -86,7 +86,7 @@ class _HowToUseScreenState extends State<HowToUseScreen> {
       bullets: [
         'Each round has 12 questions. For every question you pick one of 4 name cards.',
         'You cannot vote for yourself — your card is never a candidate.',
-        'Shuffle replaces cards when other eligible people are available; otherwise it reorders them. Skip moves to the next question. Each has 2 uses per round.',
+        'Shuffle replaces cards with other eligible people. If nobody else is available, no use is spent. Skip moves to the next question. Each has 2 uses per round.',
         'Skipped questions carry no penalty — report ones that feel wrong.',
         'To start you need a display name and at least 4 participants (or example names).',
       ],
@@ -135,14 +135,15 @@ class _HowToUseScreenState extends State<HowToUseScreen> {
       id: 'friends',
       icon: Icons.people_outline_rounded,
       title: 'Friends & search',
-      intro: 'Usernames only — no phonebook search.',
+      intro: 'Find people from your selected campus — no phonebook search.',
       bullets: [
-        'People are found by @username only — type 2+ letters, results update as you type.',
+        'Search by first name, last name or username with 2+ characters. Start with @ to search usernames only.',
         'Usernames are 3–32 ASCII characters at registration.',
         'Start with 5 cards, tap See more for the full campus list (up to 50).',
         'Try “Friends of friends” and “From your campus” recommendations.',
         'Friendship always needs an accepted request. There is no in-app chat.',
         'Blocking hides you from each other in search and stops requests and online votes.',
+        'Hide suggestion only removes a recommendation. Undo it or restore it in Settings → Hidden suggestions; it does not block anyone.',
       ],
     ),
     _GuideSection(

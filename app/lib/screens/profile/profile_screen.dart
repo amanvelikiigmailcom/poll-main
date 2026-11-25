@@ -352,7 +352,7 @@ class _CampusProfileRow extends ConsumerWidget {
                 else
                   'Campus selected',
                 if (location.isNotEmpty) location,
-                if (year != null) 'Class of $year',
+                if (year != null) 'Graduating in $year',
               ].join('\n'),
       ),
       trailing: result.hasError
@@ -385,13 +385,6 @@ class _ProfileActions extends StatelessWidget {
             title: const Text('Share Flyprox'),
             trailing: const Icon(Icons.chevron_right_rounded),
             onTap: () => context.push(AppRoutes.invite),
-          ),
-          const Divider(height: 1),
-          ListTile(
-            leading: const Icon(Icons.help_outline),
-            title: const Text('How to use'),
-            trailing: const Icon(Icons.chevron_right_rounded),
-            onTap: () => context.push(AppRoutes.howToUse),
           ),
         ],
       ),

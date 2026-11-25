@@ -1,4 +1,4 @@
-/// Only render names explicitly projected by the server for accepted friends.
+/// Render only names explicitly projected by the campus-authorized server.
 String socialDisplayName(Map<String, dynamic> user) {
   final name = ['firstName', 'lastName']
       .map((key) => user[key])

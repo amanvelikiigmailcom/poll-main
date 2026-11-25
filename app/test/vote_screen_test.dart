@@ -285,6 +285,14 @@ void main() {
       final saved = await LocalGameService.instance.loadRoundProgress();
       expect(saved!.draftAnswers!.single.optionId, 'q0-user4');
       expect(saved.draft!['shuffleUses'], 1);
+      await choose(tester, 'Shuffle (1)');
+      expect(
+        find.text('No other eligible people for this question.'),
+        findsOneWidget,
+      );
+      expect(find.text('Shuffle (1)'), findsOneWidget);
+      final unchanged = await LocalGameService.instance.loadRoundProgress();
+      expect(unchanged!.draft!['shuffleUses'], 1);
       final first =
           ((saved.draft!['questions'] as List).first as Map)['options'] as List;
       expect(first.map((o) => (o as Map)['winnerId']), isNot(contains('me')));
@@ -293,6 +301,66 @@ void main() {
         isNot(contains('q1-user0')),
       );
       await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
+    'rejected school choices offer a confirmed refresh, never an automatic discard',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      await LocalGameService.instance.savePlayerAndFriends(
+        playerName: 'Player',
+        friends: ['One', 'Two', 'Three', 'Four'],
+      );
+      final quiz = MockQuizService();
+      final base = _serverSession();
+      var loads = 0;
+      when(() => quiz.getQuizzes()).thenAnswer((_) async {
+        loads++;
+        return server.QuizSession(
+          sessionId: base.sessionId,
+          ownerId: 'owner',
+          schoolVoting: true,
+          serverCandidatesOnly: true,
+          totalQuestions: 12,
+          supportsRoundSubmission: true,
+          questions: base.questions,
+        );
+      });
+      when(
+        () => quiz.submitRound(
+          sessionId: 'srv1',
+          answers: any(named: 'answers'),
+          choices: any(named: 'choices'),
+        ),
+      ).thenThrow(
+        const ApiException(
+          'Some shown participants are no longer eligible. Reload this round.',
+          statusCode: 422,
+        ),
+      );
+      final source = ServerRoundSource(quiz, isLoggedIn: () async => true);
+      await tester.pumpWidget(
+        MaterialApp(home: VoteScreen(serverSource: source)),
+      );
+      await tester.pumpAndSettle();
+      for (var i = 0; i < 12; i++) {
+        await choose(tester, 'Маша');
+      }
+      await choose(tester, 'Submit votes');
+      expect(find.text('Refresh participants'), findsOneWidget);
+      expect(find.text('Review your answers'), findsOneWidget);
+      expect(loads, 1);
+      await choose(tester, 'Refresh participants');
+      await choose(tester, 'Cancel');
+      expect(loads, 1);
+      await choose(tester, 'Refresh participants');
+      await choose(tester, 'Refresh round');
+      expect(loads, 2);
+      expect(find.text('Question 1 of 12'), findsOneWidget);
+      final draft = await LocalGameService.instance.loadRoundProgress();
+      expect(draft!.draftAnswers, isEmpty);
+      expect(draft.draft!['sessionId'], 'srv1');
     },
   );
 
@@ -613,16 +681,17 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Tier question 0'), findsOneWidget);
-    expect(find.text('Friend · Class of 2026'), findsOneWidget);
-    expect(find.text('Class of 2026'), findsOneWidget);
-    expect(find.text('Class of 2024'), findsOneWidget);
+    expect(find.text('Friend · Graduating in 2026'), findsOneWidget);
+    expect(find.text('Graduating in 2026'), findsOneWidget);
+    expect(find.text('Graduating in 2024'), findsOneWidget);
     await choose(tester, 'Aibek');
     final saved = await LocalGameService.instance.loadRoundProgress();
     final options = (saved?.draft?['questions'] as List)[0]['options'] as List;
-    expect(
-      options.map((option) => option['id']).toList(),
-      ['friend', 'same', 'other'],
-    );
+    expect(options.map((option) => option['id']).toList(), [
+      'friend',
+      'same',
+      'other',
+    ]);
     expect(options[0]['graduationYear'], 2026);
     expect(options[0]['isFriend'], isTrue);
     expect(options[2]['isFriend'], isFalse);

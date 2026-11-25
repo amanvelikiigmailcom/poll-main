@@ -115,10 +115,10 @@ void main() {
       expect(find.text('Collection'), findsNothing);
       expect(find.text('Alex Friend 4'), findsOneWidget);
       expect(find.text('Alex Friend 5'), findsNothing);
-      await tester.tap(find.text('Share profile'));
+      await tester.tap(find.byTooltip('Copy profile link'));
       await tester.pumpAndSettle();
       expect(clipboard, 'https://api.flyprox.com/p/@alex_123');
-      expect(find.text('Copied'), findsOneWidget);
+      expect(find.byIcon(Icons.check), findsOneWidget);
       await tester.pump(const Duration(seconds: 2));
       expect(find.text('Share profile'), findsOneWidget);
       await tester.tap(find.text('Requests'));

@@ -39,6 +39,12 @@ class SettingsScreen extends ConsumerWidget {
       ),
       body: ListView(
         children: [
+          const _SectionHeader(title: 'YOUR CIRCLE'),
+          card([
+            route(Icons.auto_awesome_outlined, 'Activity', AppRoutes.activity),
+            const FriendsLink(),
+            route(Icons.stars_outlined, 'Collection', AppRoutes.collection),
+          ]),
           const _SectionHeader(title: 'ACCOUNT'),
           card([
             route(Icons.person_outline, 'Edit profile', AppRoutes.editProfile),
@@ -53,10 +59,13 @@ class SettingsScreen extends ConsumerWidget {
               onTap: () => context.push(AppRoutes.invitationCode, extra: true),
             ),
           ]),
-          const _SectionHeader(title: 'YOUR CIRCLE'),
+          const _SectionHeader(title: 'VISIBILITY'),
           card([
-            const FriendsLink(),
-            route(Icons.auto_awesome_outlined, 'Activity', AppRoutes.activity),
+            route(
+              Icons.visibility_off_outlined,
+              'Hidden suggestions',
+              AppRoutes.hiddenSuggestions,
+            ),
             route(
               Icons.shield_outlined,
               'Blocked users',

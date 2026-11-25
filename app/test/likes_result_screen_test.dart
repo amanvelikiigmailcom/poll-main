@@ -119,7 +119,7 @@ void main() {
     expect(find.text('Participants'), findsOneWidget);
     expect(find.text('Rival One'), findsOneWidget);
     expect(find.text('Rival Two'), findsOneWidget);
-    expect(find.text('Class of 2027'), findsOneWidget);
+    expect(find.text('Graduating in 2027'), findsOneWidget);
     for (final name in _friends) {
       expect(find.text(name), findsNothing);
     }
@@ -152,7 +152,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Vote details'), findsOneWidget);
       expect(find.text('Share vote v1'), findsNothing);
-      expect(find.text('Class of 2027'), findsOneWidget);
+      expect(find.text('Graduating in 2027'), findsOneWidget);
       expect(find.text('Your pick'), findsNothing);
       final share = find.text('Share');
       await tester.ensureVisible(share);

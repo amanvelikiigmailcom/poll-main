@@ -94,11 +94,11 @@ void main() {
     'received Like preview uses backend question, cohort and candidates, never hidden identity',
     (tester) async {
       await _mount(tester);
-      expect(find.text('Someone picked me'), findsOneWidget);
+      expect(find.text('Participants'), findsOneWidget);
       expect(find.text('Who makes everyone smile?'), findsOneWidget);
-      expect(find.text('From a girl · Class of 2029'), findsOneWidget);
-      expect(find.text('Aman · 2030'), findsOneWidget);
-      expect(find.text('Alina · 2028'), findsOneWidget);
+      expect(find.text('From a girl · Graduating in 2029'), findsOneWidget);
+      expect(find.text('Aman'), findsOneWidget);
+      expect(find.text('Alina'), findsOneWidget);
       expect(find.textContaining('SECRET'), findsNothing);
       for (final label in ['Instagram', 'Snapchat', 'TikTok']) {
         expect(find.text(label), findsOneWidget);
@@ -127,11 +127,11 @@ void main() {
     'server failure never falls back to stale route data; retry works',
     (tester) async {
       final (social, _, _) = await _mount(tester, fail: true);
-      expect(find.text('Someone picked me'), findsNothing);
+      expect(find.text('Participants'), findsNothing);
       social.fail = false;
       await tester.tap(find.text('Retry'));
       await tester.pumpAndSettle();
-      expect(find.text('Someone picked me'), findsOneWidget);
+      expect(find.text('Participants'), findsOneWidget);
     },
   );
   testWidgets('new block or revoked access prevents sharing', (tester) async {
@@ -141,7 +141,7 @@ void main() {
     await tester.tap(find.text('Instagram'));
     await tester.pumpAndSettle();
     expect(share.targets, isEmpty);
-    expect(find.text('Someone picked me'), findsNothing);
+    expect(find.text('Participants'), findsNothing);
   });
   testWidgets('repeated taps while reauthorizing produce a single handoff', (
     tester,
@@ -182,7 +182,7 @@ void main() {
       await storage.clearToken();
       social.pending!.complete(_data());
       await tester.pumpAndSettle();
-      expect(find.text('Someone picked me'), findsNothing);
+      expect(find.text('Participants'), findsNothing);
       expect(share.targets, isEmpty);
     },
   );
@@ -287,7 +287,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     for (var i = 0; i < 12; i++) {
-      expect(find.text('Classmate $i · ${2026 + i % 6}'), findsOneWidget);
+      expect(find.text('Classmate $i'), findsOneWidget);
+      expect(find.text('Graduating in ${2026 + i % 6}'), findsWidgets);
     }
     expect(tester.takeException(), isNull);
   });

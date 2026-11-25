@@ -122,7 +122,9 @@ void main() {
       }
       expect(
         tester
-            .widget<TextButton>(find.widgetWithText(TextButton, 'Shuffle (0)'))
+            .widget<OutlinedButton>(
+              find.widgetWithText(OutlinedButton, 'Shuffle (0)'),
+            )
             .onPressed,
         isNull,
       );
@@ -147,7 +149,9 @@ void main() {
       expect(find.text('Question 3 of 12'), findsOneWidget);
       expect(
         tester
-            .widget<TextButton>(find.widgetWithText(TextButton, 'Shuffle (0)'))
+            .widget<OutlinedButton>(
+              find.widgetWithText(OutlinedButton, 'Shuffle (0)'),
+            )
             .onPressed,
         isNull,
       );

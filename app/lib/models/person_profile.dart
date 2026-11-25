@@ -4,12 +4,8 @@ class PersonProfile {
     : id = json['id'] as String,
       username = json['username'] as String,
       relationship = json['relationship'] as String? ?? 'none',
-      firstName = json['relationship'] == 'friends'
-          ? json['firstName'] as String? ?? ''
-          : '',
-      lastName = json['relationship'] == 'friends'
-          ? json['lastName'] as String? ?? ''
-          : '',
+      firstName = json['firstName'] as String? ?? '',
+      lastName = json['lastName'] as String? ?? '',
       campus = (json['campus'] as Map?)?['name'] as String?,
       graduationYear = json['graduationYear'] as int?;
 

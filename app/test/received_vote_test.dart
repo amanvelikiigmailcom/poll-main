@@ -5,11 +5,11 @@ void main() {
   test(
     'public cohort labels handle all genders and never infer missing values',
     () {
-      expect(publicVoterLabel('female', 2029), 'From a girl · Class of 2029');
-      expect(publicVoterLabel('male', 2030), 'From a boy · Class of 2030');
+      expect(publicVoterLabel('female', 2029), 'From a girl · Graduating in 2029');
+      expect(publicVoterLabel('male', 2030), 'From a boy · Graduating in 2030');
       expect(
         publicVoterLabel('nonbinary', 2028),
-        'From a non-binary student · Class of 2028',
+        'From a non-binary student · Graduating in 2028',
       );
       expect(publicVoterLabel(null, null), 'From a student');
       expect(publicVoterLabel('invented', '2030'), 'From a student');
@@ -32,7 +32,7 @@ void main() {
           'invalid',
         ],
       });
-      expect(vote.voterLabel, 'From a girl · Class of 2029');
+      expect(vote.voterLabel, 'From a girl · Graduating in 2029');
       expect(vote.participants.single.name, 'Alex');
       expect(vote.participants.single.graduationYear, 2030);
       final missing = ReceivedVote.fromJson({

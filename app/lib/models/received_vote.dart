@@ -59,5 +59,5 @@ String publicVoterLabel(Object? gender, Object? year) {
     'nonbinary' => 'a non-binary student',
     _ => 'a student',
   };
-  return 'From $who${year is int ? ' · Class of $year' : ''}';
+  return 'From $who${year is int ? ' · Graduating in $year' : ''}';
 }

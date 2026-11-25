@@ -9,8 +9,9 @@ import '../../services/storage_service.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/common/social_identity.dart';
 import '../../widgets/common/premium_badge.dart';
+import '../../widgets/common/account_report_dialog.dart';
 
-enum SocialPage { search, friends, blocked }
+enum SocialPage { search, friends, blocked, hidden }
 
 final socialVisibilityRevisionProvider =
     NotifierProvider<_VisibilityRevision, int>(_VisibilityRevision.new);
@@ -42,7 +43,6 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
   Timer? _debounce;
   List<Map<String, dynamic>> _users = [];
   List<Map<String, dynamic>> _mutuals = [], _campus = [];
-  final _hidden = <String>{};
   int _mutualLimit = 5, _campusLimit = 5;
   late String _kind;
   String? _next;
@@ -62,7 +62,11 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
     if (widget.page != SocialPage.blocked) {
       WidgetsBinding.instance.addObserver(this);
     }
-    _kind = widget.page == SocialPage.blocked ? 'blocked' : widget.initialKind;
+    _kind = switch (widget.page) {
+      SocialPage.blocked => 'blocked',
+      SocialPage.hidden => 'hidden',
+      _ => widget.initialKind,
+    };
     _storage = ref.read(storageServiceProvider);
     _storage.addListener(_accountChanged);
     _load();
@@ -71,7 +75,6 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
   void _accountChanged() {
     _debounce?.cancel();
     _search.clear();
-    _hidden.clear();
     _mutualLimit = _campusLimit = 5;
     _load();
   }
@@ -123,10 +126,17 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
       setState(() => _guest = false);
       if (_isSearch &&
           query.isNotEmpty &&
-          !RegExp(r'^[a-zA-Z0-9_]{2,32}$').hasMatch(_searchHandle(query))) {
+          !(query.startsWith('@')
+              ? RegExp(r'^@[a-zA-Z0-9_]{2,32}$').hasMatch(query)
+              : query.length >= 2 &&
+                    query.length <= 80 &&
+                    RegExp(
+                      r"^[\p{L}\p{M}\p{N}_ .'-]+$",
+                      unicode: true,
+                    ).hasMatch(query))) {
         setState(() {
           _loading = false;
-          _error = 'Enter 2–32 username characters: A–Z, numbers or _.';
+          _error = 'Enter 2–80 characters of a name, or a valid @username.';
         });
         return;
       }
@@ -209,6 +219,11 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
     if (_busy) return;
     final owner = await _storage.getToken();
     if (!mounted) return;
+    String? reason;
+    if (action == 'report') {
+      reason = await showAccountReportDialog(context);
+      if (reason == null || !mounted) return;
+    }
     if (['block', 'remove', 'unblock'].contains(action)) {
       final confirmed = await showDialog<bool>(
         context: context,
@@ -245,7 +260,12 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
     final generation = _generation;
     setState(() => _busy = true);
     try {
-      await ref.read(socialServiceProvider).act(user['id'] as String, action);
+      final service = ref.read(socialServiceProvider);
+      if (reason != null) {
+        await service.report(user['id'] as String, reason);
+      } else {
+        await service.act(user['id'] as String, action);
+      }
       if (owner != await _storage.getToken() ||
           !mounted ||
           generation != _generation) {
@@ -256,6 +276,23 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Report received. You can also block this account.'),
+          ),
+        );
+      } else if (action == 'hide' || action == 'show') {
+        ref.read(socialVisibilityRevisionProvider.notifier).changed();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              action == 'hide'
+                  ? 'Suggestion hidden. Manage in Settings → Hidden suggestions.'
+                  : 'This person can appear in suggestions again.',
+            ),
+            action: action == 'hide'
+                ? SnackBarAction(
+                    label: 'Undo',
+                    onPressed: () => _action(user, 'show'),
+                  )
+                : null,
           ),
         );
       } else {
@@ -312,14 +349,15 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
       SocialPage.search => 'Find your people',
       SocialPage.friends => 'Friends',
       SocialPage.blocked => 'Blocked accounts',
+      SocialPage.hidden => 'Hidden suggestions',
     };
     final visible = _isSearch || _search.text.isEmpty
         ? _users
         : _users
               .where(
-                (u) => (u['username'] as String).contains(
-                  _search.text.trim().toLowerCase().replaceFirst('@', ''),
-                ),
+                (u) => '${socialDisplayName(u)} @${u['username']}'
+                    .toLowerCase()
+                    .contains(_search.text.trim().toLowerCase()),
               )
               .toList();
     return Scaffold(
@@ -355,7 +393,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
               ),
               const SizedBox(height: 8),
               const Text(
-                'Know their username? Find them here.',
+                'Find friends from your campus.',
                 style: TextStyle(
                   color: AppColors.textSecondary,
                   fontSize: 15,
@@ -416,7 +454,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                   style: const TextStyle(fontSize: 16),
                   decoration: InputDecoration(
                     hintText: _isSearch
-                        ? 'Search by @username'
+                        ? 'Search by name or @username'
                         : 'Search this list',
                     prefixIcon: const Icon(
                       Icons.search_rounded,
@@ -441,7 +479,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                 const Padding(
                   padding: EdgeInsets.only(top: 10),
                   child: Text(
-                    'Enter at least 2 characters from the start of their username. Names and phone numbers aren’t searchable.',
+                    'Search first name, last name or username. Only people from your selected campus appear.',
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.textSecondary,
@@ -497,13 +535,17 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                       ? 'Your circle starts here'
                       : _kind == 'blocked'
                       ? 'No blocked accounts'
+                      : _kind == 'hidden'
+                      ? 'No hidden suggestions'
                       : 'All caught up',
                   _isSearch
-                      ? 'Check the username with your friend and try again.'
+                      ? 'Try their name or @username. They must have selected the same campus.'
                       : _kind == 'friends'
                       ? 'Find someone you know and send your first request.'
                       : _kind == 'blocked'
                       ? 'Accounts you block will appear here.'
+                      : _kind == 'hidden'
+                      ? 'Hidden suggestions appear here. Show them again at any time.'
                       : 'Your friend requests will appear here.',
                   button: _kind == 'friends' && !_isSearch
                       ? 'Find friends'
@@ -523,15 +565,16 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                 _error == null &&
                 _search.text.trim().isEmpty) ...[
               const SizedBox(height: 14),
-              _recommendations(
-                'Friends of friends',
-                Icons.people_alt_outlined,
-                _mutuals,
-                _mutualLimit,
-                'No mutual connections yet. Search for someone you know.',
-                () => setState(() => _mutualLimit += 20),
-              ),
-              const SizedBox(height: 14),
+              if (_mutuals.isNotEmpty)
+                _recommendations(
+                  'Friends of friends',
+                  Icons.people_alt_outlined,
+                  _mutuals,
+                  _mutualLimit,
+                  'No mutual connections yet. Search for someone you know.',
+                  () => setState(() => _mutualLimit += 20),
+                ),
+              if (_mutuals.isNotEmpty) const SizedBox(height: 14),
               _recommendations(
                 'From your campus',
                 Icons.school_outlined,
@@ -540,6 +583,17 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                 'No more people from your campus yet.',
                 () => setState(() => _campusLimit += 20),
               ),
+              if (_mutuals.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    'Friends of friends appear once your friends have other connections on your campus.',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
             ],
           ],
         ),
@@ -555,7 +609,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
     String empty,
     VoidCallback more,
   ) {
-    final users = cards.where((card) => !_hidden.contains(card['id'])).toList();
+    final users = cards;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -567,11 +621,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                 color: Color(0xFFEFF1FE),
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                icon,
-                color: AppColors.primaryBlueDark,
-                size: 20,
-              ),
+              child: Icon(icon, color: AppColors.primaryBlueDark, size: 20),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -612,9 +662,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: AppColors.border.withValues(alpha: .7),
-              ),
+              border: Border.all(color: AppColors.border.withValues(alpha: .7)),
             ),
             child: Row(
               children: [
@@ -658,11 +706,6 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
 
   Widget _userCard(Map<String, dynamic> user, {bool recommendation = false}) {
     final relationship = user['relationship'] as String? ?? 'none';
-    final inlineActions =
-        recommendation &&
-        relationship == 'none' &&
-        MediaQuery.sizeOf(context).width >= 390 &&
-        MediaQuery.textScalerOf(context).scale(1) <= 1.2;
     Widget button(String label, String action, {bool primary = true}) =>
         Padding(
           padding: const EdgeInsets.only(right: 6, top: 4),
@@ -676,12 +719,6 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                   child: Text(label),
                 ),
         );
-    Widget hide() => TextButton(
-      onPressed: _busy
-          ? null
-          : () => setState(() => _hidden.add(user['id'] as String)),
-      child: const Text('Hide'),
-    );
     return Container(
       key: recommendation ? ValueKey('suggestion-${user['id']}') : null,
       margin: const EdgeInsets.only(bottom: 12),
@@ -727,6 +764,8 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                             Flexible(
                               child: Text(
                                 socialDisplayName(user),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 17,
@@ -743,8 +782,18 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                         if (socialDisplayName(user) != '@${user['username']}')
                           Text(
                             '@${user['username']}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               color: AppColors.textSecondary,
+                            ),
+                          ),
+                        if (user['graduationYear'] case final int year)
+                          Text(
+                            'Graduating in $year',
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 13,
                             ),
                           ),
                         if (recommendation)
@@ -760,12 +809,16 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                   ),
                 ),
               ),
-              if (inlineActions) ...[hide(), button('Add', 'request')],
-              if (!recommendation && relationship != 'blocked')
+              if (relationship != 'blocked' && widget.page != SocialPage.hidden)
                 PopupMenuButton<String>(
                   tooltip: 'Account actions',
                   onSelected: (value) => _action(user, value),
                   itemBuilder: (_) => [
+                    if (recommendation)
+                      const PopupMenuItem(
+                        value: 'hide',
+                        child: Text('Hide suggestion'),
+                      ),
                     if (relationship == 'friends')
                       const PopupMenuItem(
                         value: 'remove',
@@ -783,52 +836,54 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                 ),
             ],
           ),
-          if (!inlineActions)
-            Wrap(
-              children: [
-                if (recommendation) hide(),
-                if (relationship == 'none')
-                  button(recommendation ? 'Add' : 'Add friend', 'request'),
-                if (relationship == 'incoming') ...[
-                  button('Accept', 'accept'),
-                  button('Decline', 'decline', primary: false),
-                ],
-                if (relationship == 'outgoing') ...[
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-                    child: Text(
-                      'Request sent',
-                      style: TextStyle(color: AppColors.textSecondary),
-                    ),
-                  ),
-                  button('Cancel', 'cancel', primary: false),
-                ],
-                if (relationship == 'friends')
-                  const Padding(
-                    padding: EdgeInsets.only(top: 10),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.check_circle_outline_rounded,
-                          size: 18,
-                          color: AppColors.primaryBlueDark,
-                        ),
-                        SizedBox(width: 6),
-                        Text(
-                          'Friends',
-                          style: TextStyle(
-                            color: AppColors.primaryBlueDark,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                if (relationship == 'blocked')
-                  button('Unblock', 'unblock', primary: false),
+          Wrap(
+            children: [
+              if (widget.page == SocialPage.hidden)
+                button('Show again', 'show'),
+              if (widget.page != SocialPage.hidden && relationship == 'none')
+                button('Add friend', 'request'),
+              if (widget.page != SocialPage.hidden &&
+                  relationship == 'incoming') ...[
+                button('Accept', 'accept'),
+                button('Decline', 'decline', primary: false),
               ],
-            ),
+              if (widget.page != SocialPage.hidden &&
+                  relationship == 'outgoing') ...[
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+                  child: Text(
+                    'Request sent',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                ),
+                button('Cancel', 'cancel', primary: false),
+              ],
+              if (widget.page != SocialPage.hidden && relationship == 'friends')
+                const Padding(
+                  padding: EdgeInsets.only(top: 10),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.check_circle_outline_rounded,
+                        size: 18,
+                        color: AppColors.primaryBlueDark,
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        'Friends',
+                        style: TextStyle(
+                          color: AppColors.primaryBlueDark,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              if (relationship == 'blocked')
+                button('Unblock', 'unblock', primary: false),
+            ],
+          ),
         ],
       ),
     );
