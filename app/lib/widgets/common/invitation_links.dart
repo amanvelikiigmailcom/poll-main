@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:app_links/app_links.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter/material.dart';
 import '../../router/app_router.dart';
 import '../../services/invite_code_store.dart';
@@ -9,8 +10,15 @@ import '../../providers/service_providers.dart';
 /// Save attribution before navigation. Receiving a link cannot bypass the age
 /// gate or destroy a vote/OTP screen that is already in progress.
 class InvitationLinks extends StatefulWidget {
-  const InvitationLinks({super.key, required this.child});
+  const InvitationLinks({
+    super.key,
+    required this.child,
+    this.linkStream,
+    this.router,
+  });
   final Widget child;
+  final Stream<Uri>? linkStream;
+  final GoRouter? router;
   @override
   State<InvitationLinks> createState() => _InvitationLinksState();
 }
@@ -25,13 +33,12 @@ class _InvitationLinksState extends State<InvitationLinks> {
 
   Future<void> _start() async {
     try {
-      final links = AppLinks();
       final saved = await InviteCodeStore.code();
       if (saved != null && await InviteCodeStore.source() == 'link') {
         unawaited(_recordOpen(saved));
       }
       if (!mounted) return;
-      _subscription = links.uriLinkStream.listen(
+      _subscription = (widget.linkStream ?? AppLinks().uriLinkStream).listen(
         (uri) => unawaited(_receive(uri)),
         onError: (_) {},
       );
@@ -54,13 +61,14 @@ class _InvitationLinksState extends State<InvitationLinks> {
     await InviteCodeStore.save(code, 'link');
     unawaited(_recordOpen(code));
     if (!mounted || !navigate) return;
-    final path = appRouter.routeInformationProvider.value.uri.path;
+    final router = widget.router ?? appRouter;
+    final path = router.routeInformationProvider.value.uri.path;
     if ([
       AppRoutes.onboarding,
       AppRoutes.phone,
       AppRoutes.invitationCode,
     ].contains(path)) {
-      appRouter.go(AppRoutes.invitationCode);
+      router.go(AppRoutes.invitationCode);
     } else {
       ScaffoldMessenger.maybeOf(context)?.showSnackBar(
         const SnackBar(

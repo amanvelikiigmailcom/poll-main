@@ -8,6 +8,43 @@ badge expiry. `premium_screen_test.dart` checks the single weekly offer.
 Reveal is absent and acknowledged server rewards can display 2000.
 These fakes do not prove real purchase/restore, webhooks or production DB uniqueness.
 
+## Critical session and network regressions
+
+- `api_service_test.dart` uses a fake HTTP adapter with real Dio interceptors:
+  all five methods, pinned/missing Bearer, current/stale 401, caller-owned 401,
+  connection/timeout/cancellation errors and malformed HTTP error bodies.
+- `auth_session_test.dart` uses real services and in-memory platform storage:
+  cancelled login after logout, reversed login responses, shared Firebase/legacy
+  attempt ordering, offline logout, pinned remote logout and stale UI completions.
+- `storage_service_test.dart` covers secure token persistence, serialized writes,
+  cancellation during a native write, metadata rollback on secure-write failure,
+  and recovery after a failed queued operation.
+- `star_balance_provider_test.dart` exercises the actual Riverpod provider/cache
+  wiring through guest → A → offline → B → logout, hashed cache keys and late
+  responses. The lower-level balance tests remain responsible for invalid values.
+- `profile_edit_service_test.dart` also preserves the server's username conflict
+  status/message. Retired photo/registration paths are not new coverage targets.
+- `invite_code_store_test.dart` checks accepted HTTPS/manual inputs, hostile or
+  malformed URLs and preservation of the existing code on invalid input.
+- `invitation_links_test.dart` injects a URI stream and fresh router: warm links
+  preserve OTP/vote/age-screen input, attribution is not auto-claimed, duplicates
+  do not replace the pending code and observation failures do not lose it.
+  This tests the Dart handler, not native cold-start Universal Links or the full
+  application age gate; the existing age/router suites and device checklist apply.
+
+No backend limits are reimplemented in client fakes. Existing backend
+`share-invites.test.js` covers the fifth/sixth WhatsApp return, concurrent grants,
+replay and UTC rollover; `round-submission.test.js` covers 49 → 50 and rejection
+of the 51st round. Existing Premium/backend subscription tests cover quotas,
+expiry and webhook idempotency; they do not replace Apple Sandbox.
+
+Session ordering: both sign-in paths share an attempt generation. New attempts,
+logout and direct credential changes invalidate old login completions. Logout
+clears local credentials before its best-effort request and pins that request to
+the old Bearer. Secure credential writes are serialized; login metadata is rolled
+back on failed/cancelled commits. No API payload, database schema or game rule
+changes are required.
+
 Эти файлы — постоянная часть Git-репозитория. Они доступны любому агенту/разработчику с доступом к этой версии проекта. Логи `/tmp/flyprox-*.log` временные и не заменяют исходники тестов.
 
 

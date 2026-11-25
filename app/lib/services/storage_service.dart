@@ -15,6 +15,97 @@ class StorageService extends ChangeNotifier {
   final FlutterSecureStorage _secureStorage;
   late SharedPreferences _prefs;
   String? _activeToken;
+  int _authenticationGeneration = 0;
+  Future<void> _credentialWrites = Future<void>.value();
+
+  /// Shared by both login paths. Logout or a newer attempt cancels older work.
+  int beginAuthentication() => ++_authenticationGeneration;
+
+  bool isAuthenticationCurrent(int generation) =>
+      generation == _authenticationGeneration;
+
+  Future<T> _withCredentialLock<T>(Future<T> Function() action) {
+    final result = _credentialWrites.then((_) => action());
+    _credentialWrites = result.then<void>(
+      (_) {},
+      onError: (Object error, StackTrace stack) {},
+    );
+    return result;
+  }
+
+  /// Commits only the latest login, serially with logout and credential writes.
+  /// Metadata is staged first; a failed/cancelled secure write is rolled back.
+  Future<bool> saveAuthenticatedSession(
+    int generation, {
+    required String token,
+    String? phone,
+    bool reviewerAccess = false,
+  }) => _withCredentialLock(() async {
+    if (!isAuthenticationCurrent(generation)) return false;
+    final oldToken = await getToken();
+    final oldPhone = getPhone();
+    final oldUser = _prefs.getString(_userKey);
+    if (!isAuthenticationCurrent(generation)) return false;
+    final reviewerKey =
+        'reviewer_access_v2_${sha256.convert(utf8.encode(token))}';
+    final oldReviewer = _prefs.getBool(reviewerKey);
+    Future<void> restoreMetadata() async {
+      if (oldPhone == null) {
+        await _prefs.remove(_phoneKey);
+      } else {
+        await _prefs.setString(_phoneKey, oldPhone);
+      }
+      if (oldUser != null) await _prefs.setString(_userKey, oldUser);
+      if (oldReviewer == null) {
+        await _prefs.remove(reviewerKey);
+      } else {
+        await _prefs.setBool(reviewerKey, oldReviewer);
+      }
+    }
+
+    try {
+      await _prefs.remove(_userKey);
+      await _prefs.remove(_phoneKey);
+      if (phone != null && phone.trim().isNotEmpty) {
+        await _prefs.setString(_phoneKey, phone.trim());
+      }
+      await _prefs.setBool(reviewerKey, reviewerAccess);
+      if (!isAuthenticationCurrent(generation)) {
+        await restoreMetadata();
+        return false;
+      }
+      await _secureStorage.write(key: _tokenKey, value: token);
+      if (!isAuthenticationCurrent(generation)) {
+        if (oldToken == null) {
+          await _secureStorage.delete(key: _tokenKey);
+        } else {
+          await _secureStorage.write(key: _tokenKey, value: oldToken);
+        }
+        await restoreMetadata();
+        return false;
+      }
+      _activeToken = token;
+      notifyListeners();
+      return true;
+    } catch (_) {
+      await restoreMetadata();
+      rethrow;
+    }
+  });
+
+  /// Clear the session immediately, before waiting for best-effort remote logout.
+  Future<String?> clearSession() {
+    beginAuthentication();
+    return _withCredentialLock(() async {
+      final token = await getToken();
+      await _secureStorage.delete(key: _tokenKey);
+      _activeToken = null;
+      await clearUser();
+      await clearPhone();
+      notifyListeners();
+      return token;
+    });
+  }
 
   StorageService()
     : _secureStorage = const FlutterSecureStorage(
@@ -38,9 +129,12 @@ class StorageService extends ChangeNotifier {
   // ── Auth token (secure) ───────────────────────────────────────────────────
 
   Future<void> saveToken(String token) async {
-    await _secureStorage.write(key: _tokenKey, value: token);
-    _activeToken = token;
-    notifyListeners();
+    beginAuthentication();
+    await _withCredentialLock(() async {
+      await _secureStorage.write(key: _tokenKey, value: token);
+      _activeToken = token;
+      notifyListeners();
+    });
   }
 
   Future<String?> getToken() async {
@@ -48,9 +142,12 @@ class StorageService extends ChangeNotifier {
   }
 
   Future<void> clearToken() async {
-    await _secureStorage.delete(key: _tokenKey);
-    _activeToken = null;
-    notifyListeners();
+    beginAuthentication();
+    await _withCredentialLock(() async {
+      await _secureStorage.delete(key: _tokenKey);
+      _activeToken = null;
+      notifyListeners();
+    });
   }
 
   // ── User (SharedPreferences, non-sensitive) ───────────────────────────────
@@ -137,9 +234,12 @@ class StorageService extends ChangeNotifier {
   // ── Clear all ─────────────────────────────────────────────────────────────
 
   Future<void> clearAll() async {
-    _activeToken = null;
-    await _secureStorage.deleteAll();
-    await _prefs.clear();
-    notifyListeners();
+    beginAuthentication();
+    await _withCredentialLock(() async {
+      await _secureStorage.deleteAll();
+      _activeToken = null;
+      await _prefs.clear();
+      notifyListeners();
+    });
   }
 }

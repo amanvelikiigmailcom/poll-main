@@ -144,8 +144,13 @@ class ApiService {
         final data = e.response?.data;
         String message = 'An error occurred. Please try again.';
         if (data is Map<String, dynamic>) {
-          message =
-              data['message'] as String? ?? data['error'] as String? ?? message;
+          final serverMessage = data['message'];
+          final serverError = data['error'];
+          if (serverMessage is String) {
+            message = serverMessage;
+          } else if (serverError is String) {
+            message = serverError;
+          }
         }
         return ApiException(message, statusCode: statusCode);
       case DioExceptionType.cancel:

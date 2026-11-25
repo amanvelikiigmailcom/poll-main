@@ -93,12 +93,13 @@ class PhoneAuthService {
     required String code,
     String? phone,
   }) async {
+    final generation = _storage.beginAuthentication();
     try {
       final idToken = await _driver.confirmCode(
         verificationId: verificationId,
         smsCode: code,
       );
-      return loginWithIdToken(idToken, phone: phone);
+      return _loginWithIdToken(idToken, phone: phone, generation: generation);
     } on PhoneAuthException catch (e) {
       return PhoneLoginResult(success: false, message: e.message);
     } catch (_) {
@@ -114,14 +115,39 @@ class PhoneAuthService {
     String idToken, {
     String? phone,
   }) async {
+    return _loginWithIdToken(
+      idToken,
+      phone: phone,
+      generation: _storage.beginAuthentication(),
+    );
+  }
+
+  Future<PhoneLoginResult> _loginWithIdToken(
+    String idToken, {
+    String? phone,
+    required int generation,
+  }) async {
     try {
+      if (!_storage.isAuthenticationCurrent(generation)) {
+        return const PhoneLoginResult(
+          success: false,
+          message: 'Sign-in was cancelled.',
+        );
+      }
+      final installationId = await _notificationInstallationId();
+      if (!_storage.isAuthenticationCurrent(generation)) {
+        return const PhoneLoginResult(
+          success: false,
+          message: 'Sign-in was cancelled.',
+        );
+      }
       final response = await _api.post<Map<String, dynamic>>(
         '/api/auth/firebase',
         data: {
           'idToken': idToken,
           'schoolOnboardingVersion': 1,
-          if (await _notificationInstallationId() case final String id)
-            'notificationInstallationId': id,
+          if (installationId != null)
+            'notificationInstallationId': installationId,
         },
       );
       final data = response.data ?? {};
@@ -132,10 +158,16 @@ class PhoneAuthService {
           message: (data['message'] as String?) ?? 'Login failed. Try again.',
         );
       }
-      await _storage.saveToken(token);
-      await _storage.saveReviewerAccess(data['reviewerSkipsAllowed'] == true);
-      if (phone != null && phone.trim().isNotEmpty) {
-        await _storage.savePhone(phone.trim());
+      if (!await _storage.saveAuthenticatedSession(
+        generation,
+        token: token,
+        phone: phone,
+        reviewerAccess: data['reviewerSkipsAllowed'] == true,
+      )) {
+        return const PhoneLoginResult(
+          success: false,
+          message: 'Sign-in was cancelled.',
+        );
       }
       return PhoneLoginResult(
         success: true,
