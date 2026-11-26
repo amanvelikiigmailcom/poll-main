@@ -448,6 +448,10 @@ void main() {
       await choose(tester, i == 2 ? 'Skip (1)' : 'Али');
     }
     expect(find.text('Review your answers'), findsOneWidget);
+    expect(
+      find.textContaining('By submitting, you allow Premium recipients'),
+      findsOneWidget,
+    );
     expect(find.text('11 answered · 1 skipped'), findsOneWidget);
     expect(submissions, isEmpty);
     verifyNever(
@@ -748,6 +752,10 @@ void main() {
       expect(
         find.textContaining('Premium recipients can reveal'),
         findsNothing,
+      );
+      expect(
+        find.textContaining('Premium recipients may reveal your first initial'),
+        findsOneWidget,
       );
       for (final name in ['Али', 'Маша', 'Даня', 'Саша']) {
         expect(find.text(name), findsOneWidget);

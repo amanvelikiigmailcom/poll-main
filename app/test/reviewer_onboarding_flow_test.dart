@@ -392,7 +392,7 @@ void main() {
     (tester) async {
       final f = ReviewFixture();
       await f.mount(tester, route: AppRoutes.phone);
-      expect(find.text('Continue with this account'), findsNothing);
+      expect(find.text('Continue without login'), findsNothing);
       await tester.enterText(find.byType(TextField), '6505551234');
       await tester.ensureVisible(find.text('Send code'));
       await tester.pump();
@@ -439,7 +439,7 @@ void main() {
 
   for (final route in [AppRoutes.phone, AppRoutes.otp]) {
     testWidgets(
-      'reviewer Continue with this account on $route goes to contacts then examples without hidden forms',
+      'reviewer Continue without login on $route goes to contacts then examples without hidden forms',
       (tester) async {
         final f = ReviewFixture()..username = 'existing_review_handle';
         await f.mount(
@@ -448,7 +448,7 @@ void main() {
           route: route,
           stage: 'profile',
         );
-        final skip = find.text('Continue with this account');
+        final skip = find.text('Continue without login');
         await tester.ensureVisible(skip);
         await tester.pump();
         await tester.tap(skip);
@@ -480,11 +480,11 @@ void main() {
     );
 
     testWidgets(
-      'Continue with this account on $route handles server failure without uncaught errors or hidden forms',
+      'Continue without login on $route handles server failure without uncaught errors or hidden forms',
       (tester) async {
         final f = ReviewFixture()..failOnboarding = true;
         await f.mount(tester, authenticated: true, route: route);
-        final skip = find.text('Continue with this account');
+        final skip = find.text('Continue without login');
         await tester.ensureVisible(skip);
         await tester.pump();
         await tester.tap(skip);
@@ -518,10 +518,10 @@ void main() {
       final f = ReviewFixture();
       await f.mount(tester, route: AppRoutes.phone);
       expect(f.storage.reviewerSkipsAllowed, isFalse);
-      expect(find.text('Continue with this account'), findsNothing);
+      expect(find.text('Continue without login'), findsNothing);
       await tester.enterText(find.byType(TextField), '6505551234');
       await tester.pump();
-      expect(find.text('Continue with this account'), findsNothing);
+      expect(find.text('Continue without login'), findsNothing);
     },
   );
 
@@ -561,7 +561,7 @@ void main() {
         final pending = Completer<void>();
         final f = ReviewFixture()..holdOnboarding = pending;
         await f.mount(tester, authenticated: true, route: route);
-        final skip = find.text('Continue with this account');
+        final skip = find.text('Continue without login');
         await tester.ensureVisible(skip);
         await tester.pump();
         await tester.tap(skip);
@@ -569,7 +569,7 @@ void main() {
           await tester.pump(const Duration(milliseconds: 100));
         }
         final button = tester.widget<OutlinedButton>(
-          find.widgetWithText(OutlinedButton, 'Continue with this account'),
+          find.widgetWithText(OutlinedButton, 'Continue without login'),
         );
         expect(button.onPressed, isNull);
         await tester.tap(skip);

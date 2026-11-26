@@ -349,7 +349,7 @@ class _PhoneRegistrationScreenState
                               vertical: 14,
                             ),
                           ),
-                          child: const Text('Continue with this account'),
+                          child: const Text('Continue without login'),
                         ),
                       ],
                       Wrap(

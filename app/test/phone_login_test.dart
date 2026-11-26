@@ -83,7 +83,7 @@ void main() {
     (tester) async {
       ContentService.instance.debugSetOverrides({'guest_enabled': 'true'});
       await mountNames(tester, reviewer: false);
-      expect(find.text('Continue with this account'), findsNothing);
+      expect(find.text('Continue without login'), findsNothing);
       expect(find.text('Send code'), findsOneWidget);
     },
   );
@@ -291,8 +291,8 @@ void main() {
       ),
     );
     expect(find.text('Log in with phone'), findsOneWidget);
-    await tester.ensureVisible(find.text('Continue with this account'));
-    await tester.tap(find.text('Continue with this account'));
+    await tester.ensureVisible(find.text('Continue without login'));
+    await tester.tap(find.text('Continue without login'));
     await tester.pumpAndSettle();
     expect(find.text('About you'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
@@ -317,8 +317,8 @@ void main() {
       find.widgetWithText(ElevatedButton, 'Send code'),
     );
     expect(send.onPressed, isNull);
-    await tester.ensureVisible(find.text('Continue with this account'));
-    await tester.tap(find.text('Continue with this account'));
+    await tester.ensureVisible(find.text('Continue without login'));
+    await tester.tap(find.text('Continue without login'));
     await tester.pumpAndSettle();
     expect(find.text('About you'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
@@ -348,8 +348,8 @@ void main() {
         findsNothing,
       );
       expect(tester.testTextInput.isVisible, isFalse);
-      await tester.ensureVisible(find.text('Continue with this account'));
-      await tester.tap(find.text('Continue with this account'));
+      await tester.ensureVisible(find.text('Continue without login'));
+      await tester.tap(find.text('Continue without login'));
       await pumpRoute(tester);
       expect(find.text('About you'), findsOneWidget);
       pending.complete(const CodeSent(verificationId: 'late-code'));
@@ -604,19 +604,19 @@ void main() {
           storage: MockStorageService(),
         ),
       );
-      expect(find.text('Continue with this account'), findsOneWidget);
+      expect(find.text('Continue without login'), findsOneWidget);
       ContentService.instance.debugSetOverrides({'guest_enabled': 'false'});
       await tester.pump();
-      expect(find.text('Continue with this account'), findsNothing);
+      expect(find.text('Continue without login'), findsNothing);
       await tester.enterText(find.byType(TextField), '6505551234');
       await tester.pump();
       await tester.tap(find.text('Send code'));
       await pumpRoute(tester);
       expect(find.text('Enter the code'), findsOneWidget);
-      expect(find.text('Continue with this account'), findsNothing);
+      expect(find.text('Continue without login'), findsNothing);
       ContentService.instance.debugSetOverrides({'guest_enabled': 'true'});
       await tester.pump();
-      expect(find.text('Continue with this account'), findsOneWidget);
+      expect(find.text('Continue without login'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     },
   );

@@ -233,7 +233,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Continue with this account'));
+      await tester.tap(find.text('Continue without login'));
       await tester.pumpAndSettle();
       expect(find.text('About you'), findsOneWidget);
       await tester.enterText(

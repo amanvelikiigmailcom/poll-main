@@ -981,6 +981,13 @@ class _VoteScreenState extends State<VoteScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildQuestion(),
+                        if (_sessionId != null)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 12),
+                            child: Text(
+                              'Premium recipients may reveal your first initial or full name within weekly limits. Active Premium protects your name and initial.',
+                            ),
+                          ),
                         const SizedBox(height: 20),
                         _buildOptionsGrid(),
                         const SizedBox(height: 16),
@@ -1064,6 +1071,13 @@ class _VoteScreenState extends State<VoteScreen>
                 },
               ),
             ),
+            if (_sessionId != null)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Text(
+                  'By submitting, you allow Premium recipients to reveal your first initial or full name within weekly limits. Active Premium protects your name and initial.',
+                ),
+              ),
             if (_submitError case final error?)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),

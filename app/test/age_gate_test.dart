@@ -60,8 +60,8 @@ void main() {
       await tester.tap(find.text('Skip'));
       await tester.pumpAndSettle();
       expect(find.text('Log in with phone'), findsOneWidget);
-      await tester.ensureVisible(find.text('Continue with this account'));
-      await tester.tap(find.text('Continue with this account'));
+      await tester.ensureVisible(find.text('Continue without login'));
+      await tester.tap(find.text('Continue without login'));
       await tester.pumpAndSettle();
       expect(find.text('How old are you?'), findsOneWidget);
       expect(find.text('12 or younger'), findsOneWidget);
@@ -120,8 +120,8 @@ void main() {
       expect(find.text('Who’s most\nlikely to…?'), findsOneWidget);
       await tester.tap(find.text('Skip'));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Continue with this account'));
-      await tester.tap(find.text('Continue with this account'));
+      await tester.ensureVisible(find.text('Continue without login'));
+      await tester.tap(find.text('Continue without login'));
       await tester.pumpAndSettle();
       await pickAge(tester, '13');
       expect(find.text('About you'), findsOneWidget);
