@@ -7,6 +7,32 @@
 
 ## Current client behavior
 
+### Contacts decision before the picker
+
+For ordinary signed-in registration, school selection is followed by the server's
+`contactsRequirement` in the same `PUT /api/onboarding` response, not a best-effort
+`GET /api/quizzes/mode`. `GET /api/onboarding` supplies the same fresh decision on
+restore. Five selected enrollments in the whole campus, including the current
+user and all graduation years, enable school mode when the existing school-voting
+flag allows it. Waiting/requested/skipped rows do not count. `joined` is capped
+at the threshold, not an exact campus population.
+
+School mode advances to username without opening Contacts; below threshold the
+user chooses contacts. Missing/malformed decisions and network/provider failures
+show a retry instead of silently selecting contacts. A restarted unfinished contact
+screen refreshes server state before enabling the picker; a successful school save
+is reused without another mode request. Completed local registration is retained;
+saved contacts can resume username. Waiting remains a separate gate.
+
+The verified reviewer path and example-name entitlement are unchanged. Runtime
+round creation still independently checks eligibility, blocks and the school
+threshold. No schema change is needed. Backend support must be released before
+this client: an old server missing the decision deliberately produces a retry.
+This source change does not deploy, enable flags, build or upload the app.
+Paired backend source: `flyprox_backend` commit `3d43ace`
+(`fix/school-contacts-gate-20261126`); this is a source dependency, not a
+production deployment claim.
+
 The phone screen opens configured Privacy Policy and Terms of Use URLs directly.
 Selecting a campus collapses search results and brings the graduation-year control
 into view. The setup menu offers 2026–2041 in ascending order, without a default.

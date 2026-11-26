@@ -29,32 +29,65 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
   bool _saving = false;
   bool _choosing = false;
   bool _syncing = false;
+  bool _checkingCampus = true;
+  String? _campusError;
   List<ContactMatch> _matches = [];
   ({bool school, int joined, int threshold})? _campusMode;
-  bool get _busy => _loading || _saving || _choosing || _syncing;
+  bool get _busy =>
+      _loading ||
+      _saving ||
+      _choosing ||
+      _syncing ||
+      _checkingCampus ||
+      _campusError != null;
 
   @override
   void initState() {
     super.initState();
+    _checkingCampus = !ref.read(storageServiceProvider).reviewerSkipsAllowed;
     _prefill();
     _loadCampusMode();
   }
 
   Future<void> _loadCampusMode() async {
     final service = ref.read(onboardingDetailsProvider);
-    final mode = await service.votingMode();
-    if (!mounted || mode == null) return;
-    if (mode.school) {
-      final stage = (await service.read())['stage'];
-      if (!mounted) return;
-      if (stage == 'contacts') {
-        await service.draft({'stage': 'username'});
-        if (mounted) context.go(AppRoutes.username);
-      } else if (stage == 'done') {
-        context.go(AppRoutes.home);
+    var leaving = false;
+    try {
+      final storage = ref.read(storageServiceProvider);
+      final details = await service.read();
+      final registration =
+          !storage.reviewerSkipsAllowed &&
+          (await storage.getToken())?.isNotEmpty == true &&
+          details['status'] == 'selected' &&
+          details['stage'] != 'done';
+      final mode = registration
+          ? await service.contactsDecision()
+          : await service.votingMode();
+      if (!mounted || mode == null) return;
+      if (mode.school) {
+        final stage = (await service.read())['stage'];
+        if (!mounted) return;
+        if (registration || stage == 'contacts') {
+          await service.draft({'stage': 'username'});
+          if (mounted) {
+            leaving = true;
+            context.go(AppRoutes.username);
+          }
+        } else if (stage == 'done') {
+          leaving = true;
+          context.go(AppRoutes.home);
+        }
+      } else {
+        setState(() => _campusMode = mode);
       }
-    } else {
-      setState(() => _campusMode = mode);
+    } catch (_) {
+      if (mounted) {
+        setState(
+          () => _campusError = 'Couldn’t check your campus. Please try again.',
+        );
+      }
+    } finally {
+      if (mounted && !leaving) setState(() => _checkingCampus = false);
     }
   }
 
@@ -121,7 +154,7 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
   }
 
   Future<void> _pickFromContacts({bool single = false}) async {
-    if (_saving || _choosing || _loading) return;
+    if (_busy) return;
     FocusManager.instance.primaryFocus?.unfocus();
     final picker = ContactPickerService.instance;
     if (!picker.isAvailable) {
@@ -232,6 +265,40 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: ContentService.instance,
     builder: (context, _) {
+      if (_checkingCampus || _campusError != null) {
+        return Scaffold(
+          backgroundColor: _primaryBlue,
+          body: SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: _checkingCampus
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _campusError!,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () {
+                              setState(() {
+                                _checkingCampus = true;
+                                _campusError = null;
+                              });
+                              _loadCampusMode();
+                            },
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          ),
+        );
+      }
       final content = ContentService.instance;
       final enough = _friends.length >= _minFriends;
       return Scaffold(
