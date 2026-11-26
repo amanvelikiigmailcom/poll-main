@@ -53,6 +53,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
   bool _busy = false;
   bool _guest = false;
   bool _needsHandle = false;
+  bool _needsCampus = false;
   int _generation = 0;
 
   bool get _isSearch => widget.page == SocialPage.search;
@@ -146,7 +147,14 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
       if (_isSearch) {
         final me = await service.request('/me');
         if (!mounted || generation != _generation) return;
-        setState(() => _needsHandle = me['username'] == null);
+        setState(() {
+          _needsHandle = me['username'] == null;
+          _needsCampus = me['campusSelected'] == false;
+        });
+        if (_needsCampus) {
+          setState(() => _loading = false);
+          return;
+        }
       }
       if (_isSearch && query.isEmpty) {
         Map<String, dynamic> data;
@@ -495,7 +503,22 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                 ),
               const SizedBox(height: 22),
             ],
-            if (_isSearch && !_guest && _error == null && _needsHandle)
+            if (_isSearch && !_guest && _error == null && _needsCampus)
+              _message(
+                Icons.school_outlined,
+                'Choose a campus to find friends',
+                'Campus search becomes available after you add your campus in Edit profile. You can keep playing with your selected contacts or example names.',
+                button: 'Edit profile',
+                onTap: () async {
+                  await context.push(AppRoutes.editProfile);
+                  if (mounted) _load();
+                },
+              ),
+            if (_isSearch &&
+                !_guest &&
+                !_needsCampus &&
+                _error == null &&
+                _needsHandle)
               _message(
                 Icons.alternate_email_rounded,
                 'Make your username yours',
@@ -527,7 +550,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                 padding: EdgeInsets.all(28),
                 child: Center(child: CircularProgressIndicator()),
               ),
-            if (!_guest && _error == null) ...[
+            if (!_guest && !_needsCampus && _error == null) ...[
               if (!_loading &&
                   visible.isEmpty &&
                   (!_isSearch || _search.text.isNotEmpty))
@@ -567,6 +590,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
             ],
             if (_isSearch &&
                 !_guest &&
+                !_needsCampus &&
                 !_loading &&
                 _error == null &&
                 _search.text.trim().isEmpty) ...[

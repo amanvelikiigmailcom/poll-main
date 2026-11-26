@@ -99,6 +99,41 @@ Future<GoRouter> mount(
 
 void main() {
   testWidgets(
+    'opening different Likes never reuses another question participant snapshot',
+    (tester) async {
+      final storage = SessionStorage();
+      final social = LikesFake(ApiService(storage), storage)
+        ..votes = 2
+        ..page1 = [
+          {
+            ...vote('v1', 'First server question', DateTime.now()),
+            'participants': [
+              {'name': 'First option'},
+            ],
+          },
+          {
+            ...vote('v2', 'Second server question', DateTime.now()),
+            'participants': [
+              {'name': 'Second option'},
+            ],
+          },
+        ];
+      final router = await mount(tester, storage, social);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('First server question'));
+      await tester.pumpAndSettle();
+      expect(find.text('First option'), findsOneWidget);
+      expect(find.text('Second option'), findsNothing);
+      router.pop();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Second server question'));
+      await tester.pumpAndSettle();
+      expect(find.text('Second option'), findsOneWidget);
+      expect(find.text('First option'), findsNothing);
+    },
+  );
+
+  testWidgets(
     'Likes list and details preserve the same backend gender and graduation year',
     (tester) async {
       final storage = SessionStorage();

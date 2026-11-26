@@ -106,6 +106,9 @@ class _OTPVerificationScreenState extends ConsumerState<OTPVerificationScreen> {
     }
     if (!mounted) return;
     FocusManager.instance.primaryFocus?.unfocus();
+    final onboarding = ref.read(onboardingDetailsProvider);
+    await onboarding.restore(requireOnline: true);
+    if (!mounted) return;
     final storage = ref.read(storageServiceProvider);
     final reviewer =
         storage.reviewerSkipsAllowed &&
@@ -113,6 +116,12 @@ class _OTPVerificationScreenState extends ConsumerState<OTPVerificationScreen> {
     if (reviewer) await ref.read(onboardingDetailsProvider).prepareReviewer();
     final hasNames =
         reviewer && await LocalGameService.instance.hasEnoughNames();
+    final restored = await onboarding.read();
+    final returning =
+        !reviewer &&
+        restored['profileComplete'] == true &&
+        restored['status'] == 'selected';
+    if (returning) await onboarding.draft({'stage': 'username'});
     if (!mounted) return;
     OnboardingFlow.instance.completePhoneStep();
     context.go(
@@ -120,6 +129,8 @@ class _OTPVerificationScreenState extends ConsumerState<OTPVerificationScreen> {
           ? AppRoutes.age
           : reviewer
           ? (hasNames ? AppRoutes.username : AppRoutes.namesEntry)
+          : returning
+          ? AppRoutes.username
           : AppRoutes.profileDetails,
     );
   }
@@ -338,7 +349,7 @@ class _OTPVerificationScreenState extends ConsumerState<OTPVerificationScreen> {
                               vertical: 14,
                             ),
                           ),
-                          child: const Text('Continue without login'),
+                          child: const Text('Continue with this account'),
                         ),
                       ],
                     ],

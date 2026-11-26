@@ -14,6 +14,7 @@ class MockStorageService extends Mock implements StorageService {
         any(),
         token: any(named: 'token'),
         phone: any(named: 'phone'),
+        accountId: any(named: 'accountId'),
         reviewerAccess: any(named: 'reviewerAccess'),
       ),
     ).thenAnswer((invocation) async {

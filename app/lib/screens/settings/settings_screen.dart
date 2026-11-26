@@ -138,11 +138,6 @@ class SettingsScreen extends ConsumerWidget {
               'For parents',
               AppRoutes.forParents,
             ),
-            route(
-              Icons.auto_awesome_outlined,
-              'Replay intro',
-              AppRoutes.onboarding,
-            ),
           ]),
           const _SectionHeader(title: 'PRIVACY & DATA'),
           card([

@@ -163,6 +163,7 @@ class PhoneAuthService {
         token: token,
         phone: phone,
         reviewerAccess: data['reviewerSkipsAllowed'] == true,
+        accountId: data['accountId'] as String?,
       )) {
         return const PhoneLoginResult(
           success: false,

@@ -203,6 +203,34 @@ class _VoteScreenState extends State<VoteScreen>
       await _loadRound(language);
     } catch (error) {
       if (!mounted) return;
+      if (error is ApiException &&
+          (error.details?['code'] == 'round_cooldown' ||
+              error.details?['code'] == 'daily_round_limit' ||
+              (error.statusCode == 409 &&
+                  error.details?['secondsRemaining'] is int))) {
+        try {
+          final quiz = ProviderScope.containerOf(
+            context,
+          ).read(quizServiceProvider);
+          final daily = error.details?['daily'] as Map?;
+          final reset = DateTime.tryParse(daily?['resetsAt'] as String? ?? '');
+          await quiz.rememberTimer(
+            reset == null
+                ? error.details!
+                : {
+                    'nextRoundAt': reset.toIso8601String(),
+                    'secondsRemaining': reset
+                        .difference(DateTime.now())
+                        .inSeconds
+                        .clamp(0, 86400),
+                  },
+          );
+          if (mounted) context.go(AppRoutes.timer);
+          return;
+        } catch (_) {
+          /* Keep a recoverable error if no router is available. */
+        }
+      }
       setState(() {
         _loading = false;
         _loadError = error is ApiException
@@ -1158,7 +1186,7 @@ class _VoteScreenState extends State<VoteScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Nobody matches your filters. Playing with your test names this round.',
+          'Using the names you selected for this round.',
           style: TextStyle(height: 1.4),
         ),
         Align(
@@ -1225,15 +1253,13 @@ class _VoteScreenState extends State<VoteScreen>
                   ),
             child: Text(_editingFromReview ? 'Back to review' : 'Next'),
           ),
-        OutlinedButton.icon(
+        OutlinedButton(
           onPressed:
               _isAdvancing ||
                   _shuffleUses >= _actionLimit ||
                   _shuffledOptions.length < 2
               ? null
               : _shuffleOptions,
-          icon: const Icon(Icons.shuffle_rounded, size: 18),
-          label: Text('Shuffle (${_actionLimit - _shuffleUses})'),
           style: OutlinedButton.styleFrom(
             side: const BorderSide(color: AppColors.border),
             shape: RoundedRectangleBorder(
@@ -1246,6 +1272,7 @@ class _VoteScreenState extends State<VoteScreen>
               fontWeight: FontWeight.w500,
             ),
           ),
+          child: Text('Shuffle (${_actionLimit - _shuffleUses})'),
         ),
         OutlinedButton(
           onPressed: _isAdvancing || _skipUses >= _actionLimit

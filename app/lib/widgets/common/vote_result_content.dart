@@ -31,7 +31,7 @@ class VoteResultContent extends StatelessWidget {
       ),
       const SizedBox(height: 24),
       const Text(
-        'Participants',
+        'Answer options',
         style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.bold,
@@ -40,7 +40,7 @@ class VoteResultContent extends StatelessWidget {
       ),
       const SizedBox(height: 6),
       const Text(
-        'Everyone who was in this quiz question.',
+        'People shown as answer options for this question.',
         style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
       ),
       const SizedBox(height: 14),

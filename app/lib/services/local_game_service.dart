@@ -119,6 +119,64 @@ class LocalGameService {
   static const _lastAnswersKey = 'local_last_round_answers';
   static const _avatarKey = 'local_avatar';
 
+  static const _scopeKey = 'local_game_scope_owner_v1';
+  static const _scopedKeys = [
+    _usernameKey,
+    _usernameSetupPendingKey,
+    _playerNameKey,
+    _universityKey,
+    _universityYearKey,
+    _namesKey,
+    _starsKey,
+    _lastRoundKey,
+    _usedQuestionIdsKey,
+    _completedRoundsKey,
+    _roundProgressKey,
+    _answersKey,
+    _lastAnswersKey,
+    _avatarKey,
+    'local_first_name_v1',
+    'local_last_name_v1',
+    'contact_labels_by_hash_v1',
+  ];
+
+  /// Keep drafts, participants and timers with their backend account, not device.
+  /// Unowned legacy data is archived, never assigned to a newly signed-in user.
+  Future<void> activateAccount(String accountId, {String? legacyOwner}) async {
+    final prefs = await _prefs;
+    final prior = prefs.getString(_scopeKey);
+    if (prior == accountId) return;
+    final owner =
+        prior ??
+        legacyOwner ??
+        (await loadRoundProgress())?.draft?['ownerId'] as String? ??
+        'legacy';
+    final saved = <String, dynamic>{
+      for (final key in _scopedKeys)
+        if (prefs.containsKey(key)) key: prefs.get(key),
+    };
+    await prefs.setString('local_game_account_v1_$owner', jsonEncode(saved));
+    final raw = prefs.getString('local_game_account_v1_$accountId');
+    final restored = raw == null
+        ? <String, dynamic>{}
+        : Map<String, dynamic>.from(jsonDecode(raw) as Map);
+    for (final key in _scopedKeys) {
+      final value = restored[key];
+      if (value is String) {
+        await prefs.setString(key, value);
+      } else if (value is int) {
+        await prefs.setInt(key, value);
+      } else if (value is bool) {
+        await prefs.setBool(key, value);
+      } else if (value is List) {
+        await prefs.setStringList(key, value.cast<String>());
+      } else {
+        await prefs.remove(key);
+      }
+    }
+    await prefs.setString(_scopeKey, accountId);
+  }
+
   Future<List<RoundAnswer>> getRoundAnswers({bool completed = false}) async {
     if (!completed) {
       final draft = (await loadRoundProgress())?.draftAnswers;
@@ -443,7 +501,10 @@ class LocalGameService {
   /// Called when a 12-question round finishes: awards the flat 1000 stars,
   /// saves the latest reveal, counts the round, clears mid-round progress and
   /// starts the 60-minute break before the next round unlocks.
-  Future<int> completeRound({bool bonus = false, bool awardStars = true}) async {
+  Future<int> completeRound({
+    bool bonus = false,
+    bool awardStars = true,
+  }) async {
     final answers = await getRoundAnswers();
     await (await _prefs).setString(
       _lastAnswersKey,
@@ -455,10 +516,16 @@ class LocalGameService {
     final done = await getCompletedRounds();
     await prefs.setInt(_completedRoundsKey, done + 1);
     await _clearRoundProgress();
-    return awardStars ? addStars(bonus ? starsPerRound * 2 : starsPerRound) : getStars();
+    return awardStars
+        ? addStars(bonus ? starsPerRound * 2 : starsPerRound)
+        : getStars();
   }
 
-  Future<void> finishRoundDraft(int round, {required bool bonus, bool awardStars = true}) async {
+  Future<void> finishRoundDraft(
+    int round, {
+    required bool bonus,
+    bool awardStars = true,
+  }) async {
     if (_finishingDraft) {
       throw StateError('Round completion already in progress');
     }

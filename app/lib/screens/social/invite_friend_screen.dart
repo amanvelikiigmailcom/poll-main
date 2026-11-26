@@ -165,6 +165,30 @@ class _InviteFriendScreenState extends ConsumerState<InviteFriendScreen>
     }
   }
 
+  Widget _invitationCard(Map<String, dynamic> invite) => Card(
+    margin: const EdgeInsets.only(bottom: 12),
+    child: ListTile(
+      title: Text('Code ${invite['code']}'),
+      subtitle: Text(switch (invite['status']) {
+        'activated' => '1 round activated · 12 questions',
+        'waiting_confirmation' => 'Waiting for recipient confirmation',
+        _ => 'Not activated',
+      }),
+      trailing: invite['activated'] == true
+          ? const Icon(Icons.check_circle_outline)
+          : IconButton(
+              tooltip: 'Copy invitation',
+              icon: const Icon(Icons.copy),
+              onPressed: () async {
+                await Clipboard.setData(
+                  ClipboardData(text: InvitationService.message(invite)),
+                );
+                _notice('Invitation copied');
+              },
+            ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final service = ref.watch(invitationServiceProvider);
@@ -304,7 +328,7 @@ class _InviteFriendScreenState extends ConsumerState<InviteFriendScreen>
               ),
             const SizedBox(height: 24),
             const Text(
-              'My invitations',
+              'Current invitation',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
@@ -314,32 +338,14 @@ class _InviteFriendScreenState extends ConsumerState<InviteFriendScreen>
             const SizedBox(height: 12),
             if (_invites.isEmpty && !_checking)
               const Text('Your invitations will appear here.'),
-            for (final invite in _invites)
-              Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  title: Text('Code ${invite['code']}'),
-                  subtitle: Text(switch (invite['status']) {
-                    'activated' => '1 round activated · 12 questions',
-                    'waiting_confirmation' =>
-                      'Waiting for recipient confirmation',
-                    _ => 'Not activated',
-                  }),
-                  trailing: invite['activated'] == true
-                      ? const Icon(Icons.check_circle_outline)
-                      : IconButton(
-                          tooltip: 'Copy invitation',
-                          icon: const Icon(Icons.copy),
-                          onPressed: () async {
-                            await Clipboard.setData(
-                              ClipboardData(
-                                text: InvitationService.message(invite),
-                              ),
-                            );
-                            _notice('Invitation copied');
-                          },
-                        ),
-                ),
+            if (_invites.isNotEmpty) _invitationCard(_invites.first),
+            if (_invites.length > 1)
+              ExpansionTile(
+                title: Text('Previous invitations (${_invites.length - 1})'),
+                children: [
+                  for (final invite in _invites.skip(1))
+                    _invitationCard(invite),
+                ],
               ),
             if (_cursor != null)
               TextButton(

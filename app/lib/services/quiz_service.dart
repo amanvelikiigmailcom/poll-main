@@ -1,5 +1,9 @@
 import 'package:dio/dio.dart';
 import 'api_service.dart';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'local_game_service.dart';
 
 /// A single quiz question with its candidate options.
 class QuizQuestion {
@@ -169,6 +173,57 @@ class QuizService {
 
   QuizService(this._api);
 
+  String _timerKey(String token) =>
+      'server_round_deadline_v1_${sha256.convert(utf8.encode(token))}';
+
+  Future<void> rememberTimer(
+    Map<String, dynamic> data, {
+    String? expectedToken,
+  }) async {
+    final token = await _api.readSessionToken();
+    if (token == null || token.isEmpty) return;
+    if (expectedToken != null && expectedToken != token) return;
+    final seconds = data['secondsRemaining'];
+    if (seconds is! int || seconds < 0) return;
+    final deadline =
+        DateTime.tryParse(data['nextRoundAt'] as String? ?? '') ??
+        DateTime.now().add(Duration(seconds: seconds));
+    final prefs = await SharedPreferences.getInstance();
+    if (token != await _api.readSessionToken()) return;
+    await prefs.setInt(_timerKey(token), deadline.millisecondsSinceEpoch);
+  }
+
+  Future<int> secondsUntilNextRound({bool refresh = true}) async {
+    final token = await _api.readSessionToken();
+    if (token == null || token.isEmpty) {
+      return LocalGameService.instance.secondsUntilNextRound();
+    }
+    if (refresh) {
+      try {
+        final response = await _api.get<Map<String, dynamic>>(
+          '/api/quizzes/timer',
+          options: _sessionOptions(token),
+        );
+        if (token != await _api.readSessionToken()) return 0;
+        final data = response.data;
+        if (data?['secondsRemaining'] is int) {
+          await rememberTimer(data!);
+          return (data['secondsRemaining'] as int).clamp(0, 86400);
+        }
+      } catch (_) {
+        /* Keep the confirmed deadline while offline. */
+      }
+    }
+    if (token != await _api.readSessionToken()) return 0;
+    final prefs = await SharedPreferences.getInstance();
+    final deadline = prefs.getInt(_timerKey(token));
+    return deadline == null
+        ? LocalGameService.instance.secondsUntilNextRound()
+        : ((deadline - DateTime.now().millisecondsSinceEpoch) / 1000)
+              .ceil()
+              .clamp(0, 86400);
+  }
+
   /// Fetches the current quiz session (12 questions for this round).
   Future<QuizSession> getQuizzes({String? sessionToken}) async {
     final response = await _api.get<Map<String, dynamic>>(
@@ -232,6 +287,11 @@ class QuizService {
           ? reward
           : null,
     );
+    // Submission is already confirmed. Cache its waiting period before the
+    // receipt opens the timer; the next server read replaces this estimate.
+    await rememberTimer({
+      'secondsRemaining': LocalGameService.roundBreakSeconds,
+    }, expectedToken: sessionToken);
   }
 
   ({String sessionId, String? token, int? stars})? _lastReward;

@@ -4,8 +4,9 @@ import 'storage_service.dart';
 class ApiException implements Exception {
   final String message;
   final int? statusCode;
+  final Map<String, dynamic>? details;
 
-  const ApiException(this.message, {this.statusCode});
+  const ApiException(this.message, {this.statusCode, this.details});
 
   @override
   String toString() => 'ApiException($statusCode): $message';
@@ -40,6 +41,7 @@ class ApiService {
   }
 
   Dio get dio => _dio;
+  Future<String?> readSessionToken() => _storageService.getToken();
 
   Future<Response<T>> get<T>(
     String path, {
@@ -152,7 +154,11 @@ class ApiService {
             message = serverError;
           }
         }
-        return ApiException(message, statusCode: statusCode);
+        return ApiException(
+          message,
+          statusCode: statusCode,
+          details: data is Map<String, dynamic> ? data : null,
+        );
       case DioExceptionType.cancel:
         return const ApiException('Request was cancelled.');
       default:

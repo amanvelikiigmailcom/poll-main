@@ -117,7 +117,7 @@ void main() {
         expect(requests.where((request) => request.method == 'POST'), isEmpty);
         await tester.drag(find.byType(Scrollable).first, const Offset(0, -500));
         await tester.pump(const Duration(milliseconds: 200));
-        expect(find.text('My invitations'), findsOneWidget);
+        expect(find.text('Current invitation'), findsOneWidget);
         await tester.drag(find.byType(Scrollable).first, const Offset(0, -500));
         await tester.pump(const Duration(milliseconds: 200));
         expect(find.text('Code ABC123'), findsOneWidget);

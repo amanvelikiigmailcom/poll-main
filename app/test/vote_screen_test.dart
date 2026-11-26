@@ -697,61 +697,60 @@ void main() {
     expect(options[2]['isFriend'], isFalse);
   });
 
-  testWidgets('fallback round explains itself and keeps the flag in the draft', (
-    tester,
-  ) async {
-    SharedPreferences.setMockInitialValues({
-      'contact_labels_by_hash_v1': '{"matched-hash":"Маша"}',
-    });
-    await LocalGameService.instance.savePlayerAndFriends(
-      playerName: 'Аман',
-      friends: ['Али', 'Маша', 'Даня', 'Саша'],
-    );
-    final quiz = MockQuizService();
-    when(() => quiz.getQuizzes()).thenAnswer(
-      (_) async => server.QuizSession(
-        sessionId: 'fallback1',
-        ownerId: 'me',
-        totalQuestions: 12,
-        supportsRoundSubmission: true,
-        preferenceFallback: true,
-        questions: [
-          for (var i = 0; i < 12; i++)
-            server.QuizQuestion(
-              id: 'fallback-$i',
-              text: 'Fallback question $i',
-              category: 'normal',
-              candidates: const [
-                server.QuizCandidate(
-                  id: 'matched',
-                  firstName: 'Registered name',
-                  lastName: '',
-                  grade: 8,
-                  contactHash: 'matched-hash',
-                ),
-              ],
-            ),
-        ],
-      ),
-    );
-    final source = ServerRoundSource(quiz, isLoggedIn: () async => true);
-    await tester.pumpWidget(
-      MaterialApp(home: VoteScreen(serverSource: source)),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('Fallback question 0'), findsOneWidget);
-    expect(
-      find.text(
-        'Nobody matches your filters. Playing with your test names this round.',
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('Change filters'), findsOneWidget);
-    for (final name in ['Али', 'Маша', 'Даня', 'Саша']) {
-      expect(find.text(name), findsOneWidget);
-    }
-    await choose(tester, 'Маша');
-    final saved = await LocalGameService.instance.loadRoundProgress();
-    expect(saved?.draft?['preferenceFallback'], isTrue);
-  });
+  testWidgets(
+    'fallback round explains itself and keeps the flag in the draft',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'contact_labels_by_hash_v1': '{"matched-hash":"Маша"}',
+      });
+      await LocalGameService.instance.savePlayerAndFriends(
+        playerName: 'Аман',
+        friends: ['Али', 'Маша', 'Даня', 'Саша'],
+      );
+      final quiz = MockQuizService();
+      when(() => quiz.getQuizzes()).thenAnswer(
+        (_) async => server.QuizSession(
+          sessionId: 'fallback1',
+          ownerId: 'me',
+          totalQuestions: 12,
+          supportsRoundSubmission: true,
+          preferenceFallback: true,
+          questions: [
+            for (var i = 0; i < 12; i++)
+              server.QuizQuestion(
+                id: 'fallback-$i',
+                text: 'Fallback question $i',
+                category: 'normal',
+                candidates: const [
+                  server.QuizCandidate(
+                    id: 'matched',
+                    firstName: 'Registered name',
+                    lastName: '',
+                    grade: 8,
+                    contactHash: 'matched-hash',
+                  ),
+                ],
+              ),
+          ],
+        ),
+      );
+      final source = ServerRoundSource(quiz, isLoggedIn: () async => true);
+      await tester.pumpWidget(
+        MaterialApp(home: VoteScreen(serverSource: source)),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Fallback question 0'), findsOneWidget);
+      expect(
+        find.text('Using the names you selected for this round.'),
+        findsOneWidget,
+      );
+      expect(find.text('Change filters'), findsOneWidget);
+      for (final name in ['Али', 'Маша', 'Даня', 'Саша']) {
+        expect(find.text(name), findsOneWidget);
+      }
+      await choose(tester, 'Маша');
+      final saved = await LocalGameService.instance.loadRoundProgress();
+      expect(saved?.draft?['preferenceFallback'], isTrue);
+    },
+  );
 }

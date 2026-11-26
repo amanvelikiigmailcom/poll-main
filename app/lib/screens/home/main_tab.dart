@@ -61,7 +61,9 @@ class _MainTabState extends ConsumerState<MainTab> with WidgetsBindingObserver {
 
   Future<void> _loadState() async {
     final waiting = !await ref.read(onboardingDetailsProvider).votingAllowed();
-    final remaining = await LocalGameService.instance.secondsUntilNextRound();
+    final remaining = await ref
+        .read(quizServiceProvider)
+        .secondsUntilNextRound();
     final progress = await LocalGameService.instance.loadRoundProgress();
     if (!mounted) return;
     setState(() {

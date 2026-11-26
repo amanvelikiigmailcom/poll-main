@@ -70,6 +70,15 @@ void main() {
                 );
                 return;
               }
+              if (req.path == '/api/social/me') {
+                h.resolve(
+                  Response(
+                    requestOptions: req,
+                    data: {'username': 'original_handle'},
+                  ),
+                );
+                return;
+              }
               if (req.path == '/api/onboarding') {
                 if (req.method == 'PUT' &&
                     req.data['step'] == 'school' &&
@@ -103,7 +112,7 @@ void main() {
         testAppRouter.go(
           AppRoutes.otp,
           extra: {
-            'phone': '+16505551234',
+            'phone': '+16505550137',
             'verificationId': 'vid-1',
             'country': 'US',
           },
@@ -136,41 +145,20 @@ void main() {
         }
         expect(driver.confirmCalls, 1);
         expect(OnboardingFlow.instance.phoneComplete, isTrue);
-        expect(find.text('About you'), findsOneWidget);
+        expect(find.text('About you'), findsNothing);
+        expect(find.text('Choose your campus'), findsNothing);
+        expect(find.byKey(const Key('onboarding-username')), findsNothing);
         expect((await service.read())['status'], 'selected');
-        expect((await service.read())['stage'], 'school');
         expect((await service.read())['graduationYear'], scenario.$2);
-        await tester.ensureVisible(find.text('Continue'));
-        await tester.tap(find.text('Continue'));
-        for (var tick = 0; tick < 8; tick++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
         expect(
-          testAppRouter.routeInformationProvider.value.uri.path,
-          AppRoutes.schoolSetup,
-        );
-        expect(find.text('Choose your campus'), findsOneWidget);
-        await tester.ensureVisible(find.text('Continue'));
-        await tester.tap(find.text('Continue'));
-        for (var tick = 0; tick < 8; tick++) {
-          await tester.pump(const Duration(milliseconds: 100));
-        }
-        expect(find.text('Campus not available yet'), findsNothing);
-        expect(
-          requests
-              .where(
-                (r) =>
-                    r.path == '/api/onboarding' &&
-                    r.method == 'PUT' &&
-                    r.data['step'] == 'school',
-              )
-              .single
-              .data['graduationYear'],
-          scenario.$2,
+          requests.where(
+            (r) => r.path == '/api/onboarding' && r.method == 'PUT',
+          ),
+          isEmpty,
         );
         expect(
           testAppRouter.routeInformationProvider.value.uri.path,
-          isNot(AppRoutes.schoolSetup),
+          AppRoutes.home,
         );
         await tester.pumpWidget(const SizedBox());
       },

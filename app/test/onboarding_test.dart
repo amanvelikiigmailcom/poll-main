@@ -202,7 +202,7 @@ void main() {
       await tester.tap(find.text('Skip'));
       await tester.pumpAndSettle();
       expect(find.text('Log in with phone'), findsOneWidget);
-      await tester.tap(find.text('Continue without login'));
+      await tester.tap(find.text('Continue with this account'));
       await tester.pumpAndSettle();
       await completeDetails(tester);
       expect(find.text('Add your contacts'), findsOneWidget);
@@ -238,8 +238,8 @@ void main() {
     await mountApp(tester, reviewer: true);
     await tester.tap(find.text('Skip'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Continue without login'));
-    await tester.tap(find.text('Continue without login'));
+    await tester.ensureVisible(find.text('Continue with this account'));
+    await tester.tap(find.text('Continue with this account'));
     await tester.pumpAndSettle();
     await completeDetails(tester);
   }

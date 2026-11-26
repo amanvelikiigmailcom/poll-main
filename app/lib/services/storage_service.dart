@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
+import 'local_game_service.dart';
 
 class StorageService extends ChangeNotifier {
   static const String _tokenKey = 'auth_token';
@@ -39,6 +40,7 @@ class StorageService extends ChangeNotifier {
     int generation, {
     required String token,
     String? phone,
+    String? accountId,
     bool reviewerAccess = false,
   }) => _withCredentialLock(() async {
     if (!isAuthenticationCurrent(generation)) return false;
@@ -85,6 +87,15 @@ class StorageService extends ChangeNotifier {
         return false;
       }
       _activeToken = token;
+      if (accountId != null && accountId.isNotEmpty) {
+        final legacy = oldUser == null
+            ? null
+            : (jsonDecode(oldUser) as Map)['id'] as String?;
+        await LocalGameService.instance.activateAccount(
+          accountId,
+          legacyOwner: legacy,
+        );
+      }
       notifyListeners();
       return true;
     } catch (_) {
@@ -100,6 +111,9 @@ class StorageService extends ChangeNotifier {
       final token = await getToken();
       await _secureStorage.delete(key: _tokenKey);
       _activeToken = null;
+      if (_prefs.containsKey('local_game_scope_owner_v1')) {
+        await LocalGameService.instance.activateAccount('guest');
+      }
       await clearUser();
       await clearPhone();
       notifyListeners();

@@ -17,6 +17,7 @@ class FakeSocial extends SocialService {
   final searches = <String>[];
   Map<String, dynamic> suggestionData = {};
   int suggestionCalls = 0;
+  bool campusSelected = true;
   final hiddenIds = <String>{};
   final actions = <String>[];
   @override
@@ -44,7 +45,7 @@ class FakeSocial extends SocialService {
     String method = 'GET',
     Map<String, dynamic>? data,
   }) async => path == '/me'
-      ? {'username': 'test_user'}
+      ? {'username': 'test_user', 'campusSelected': campusSelected}
       : super.request(path, method: method, data: data);
   @override
   Future<Map<String, dynamic>> search(String username, {String? cursor}) {
@@ -155,6 +156,22 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  testWidgets(
+    'reviewer without campus sees an editor action and no misleading campus recommendations',
+    (tester) async {
+      final storage = SessionStorage();
+      final social = FakeSocial(ApiService(storage), storage)
+        ..campusSelected = false;
+      await mount(tester, storage, social);
+      await tester.pumpAndSettle();
+      expect(find.text('Choose a campus to find friends'), findsOneWidget);
+      expect(find.text('Edit profile'), findsOneWidget);
+      expect(find.text('From your campus'), findsNothing);
+      expect(find.text('Try again'), findsNothing);
+      expect(social.suggestionCalls, 0);
+    },
+  );
 
   testWidgets(
     'report from a friends list opens an email form without server submission',

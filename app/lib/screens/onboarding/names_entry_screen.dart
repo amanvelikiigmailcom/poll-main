@@ -41,7 +41,6 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
   }
 
   Future<void> _loadCampusMode() async {
-    if (ref.read(storageServiceProvider).reviewerSkipsAllowed) return;
     final service = ref.read(onboardingDetailsProvider);
     final mode = await service.votingMode();
     if (!mounted || mode == null) return;
@@ -361,7 +360,7 @@ class _NamesEntryScreenState extends ConsumerState<NamesEntryScreen> {
                 ),
                 const SizedBox(height: 20),
                 const Text(
-                  'Only contacts you choose are used. When signed in, selected names and hashed phone numbers are sent to Flyprox to find friends. Your full address book and raw contact numbers are never uploaded. No invitations are sent.',
+                  'Only contacts you choose are used. Selected names stay on your device. When signed in, hashed phone numbers are sent to Flyprox to find friends. Your full address book and raw contact numbers are never uploaded. No invitations are sent.',
                   style: TextStyle(
                     color: Colors.white70,
                     fontSize: 13,

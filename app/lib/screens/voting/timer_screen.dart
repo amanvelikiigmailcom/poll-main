@@ -93,6 +93,7 @@ class _TimerScreenState extends State<TimerScreen>
   bool _inviteOpen = false;
   int _rewardTicks = 0;
   DateTime? _dailyReset;
+  bool _statusLoaded = false;
 
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
@@ -155,7 +156,19 @@ class _TimerScreenState extends State<TimerScreen>
   }
 
   Future<void> _syncTimer() async {
+    if (!mounted) return;
+    Future<int> Function()? readRemaining;
+    try {
+      final quiz = ProviderScope.containerOf(
+        context,
+        listen: false,
+      ).read(quizServiceProvider);
+      readRemaining = () => quiz.secondsUntilNextRound(refresh: false);
+    } catch (_) {
+      /* Standalone guest timers have no provider scope. */
+    }
     var remaining = await LocalGameService.instance.secondsUntilNextRound();
+    if (readRemaining != null) remaining = await readRemaining();
     if (_dailyReset != null) {
       remaining = math.max(
         remaining,
@@ -164,7 +177,7 @@ class _TimerScreenState extends State<TimerScreen>
     }
     if (!mounted) return;
     setState(() => _secondsLeft = remaining);
-    if (remaining == 0 && !_inviteOpen) context.go('/vote');
+    if (_statusLoaded && remaining == 0 && !_inviteOpen) context.go('/vote');
   }
 
   Future<void> _refreshPasses() async {
@@ -173,10 +186,19 @@ class _TimerScreenState extends State<TimerScreen>
         context,
       ).read(invitationServiceProvider);
       await service.refresh();
+      if (!mounted) return;
+      await ProviderScope.containerOf(
+        context,
+      ).read(quizServiceProvider).secondsUntilNextRound();
       _dailyReset = service.dailyRemaining == 0 ? service.dailyResetsAt : null;
       if (mounted) await _syncTimer();
     } catch (_) {
       /* The saved timer remains authoritative while offline. */
+    } finally {
+      if (mounted) {
+        _statusLoaded = true;
+        await _syncTimer();
+      }
     }
   }
 

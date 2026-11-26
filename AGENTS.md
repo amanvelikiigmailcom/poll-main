@@ -196,5 +196,5 @@
 
 - Only the current backend-confirmed session for Firebase reviewer `+16505551234` must never show either About you or campus/graduation onboarding form, including Back/deep links.
 - Contacts/examples remain available. Other users retain all mandatory registration/enrollment rules; age gate applies to everyone.
-- Preserve actual profile/campus values; never seed fake names, gender or enrollment. Reviewer can fill omitted data in Edit profile; first absent gender/country capabilities come from backend limits.
+- Preserve actual profile/campus values; never seed fake names, gender or enrollment. Reviewer can fill omitted data in Edit profile; reviewer gender/country capabilities come from backend limits.
 - Existing server username must be restored before showing creation; a failed identity request is Retry, not permission to generate a replacement.

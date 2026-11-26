@@ -116,7 +116,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('Participants'), findsOneWidget);
+    expect(find.text('Answer options'), findsOneWidget);
     expect(find.text('Rival One'), findsOneWidget);
     expect(find.text('Rival Two'), findsOneWidget);
     expect(find.text('Class of 2027'), findsOneWidget);
