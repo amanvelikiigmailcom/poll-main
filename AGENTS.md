@@ -198,3 +198,14 @@
 - Contacts/examples remain available. Other users retain all mandatory registration/enrollment rules; age gate applies to everyone.
 - Preserve actual profile/campus values; never seed fake names, gender or enrollment. Reviewer can fill omitted data in Edit profile; reviewer gender/country capabilities come from backend limits.
 - Existing server username must be restored before showing creation; a failed identity request is Retry, not permission to generate a replacement.
+
+## Памятка: раздельные аккаунты и повторный вход
+
+- Reviewer — `+16505551234`; Aman — другой тестовый US-вход `+16505550137`, с сохранёнными ID/username/историей. Исключения определяет подтверждённый номер, не имя Aman и не введённый клиентом номер. Коды/токены в Git не записывать.
+- Путь reviewer: вход → возраст при необходимости → контакты/примеры → username только при отсутствии серверного → optional push → Home. `Try with example names` доступна только reviewer и управляется `example_names_enabled`; обычным пользователям её не показывать.
+- Пустой reviewer-профиль допустим: имя/пол/кампус/выпуск не выдумывать, «8 класс» не подставлять. Edit profile заполняет поля независимо; gender/country доступны reviewer по серверным лимитам, смена страны при enrollment требует подходящий campus.
+- После повторного входа/переустановки восстанавливать серверные enrollment и username до маршрутизации. Подтверждённый school mode (≥5 участников) пропускает обязательные контакты. Локальные имена/draft/timer принадлежат accountId, не устройству.
+- Серверный cooldown — оформленный TimerScreen, не общий экран ошибки. Добавление контактов/примеров и повторный вход не отменяют ожидание или лимит50. Не допускать цикла timer → vote → timer при первоначальной загрузке.
+- В Likes имена — исторические варианты конкретного вопроса; блокировки могут сократить набор. Данные карточек не подменять, новые голоса показывать первыми. Одно текущее приглашение, предыдущие — в свёрнутой истории; старые grants не удалять.
+- Reviewer очищается только явно после QA, не при каждом входе; личный Aman не затрагивать. Перенос номера уже выполнен, повторно его не запускать. Результаты/ограничения: [отчёт](docs/reviewer-account-split-20261126.md), [browser QA](app/test/browser/README.md), backend runtime-status.
+- Сборка: [iOS runbook](docs/ios-release-runbook.md), `app/ios/Runner.xcworkspace`; перед новым upload сверить ASC и номер build. Push/commit с `[ci skip]` не заменяет native build/TestFlight; на сборку/upload нужна отдельная актуальная команда.
