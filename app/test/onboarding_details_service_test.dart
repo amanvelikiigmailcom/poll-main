@@ -197,6 +197,12 @@ void main() {
                 'gender': 'nonbinary',
                 'profileComplete': true,
                 'votingAllowed': true,
+                'contactsRequirement': {
+                  'required': false,
+                  'mode': 'school',
+                  'joined': 5,
+                  'threshold': 5,
+                },
               },
             ),
           ),
@@ -206,7 +212,7 @@ void main() {
       final data = await service.read();
       expect(data['school']['id'], 'GB-GIAS-1');
       expect(data['firstName'], 'Aman');
-      expect(data['stage'], 'school');
+      expect(data['stage'], 'username');
       expect(await service.votingAllowed(), isTrue);
       final prefs = await SharedPreferences.getInstance();
       for (final key in prefs.getKeys().where(

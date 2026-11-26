@@ -77,7 +77,6 @@ class _PhoneRegistrationScreenState
         !reviewer &&
         restored['profileComplete'] == true &&
         restored['status'] == 'selected';
-    if (returning) await onboarding.draft({'stage': 'username'});
     if (!mounted) return;
     OnboardingFlow.instance.completePhoneStep();
     context.go(
@@ -86,7 +85,9 @@ class _PhoneRegistrationScreenState
           : reviewer
           ? (hasNames ? AppRoutes.username : AppRoutes.namesEntry)
           : returning
-          ? AppRoutes.username
+          ? (restored['stage'] == 'contacts'
+                ? AppRoutes.namesEntry
+                : AppRoutes.username)
           : AppRoutes.profileDetails,
     );
   }

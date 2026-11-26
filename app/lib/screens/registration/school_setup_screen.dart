@@ -272,7 +272,8 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
         'schoolQueryDraft': null,
         'schoolRegionDraft': null,
       });
-      final schoolReady = !skip && await service.skipContactsWhenSchoolReady();
+      final schoolReady =
+          !skip && (await service.read())['stage'] == 'username';
       final hasNames = await LocalGameService.instance.hasEnoughNames();
       final pendingUsername = await LocalGameService.instance
           .isUsernameSetupPending();

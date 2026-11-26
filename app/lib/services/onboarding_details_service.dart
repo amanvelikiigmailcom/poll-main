@@ -79,6 +79,51 @@ class OnboardingDetailsService extends ChangeNotifier {
     await next;
   }
 
+  ({bool school, int joined, int threshold}) _contactsDecision(
+    Map<String, dynamic> data,
+  ) {
+    final value = data['contactsRequirement'];
+    if (value is Map) {
+      final mode = value['mode'];
+      final required = value['required'];
+      final joined = value['joined'];
+      final threshold = value['threshold'];
+      if ((mode == 'school' || mode == 'contacts') &&
+          required is bool &&
+          required == (mode == 'contacts') &&
+          joined is int &&
+          joined >= 0 &&
+          threshold == 5 &&
+          (mode != 'school' || joined >= 5)) {
+        return (school: mode == 'school', joined: joined, threshold: 5);
+      }
+    }
+    throw const ApiException('Couldn’t check your campus. Please try again.');
+  }
+
+  /// Reuse this session's confirmed save/restore. After an app restart, refresh
+  /// before enabling the contact picker; errors are not a contacts decision.
+  Future<({bool school, int joined, int threshold})> contactsDecision() async {
+    final token = await storage.getToken();
+    final key = await _key();
+    if (token?.isNotEmpty != true || storage.reviewerSkipsAllowed) {
+      throw const ApiException('Couldn’t check your campus. Please try again.');
+    }
+    if (_confirmedEnrollmentKey != key || _confirmedEnrollment == null) {
+      if (!await restore(requireOnline: true)) {
+        throw const ApiException(
+          'Couldn’t check your campus. Please try again.',
+        );
+      }
+    }
+    if (token != await storage.getToken() ||
+        key != await _key() ||
+        _confirmedEnrollment == null) {
+      throw const ApiException('Account changed. Please try again.');
+    }
+    return _contactsDecision(_confirmedEnrollment!);
+  }
+
   Future<bool> restore({bool requireOnline = false}) async {
     final token = await storage.getToken();
     if (token?.isNotEmpty != true) return false;
@@ -111,8 +156,23 @@ class OnboardingDetailsService extends ChangeNotifier {
       if (data.containsKey('reviewerSkipsAllowed')) {
         await storage.saveReviewerAccess(data['reviewerSkipsAllowed'] == true);
       }
-      _confirmEnrollment(data, key);
       final prior = await read();
+      var stage =
+          prior['stage'] ??
+          (data['profileComplete'] == true ? 'school' : 'profile');
+      if (!storage.reviewerSkipsAllowed &&
+          data['status'] == 'selected' &&
+          stage != 'done') {
+        final decision = _contactsDecision(data);
+        stage =
+            decision.school || await LocalGameService.instance.hasEnoughNames()
+            ? 'username'
+            : 'contacts';
+      }
+      if (token != await storage.getToken() || key != await _key()) {
+        return false;
+      }
+      _confirmEnrollment(data, key);
       // Retain unsaved input after errors and account-scoped progress locally.
       await _persist({
         ...data,
@@ -127,12 +187,12 @@ class OnboardingDetailsService extends ChangeNotifier {
         'campusChangeUsed': data['campusChangeUsed'],
         'reviewerSkipsAllowed': data['reviewerSkipsAllowed'] == true,
         'votingAllowed': data['votingAllowed'] == true,
+        'contactsRequirement': data['contactsRequirement'],
         'stage': storage.reviewerSkipsAllowed
             ? (prior['stage'] == 'done' ? 'done' : 'contacts')
             : data['status'] == 'waiting'
             ? 'waiting'
-            : prior['stage'] ??
-                  (data['profileComplete'] == true ? 'school' : 'profile'),
+            : stage,
       }, key);
     } catch (_) {
       if (requireOnline) rethrow;
@@ -206,6 +266,21 @@ class OnboardingDetailsService extends ChangeNotifier {
       );
       if (await storage.getToken() != token || key != await _key()) {
         throw const ApiException('Account changed. Please try again.');
+      }
+      if (request['step'] == 'school' && !storage.reviewerSkipsAllowed) {
+        final data = response.data;
+        if (data == null ||
+            !['selected', 'waiting'].contains(data['status']) ||
+            (data['school'] as Map?)?['id'] != request['schoolId']) {
+          throw const ApiException(
+            'Couldn’t confirm your campus. Please try again.',
+          );
+        }
+        if (data['status'] == 'selected') {
+          local['stage'] = _contactsDecision(data).school
+              ? 'username'
+              : 'contacts';
+        }
       }
       _confirmEnrollment(response.data, key);
       local = {...local, ...?response.data};
@@ -434,14 +509,6 @@ class OnboardingDetailsService extends ChangeNotifier {
     } catch (_) {
       return null;
     }
-  }
-
-  Future<bool> skipContactsWhenSchoolReady() async {
-    final mode = await votingMode();
-    if (mode?.school != true) return false;
-    final details = await read();
-    if (details['stage'] == 'contacts') await draft({'stage': 'username'});
-    return true;
   }
 
   Future<Map<String, dynamic>> search(

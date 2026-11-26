@@ -53,6 +53,12 @@ void main() {
           },
           'campusChangeUsed': false,
           'votingAllowed': true,
+          'contactsRequirement': {
+            'required': false,
+            'mode': 'school',
+            'joined': 5,
+            'threshold': 5,
+          },
         };
         api.dio.interceptors.add(
           InterceptorsWrapper(
@@ -183,6 +189,12 @@ void main() {
                   'country': 'US',
                   'graduationYear': 2025,
                   'school': {'id': 'existing-campus'},
+                  'contactsRequirement': {
+                    'required': false,
+                    'mode': 'school',
+                    'joined': 5,
+                    'threshold': 5,
+                  },
                 },
               ),
             );

@@ -1,5 +1,7 @@
 import 'fakes/reviewer_storage.dart';
 import 'package:flyprox_app/screens/registration/school_setup_screen.dart';
+import 'package:flyprox_app/services/contact_picker_service.dart';
+import 'fakes/fake_contact_picker_driver.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -36,17 +38,26 @@ void main() {
     String route = AppRoutes.profileDetails,
     double scale = 1,
     bool schoolMode = false,
+    bool signedIn = false,
     bool reviewer = false,
+    Map<String, dynamic>? initial,
+    List<RequestOptions>? requests,
+    void Function(RequestOptions, RequestInterceptorHandler)? onboarding,
     void Function(RequestOptions, RequestInterceptorHandler)? search,
   }) async {
     final storage = reviewer ? ReviewerStorageService() : StorageService();
     await storage.init();
 
-    if (schoolMode) await storage.saveToken('fixture-session');
+    if (schoolMode || signedIn) await storage.saveToken('fixture-session');
     final api = ApiService(storage);
     api.dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (req, handler) {
+          requests?.add(req);
+          if (req.path == '/api/onboarding' && onboarding != null) {
+            onboarding(req, handler);
+            return;
+          }
           if (req.path == '/api/schools' && search != null) {
             search(req, handler);
             return;
@@ -56,12 +67,18 @@ void main() {
               requestOptions: req,
               data: req.path == '/api/social/me'
                   ? {'username': null}
-                  : req.path == '/api/quizzes/mode' && schoolMode
+                  : req.path == '/api/onboarding' &&
+                        req.method == 'PUT' &&
+                        req.data['step'] == 'school'
                   ? {
-                      'mode': 'school',
-                      'enrolled': true,
-                      'joined': 5,
-                      'threshold': 5,
+                      'status': 'selected',
+                      'school': school,
+                      'contactsRequirement': {
+                        'required': !schoolMode,
+                        'mode': schoolMode ? 'school' : 'contacts',
+                        'joined': schoolMode ? 5 : 4,
+                        'threshold': 5,
+                      },
                     }
                   : req.path == '/api/schools'
                   ? {
@@ -76,6 +93,7 @@ void main() {
       ),
     );
     final service = OnboardingDetailsService(api, storage);
+    if (initial != null) await service.draft(initial);
     testAppRouter.go(route);
     await tester.pumpWidget(
       ProviderScope(
@@ -116,10 +134,157 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> chooseCampus(WidgetTester tester) async {
+    await tester.enterText(find.byKey(const Key('school-search')), 'Central');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Central High'));
+    await tester.pumpAndSettle();
+    final picker = find.byKey(const Key('graduation-year'));
+    await tester.ensureVisible(picker);
+    await tester.tap(picker);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('2041'),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text('2041').last);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Continue'));
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets(
+    'restarted contacts step checks campus before enabling picker and supports retry',
+    (tester) async {
+      var fail = true;
+      final requests = <RequestOptions>[];
+      final driver = FakeContactPickerDriver();
+      ContactPickerService.instance.debugDriver(driver);
+      addTearDown(ContactPickerService.instance.resetDriverForTest);
+      final service = await mount(
+        tester,
+        signedIn: true,
+        route: AppRoutes.namesEntry,
+        requests: requests,
+        initial: {'status': 'selected', 'stage': 'contacts'},
+        onboarding: (req, h) {
+          expect(req.method, 'GET');
+          if (fail) {
+            h.reject(
+              DioException(
+                requestOptions: req,
+                type: DioExceptionType.receiveTimeout,
+              ),
+            );
+          } else {
+            h.resolve(
+              Response(
+                requestOptions: req,
+                data: {
+                  'status': 'selected',
+                  'school': school,
+                  'profileComplete': true,
+                  'contactsRequirement': {
+                    'required': false,
+                    'mode': 'school',
+                    'joined': 5,
+                    'threshold': 5,
+                  },
+                },
+              ),
+            );
+          }
+        },
+      );
+      expect(find.text('Retry'), findsOneWidget);
+      expect(find.text('Choose from contacts'), findsNothing);
+      expect(driver.pickManyCalls + driver.pickOneCalls, 0);
+      fail = false;
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+      expect((await service.read())['stage'], 'username');
+      expect(find.byKey(const Key('onboarding-username')), findsOneWidget);
+      expect(find.text('Choose from contacts'), findsNothing);
+      expect(driver.pickManyCalls + driver.pickOneCalls, 0);
+      expect(requests.where((r) => r.path == '/api/quizzes/mode'), isEmpty);
+    },
+  );
+
+  testWidgets(
+    'four enrolled students open contacts using only the save response',
+    (tester) async {
+      final requests = <RequestOptions>[];
+      final service = await mount(tester, signedIn: true, requests: requests);
+      await profile(tester);
+      await chooseCampus(tester);
+      expect(find.text('Choose from contacts'), findsOneWidget);
+      expect(find.byKey(const Key('onboarding-username')), findsNothing);
+      expect((await service.read())['stage'], 'contacts');
+      expect(requests.where((r) => r.path == '/api/quizzes/mode'), isEmpty);
+    },
+  );
+
+  testWidgets(
+    'failed campus check shows retry on the school form, never contacts',
+    (tester) async {
+      var fail = true;
+      final service = await mount(
+        tester,
+        signedIn: true,
+        onboarding: (req, h) {
+          if (req.data['step'] != 'school') {
+            h.resolve(Response(requestOptions: req, data: <String, dynamic>{}));
+          } else if (fail) {
+            h.reject(
+              DioException(
+                requestOptions: req,
+                type: DioExceptionType.receiveTimeout,
+              ),
+            );
+          } else {
+            h.resolve(
+              Response(
+                requestOptions: req,
+                data: {
+                  'status': 'selected',
+                  'school': school,
+                  'contactsRequirement': {
+                    'required': false,
+                    'mode': 'school',
+                    'joined': 5,
+                    'threshold': 5,
+                  },
+                },
+              ),
+            );
+          }
+        },
+      );
+      await profile(tester);
+      await chooseCampus(tester);
+      expect((await service.read())['stage'], 'school');
+      expect(find.text('Choose from contacts'), findsNothing);
+      expect(find.byKey(const Key('onboarding-username')), findsNothing);
+      fail = false;
+      await tester.ensureVisible(find.text('Continue'));
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('onboarding-username')), findsOneWidget);
+      expect(find.text('Choose from contacts'), findsNothing);
+    },
+  );
+
   testWidgets(
     'five enrolled students bypass contact permission and open username setup',
     (tester) async {
-      final service = await mount(tester, schoolMode: true);
+      final pickerDriver = FakeContactPickerDriver();
+      ContactPickerService.instance.debugDriver(pickerDriver);
+      addTearDown(ContactPickerService.instance.resetDriverForTest);
+      final requests = <RequestOptions>[];
+      final service = await mount(tester, schoolMode: true, requests: requests);
       await profile(tester);
       await tester.enterText(find.byKey(const Key('school-search')), 'Central');
       await tester.pump(const Duration(milliseconds: 350));
@@ -145,6 +310,8 @@ void main() {
       expect(find.text('Choose from contacts'), findsNothing);
       expect((await service.read())['stage'], 'username');
       expect(await LocalGameService.instance.getNames(), isEmpty);
+      expect(pickerDriver.pickManyCalls + pickerDriver.pickOneCalls, 0);
+      expect(requests.where((r) => r.path == '/api/quizzes/mode'), isEmpty);
     },
   );
 
