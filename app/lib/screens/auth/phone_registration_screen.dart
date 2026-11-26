@@ -229,7 +229,7 @@ class _PhoneRegistrationScreenState
                       const Text(
                         'Use your number to sign in and let friends find you. '
                         'Firebase verifies your number; Flyprox stores it for your account. '
-                        'Phone login is optional. Choose your country code below.',
+                        'Choose your country code below.',
                         style: TextStyle(
                           color: Colors.white70,
                           fontSize: 15,

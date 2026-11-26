@@ -698,7 +698,7 @@ void main() {
   });
 
   testWidgets(
-    'fallback round explains itself and keeps the flag in the draft',
+    'fallback round keeps selected names and draft without extra notices',
     (tester) async {
       SharedPreferences.setMockInitialValues({
         'contact_labels_by_hash_v1': '{"matched-hash":"Маша"}',
@@ -742,9 +742,13 @@ void main() {
       expect(find.text('Fallback question 0'), findsOneWidget);
       expect(
         find.text('Using the names you selected for this round.'),
-        findsOneWidget,
+        findsNothing,
       );
-      expect(find.text('Change filters'), findsOneWidget);
+      expect(find.text('Change filters'), findsNothing);
+      expect(
+        find.textContaining('Premium recipients can reveal'),
+        findsNothing,
+      );
       for (final name in ['Али', 'Маша', 'Даня', 'Саша']) {
         expect(find.text(name), findsOneWidget);
       }

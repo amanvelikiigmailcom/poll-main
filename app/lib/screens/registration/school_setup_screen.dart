@@ -406,8 +406,6 @@ class _SchoolSetupScreenState extends ConsumerState<SchoolSetupScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(school['name'] as String),
-                    if (school['enrollmentAvailable'] == false)
-                      const Text('Not available yet · Register your interest'),
                     Text(
                       [
                         school['city'],

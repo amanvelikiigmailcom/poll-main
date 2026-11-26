@@ -981,14 +981,6 @@ class _VoteScreenState extends State<VoteScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildQuestion(),
-                        if (_preferenceFallback) _buildFallbackNotice(),
-                        if (_sessionId != null)
-                          const Padding(
-                            padding: EdgeInsets.only(top: 12),
-                            child: Text(
-                              'Premium recipients can reveal your first initial or full name using limited weekly reveals. If you also have active Premium, your name and first initial are protected.',
-                            ),
-                          ),
                         const SizedBox(height: 20),
                         _buildOptionsGrid(),
                         const SizedBox(height: 16),
@@ -1072,13 +1064,6 @@ class _VoteScreenState extends State<VoteScreen>
                 },
               ),
             ),
-            if (_sessionId != null)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Text(
-                  'By submitting, you acknowledge that Premium recipients can reveal your first initial or full name using limited weekly reveals. If you also have active Premium, your name and first initial are protected.',
-                ),
-              ),
             if (_submitError case final error?)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -1171,34 +1156,6 @@ class _VoteScreenState extends State<VoteScreen>
       ),
     );
   }
-
-  /// Round-level notice: the server found nobody matching the quiz filters
-  /// and dealt a plain contacts round with the local test names instead.
-  Widget _buildFallbackNotice() => Container(
-    margin: const EdgeInsets.only(top: 12),
-    padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
-    decoration: BoxDecoration(
-      color: AppColors.white,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: AppColors.border),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Using the names you selected for this round.',
-          style: TextStyle(height: 1.4),
-        ),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton(
-            onPressed: () => showQuizPreferences(context),
-            child: const Text('Change filters'),
-          ),
-        ),
-      ],
-    ),
-  );
 
   Widget _buildQuestion() {
     return Text(
