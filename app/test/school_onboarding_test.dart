@@ -484,7 +484,7 @@ void main() {
           requestOptions: requests['New']!,
           data: {
             'schools': [
-              {...school, 'name': 'New School'},
+              {...school, 'name': 'New School', 'enrollmentAvailable': false},
             ],
             'available': true,
           },
@@ -492,6 +492,18 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('New School'), findsOneWidget);
+      expect(
+        find.text('Not available yet · Register your interest'),
+        findsNothing,
+      );
+      expect(
+        tester
+            .widget<OutlinedButton>(
+              find.widgetWithText(OutlinedButton, 'New School'),
+            )
+            .onPressed,
+        isNotNull,
+      );
       handlers['Old']!.resolve(
         Response(
           requestOptions: requests['Old']!,
