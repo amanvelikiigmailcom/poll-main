@@ -51,6 +51,8 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
   String? _error;
   bool _loading = false;
   bool _busy = false;
+  final Set<String> _pendingRequests = {};
+  bool _publishingRequestChange = false;
   bool _guest = false;
   bool _needsHandle = false;
   bool _needsCampus = false;
@@ -236,7 +238,10 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
   }
 
   Future<void> _action(Map<String, dynamic> user, String action) async {
-    if (_busy) return;
+    final id = user['id'] as String;
+    final inlineRequest =
+        _isSearch && (action == 'request' || action == 'cancel');
+    if (_busy || _pendingRequests.contains(id)) return;
     if (action == 'report') {
       await showSupportEmail(
         context,
@@ -248,6 +253,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
     }
     final owner = await _storage.getToken();
     if (!mounted) return;
+    if (_busy || _pendingRequests.contains(id)) return;
     if (['block', 'remove', 'unblock'].contains(action)) {
       final confirmed = await showDialog<bool>(
         context: context,
@@ -281,17 +287,59 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
       if (confirmed != true || !mounted) return;
     }
     if (owner != await _storage.getToken() || !mounted) return;
+    // Both taps can pass the first guard while credential reads are awaiting.
+    if (_busy || _pendingRequests.contains(id)) return;
     final generation = _generation;
-    setState(() => _busy = true);
+    setState(() {
+      if (inlineRequest) {
+        _pendingRequests.add(id);
+      } else {
+        _busy = true;
+      }
+    });
     try {
       final service = ref.read(socialServiceProvider);
-      await service.act(user['id'] as String, action);
+      final result = await service.act(id, action);
       if (owner != await _storage.getToken() ||
           !mounted ||
           generation != _generation) {
         return;
       }
       ref.invalidate(socialSummaryProvider);
+      if (inlineRequest) {
+        // Keep this user's card in place. Other mounted screens still refresh,
+        // but sending a request must not clear or reorder this search.
+        final relationship = result['relationship'];
+        if (![
+          'none',
+          'incoming',
+          'outgoing',
+          'friends',
+        ].contains(relationship)) {
+          await _load();
+          return;
+        }
+        List<Map<String, dynamic>> patch(List<Map<String, dynamic>> cards) =>
+            cards
+                .map(
+                  (card) => card['id'] == id
+                      ? {...card, 'relationship': relationship}
+                      : card,
+                )
+                .toList();
+        setState(() {
+          _users = patch(_users);
+          _mutuals = patch(_mutuals);
+          _campus = patch(_campus);
+        });
+        _publishingRequestChange = true;
+        try {
+          ref.read(socialVisibilityRevisionProvider.notifier).changed();
+        } finally {
+          _publishingRequestChange = false;
+        }
+        return;
+      }
       if (action == 'hide' || action == 'show') {
         ref.read(socialVisibilityRevisionProvider.notifier).changed();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -327,7 +375,15 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
         );
       }
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() {
+          if (inlineRequest) {
+            _pendingRequests.remove(id);
+          } else {
+            _busy = false;
+          }
+        });
+      }
     }
   }
 
@@ -356,6 +412,7 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
       });
     }
     ref.listen(socialVisibilityRevisionProvider, (_, _) {
+      if (_publishingRequestChange) return;
       _debounce?.cancel();
       unawaited(_load());
     });
@@ -613,6 +670,17 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
                 'No more people from your campus yet.',
                 () => setState(() => _campusLimit += 20),
               ),
+              if (_campus.isNotEmpty || _mutuals.isNotEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text(
+                    'Counts include people you’ve already sent a request to.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
               if (_mutuals.isEmpty)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 12),
@@ -741,11 +809,15 @@ class _SocialScreenState extends ConsumerState<SocialScreen>
           padding: const EdgeInsets.only(right: 6, top: 4),
           child: primary
               ? FilledButton(
-                  onPressed: _busy ? null : () => _action(user, action),
+                  onPressed: _busy || _pendingRequests.contains(user['id'])
+                      ? null
+                      : () => _action(user, action),
                   child: Text(label),
                 )
               : TextButton(
-                  onPressed: _busy ? null : () => _action(user, action),
+                  onPressed: _busy || _pendingRequests.contains(user['id'])
+                      ? null
+                      : () => _action(user, action),
                   child: Text(label),
                 ),
         );

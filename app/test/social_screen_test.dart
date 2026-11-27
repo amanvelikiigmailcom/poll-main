@@ -118,6 +118,17 @@ class BlockHintSocial extends FakeSocial {
   }
 }
 
+class PendingActionSocial extends FakeSocial {
+  PendingActionSocial(super.api, super.storage);
+  final pending = <String, Completer<Map<String, dynamic>>>{};
+
+  @override
+  Future<Map<String, dynamic>> act(String id, String action) {
+    actions.add('$id:$action');
+    return pending.putIfAbsent('$id:$action', Completer.new).future;
+  }
+}
+
 void main() {
   test('game belongs to Home; each other destination has its own tab', () {
     for (final route in ['/home', '/vote', '/timer', '/star-received']) {
@@ -156,6 +167,205 @@ void main() {
     );
     await tester.pumpAndSettle();
   }
+
+  PendingActionSocial campusSocial(SessionStorage storage) =>
+      PendingActionSocial(ApiService(storage), storage)
+        ..suggestionData = {
+          'friendsOfFriends': [],
+          'campus': [
+            {'id': 'one', 'username': 'alex_123', 'relationship': 'none'},
+            {'id': 'two', 'username': 'sam_123', 'relationship': 'none'},
+          ],
+        };
+
+  Finder card(String id) => find.byKey(ValueKey('suggestion-$id'));
+  Finder add(String id) =>
+      find.descendant(of: card(id), matching: find.text('Add friend'));
+
+  testWidgets('sending keeps cards and count stable without reloading', (
+    tester,
+  ) async {
+    final storage = SessionStorage();
+    final social = campusSocial(storage);
+    await mount(tester, storage, social);
+    final originalPosition = tester.getTopLeft(card('two'));
+    await tester.tap(add('one'));
+    await tester.pump();
+    expect(card('one'), findsOneWidget);
+    expect(card('two'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.ancestor(of: add('two'), matching: find.byType(FilledButton)),
+          )
+          .onPressed,
+      isNotNull,
+    );
+    social.pending['one:request']!.complete({'relationship': 'outgoing'});
+    await tester.pumpAndSettle();
+    expect(find.text('Request sent'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
+    // TextButton and FilledButton metrics can differ by one logical pixel.
+    expect(tester.getTopLeft(card('two')).dx, originalPosition.dx);
+    expect(tester.getTopLeft(card('two')).dy, closeTo(originalPosition.dy, 2));
+    expect(social.suggestionCalls, 1);
+    expect(social.actions, ['one:request']);
+  });
+
+  testWidgets(
+    'different cards send concurrently and same card cannot double tap',
+    (tester) async {
+      final storage = SessionStorage();
+      final social = campusSocial(storage);
+      await mount(tester, storage, social);
+      await tester.tap(add('one'));
+      await tester.pump();
+      await tester.tap(add('one'));
+      await tester.tap(add('two'));
+      await tester.pump();
+      expect(social.actions, ['one:request', 'two:request']);
+      social.pending['two:request']!.complete({'relationship': 'outgoing'});
+      await tester.pumpAndSettle();
+      social.pending['one:request']!.complete({'relationship': 'outgoing'});
+      await tester.pumpAndSettle();
+      expect(find.text('Request sent'), findsNWidgets(2));
+      expect(social.suggestionCalls, 1);
+    },
+  );
+
+  testWidgets('failed request keeps Add friend and allows retry', (
+    tester,
+  ) async {
+    final storage = SessionStorage();
+    final social = campusSocial(storage);
+    await mount(tester, storage, social);
+    await tester.tap(add('one'));
+    await tester.pump();
+    social.pending['one:request']!.completeError(
+      const ApiException('Network unavailable', statusCode: 503),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Network unavailable'), findsOneWidget);
+    expect(add('one'), findsOneWidget);
+    expect(find.text('Request sent'), findsNothing);
+    expect(social.suggestionCalls, 1);
+    social.pending.remove('one:request');
+    await tester.tap(add('one'));
+    await tester.pump();
+    social.pending['one:request']!.complete({'relationship': 'outgoing'});
+    await tester.pumpAndSettle();
+    expect(find.text('Request sent'), findsOneWidget);
+  });
+
+  testWidgets('cancel patches the same card without recommendation refresh', (
+    tester,
+  ) async {
+    final storage = SessionStorage();
+    final social = campusSocial(storage);
+    await mount(tester, storage, social);
+    await tester.tap(add('one'));
+    await tester.pump();
+    social.pending['one:request']!.complete({'relationship': 'outgoing'});
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancel'));
+    await tester.pump();
+    social.pending['one:cancel']!.complete({'relationship': 'none'});
+    await tester.pumpAndSettle();
+    expect(add('one'), findsOneWidget);
+    expect(find.text('Request sent'), findsNothing);
+    expect(find.text('2'), findsOneWidget);
+    expect(social.suggestionCalls, 1);
+  });
+
+  testWidgets(
+    'request completion after sign out cannot restore private cards',
+    (tester) async {
+      final storage = SessionStorage();
+      final social = campusSocial(storage);
+      await mount(tester, storage, social);
+      await tester.tap(add('one'));
+      await tester.pump();
+      await storage.clearToken();
+      await tester.pumpAndSettle();
+      social.pending['one:request']!.complete({'relationship': 'outgoing'});
+      await tester.pumpAndSettle();
+      expect(card('one'), findsNothing);
+      expect(find.text('Request sent'), findsNothing);
+      expect(find.text('Friends start with a sign-in'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('two callbacks before the next frame send only one request', (
+    tester,
+  ) async {
+    final storage = SessionStorage();
+    final social = campusSocial(storage);
+    await mount(tester, storage, social);
+    final callback = tester
+        .widget<FilledButton>(
+          find.ancestor(of: add('one'), matching: find.byType(FilledButton)),
+        )
+        .onPressed!;
+    callback();
+    callback();
+    await tester.pump();
+    expect(social.actions, ['one:request']);
+    social.pending['one:request']!.complete({'relationship': 'outgoing'});
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets(
+    'search request uses server relationship without clearing query',
+    (tester) async {
+      final storage = SessionStorage();
+      final social = campusSocial(storage);
+      await mount(tester, storage, social);
+      await tester.enterText(find.byType(TextField), 'alex');
+      await tester.pump(const Duration(milliseconds: 350));
+      social.results['alex']!.complete({
+        'users': [
+          {'id': 'one', 'username': 'alex_123', 'relationship': 'none'},
+        ],
+      });
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Add friend'));
+      await tester.pump();
+      social.pending['one:request']!.complete({'relationship': 'friends'});
+      await tester.pumpAndSettle();
+      expect(find.text('Friends'), findsOneWidget);
+      expect(find.text('Request sent'), findsNothing);
+      expect(
+        tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        'alex',
+      );
+      expect(social.searches, ['alex']);
+    },
+  );
+
+  testWidgets('late request cannot patch results of a newer search', (
+    tester,
+  ) async {
+    final storage = SessionStorage();
+    final social = campusSocial(storage);
+    await mount(tester, storage, social);
+    await tester.tap(add('one'));
+    await tester.pump();
+    await tester.enterText(find.byType(TextField), 'sam');
+    await tester.pump(const Duration(milliseconds: 350));
+    social.results['sam']!.complete({
+      'users': [
+        {'id': 'two', 'username': 'sam_123', 'relationship': 'none'},
+      ],
+    });
+    await tester.pumpAndSettle();
+    social.pending['one:request']!.complete({'relationship': 'outgoing'});
+    await tester.pumpAndSettle();
+    expect(find.text('@alex_123'), findsNothing);
+    expect(find.text('@sam_123'), findsOneWidget);
+    expect(find.text('Request sent'), findsNothing);
+  });
 
   testWidgets(
     'reviewer without campus sees an editor action and no misleading campus recommendations',
