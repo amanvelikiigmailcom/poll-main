@@ -10,8 +10,9 @@ not a deployment, installed-build or native-device acceptance report.
 - Backend branch: `fix/four-candidate-fallback-20261127`, based on the existing
   school-ranking-V2 branch. The canonical backend main does not yet contain
   that branch's previously deployed work; integration must preserve it.
-- No push, production deployment, native/cloud build or TestFlight upload
-  was performed by this task.
+- At initial source preparation, no push/deployment had occurred. The owner
+  subsequently authorized backend release and source pushes without app builds;
+  see the publication follow-up below.
 - Canonical client's pre-existing `.gitignore` modification was not touched.
 
 ## Confirmed causes
@@ -119,8 +120,31 @@ request/cancellation. Private evidence and before/after snapshots:
 
 ## Remaining acceptance
 
-The prepared changes are not active on production or the installed iPhone app.
-A newly issued Aman V2 round after his normal timer, native UI behavior,
-APNs delivery and purchase flows are not proven by this task.
-Production migration is not needed by these code changes; push/deployment and
-any new native build still require the current owner's release authorization.
+Native iPhone UI behavior, APNs delivery and purchase flows are not proven by
+this task. The client card fix is not in the installed binary. No native build
+or upload was authorized or started.
+
+## Publication follow-up
+
+The owner subsequently authorized backend publication/deployment and source-only
+frontend push, explicitly without an application build or app-store upload.
+
+- Backend source was published to canonical GitHub main. The actual release,
+  verification timestamp, preserved runtime settings, private backups and
+  rollback are recorded only in the backend's
+  [runtime-status](/Users/amanyessen/projects/flyprox_backend/docs/runtime-status.md).
+- Post-switch authenticated Aman acceptance returned a new V2 round with12
+  questions and four displayed candidates plus four reserves per question.
+  The shown fours covered23 different people including15 QA participants.
+  Reload was identical. No votes were submitted; balance, timer, received-vote
+  counter and enrollment stayed unchanged. No reviewer reset was performed.
+- The server full suite passed471 tests; live metadata before/after showed
+  39 tables and0 differences. A first test-only attempt that inherited Redis
+  settings was stopped before switching; isolated tests passed afterward.
+- Client code and this report are published in branch
+  `fix/aman-campus-actions-20261127`, with `[ci skip]`; no main integration or
+  installed-client release is implied. GitHub Actions listed no runs on that
+  branch at publication. The repeated full client suite passed658 tests, with
+  zero analyzer errors/warnings and the same10 reviewed infos.
+- A cached device-local draft does not automatically become a fresh server
+  round. New server behavior applies when the client loads a round online.
